@@ -21,8 +21,9 @@ import {
   RefreshCw,
   Layers,
   Bell,
+  Settings,
 } from "lucide-react";
-
+import DisasterMap from "../../components/DisasterMap";
 // --- Local Mock Data for Dashboard Content ---
 const mockMetrics = [
   {
@@ -32,7 +33,7 @@ const mockMetrics = [
     icon: <MapPin size={16} />,
   },
   {
-    title: "Total Documents",
+    title: "Total Evacuees",
     value: "2,300",
     change: "-4.5%",
     icon: <Bell size={16} />,
@@ -51,14 +52,15 @@ const mockMetrics = [
   },
 ];
 
+// Sample evacuee data (you can replace with dynamic API data)
 const evacueesData = [
-  { name: "100", value: 300 },
-  { name: "200", value: 450 },
-  { name: "300", value: 250 },
-  { name: "400", value: 500 },
-  { name: "500", value: 380 },
-  { name: "600", value: 550 },
-  { name: "700", value: 420 },
+  { day: "Mon", evacuees: 420 },
+  { day: "Tue", evacuees: 510 },
+  { day: "Wed", evacuees: 480 },
+  { day: "Thu", evacuees: 530 },
+  { day: "Fri", evacuees: 620 },
+  { day: "Sat", evacuees: 580 },
+  { day: "Sun", evacuees: 670 },
 ];
 
 const recentAnnouncements = [
@@ -108,272 +110,293 @@ const cardGradientStyle = {
 };
 
 // --- Map Component Placeholder ---
-const MapOverview = () => (
-  <Card
-    className="col-span-full h-[550px] dark:border-neutral-800"
-    style={cardGradientStyle}
-  >
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-white">
-        Map Overview
-      </CardTitle>
-      <div className="flex items-center space-x-4">
-        <div className="text-xs text-neutral-400">Legend:</div>
-        <div className="flex items-center space-x-2 text-xs text-neutral-300">
-          <span className="h-2 w-2 rounded-full bg-red-500"></span>
-          <span>Warning</span>
+const MapOverview: React.FC = () => {
+  return (
+    <Card
+      className="col-span-full h-[550px] border-0 relative pb-10"
+      style={cardGradientStyle}
+    >
+      {/* Header with Legend */}
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between border-b-0 space-y-2 md:space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-white">
+          Map Overview
+        </CardTitle>
+        <div className="flex items-center space-x-4">
+          <div className="text-xs text-white">Legend:</div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2 text-xs text-neutral-300">
+              <span className="h-2 w-2 rounded-full bg-blue-400"></span>
+              <span>Searched</span>
+            </div>{" "}
+            <div className="flex items-center space-x-2 text-xs text-neutral-300">
+              <span className="h-2 w-2 rounded-full bg-red-500"></span>
+              <span>Urgent</span>
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-neutral-300">
+              <span className="h-2 w-2 rounded-full bg-orange-500"></span>
+              <span>Evacuation Centers</span>
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-neutral-300">
+              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+              <span>Volunteers</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center space-x-2 text-xs text-neutral-300">
-          <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
-          <span>Evacuation Centers</span>
-        </div>
-        <div className="flex items-center space-x-2 text-xs text-neutral-300">
-          <span className="h-2 w-2 rounded-full bg-green-500"></span>
-          <span>Volunteers</span>
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent className="h-full relative p-6">
-      {/* Search Bar for Map */}
-      <div className="absolute top-10 left-10 z-10 w-80">
-        <div className="flex items-center bg-black/70 border border-neutral-700 rounded-lg p-2 backdrop-blur-sm">
-          <Search size={16} className="text-neutral-400 mr-2" />
-          <input
-            type="text"
-            placeholder="Search Google Maps"
-            className="bg-transparent text-white text-sm w-full outline-none placeholder:text-neutral-400"
-          />
-          <Layers
-            size={16}
-            className="text-neutral-400 ml-2 cursor-pointer hover:text-white"
-          />
-        </div>
-      </div>
+      </CardHeader>
 
-      {/* Map Content - Using a dark, simplified map image as a placeholder */}
-      <div className="h-full w-full rounded-xl overflow-hidden">
-        <img
-          src="/images/map-placeholder.png"
-          alt="Map Overview"
-          className="w-full h-full object-cover"
-          style={{
-            filter: "grayscale(0.8) brightness(0.7) contrast(1.2)",
-            opacity: 0.8,
-          }}
-        />
-        {/* Placeholder text for the detailed map area */}
-        <div className="absolute inset-0 flex items-center justify-center text-4xl font-bold text-neutral-600 opacity-20 pointer-events-none">
-          GEOSPATIAL DATA
+      {/* Content Section */}
+      <CardContent className="h-full relative  ">
+        {/* 🔍 Search Bar */}
+        {/* <div className="absolute top-10 left-10 z-10 w-80">
+          <div className="flex items-center bg-black/70 border border-neutral-700 rounded-lg p-2 backdrop-blur-sm">
+            <Search size={16} className="text-neutral-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Search location..."
+              className="bg-transparent text-white text-sm w-full outline-none placeholder:text-neutral-400"
+            />
+            <Layers
+              size={16}
+              className="text-neutral-400 ml-2 cursor-pointer hover:text-white"
+            />
+          </div>
+        </div> */}
+
+        {/* 🗺️ Real Map */}
+        <div className="h-full w-full rounded-xl overflow-hidden">
+          <DisasterMap />
         </div>
-      </div>
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
+};
 
 // --- Recharts Bar Chart Component ---
 const EvacueesTrendChart = () => (
-  <Card className="dark:border-neutral-800" style={cardGradientStyle}>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+  <Card className="border-0 h-full" style={cardGradientStyle}>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
       <CardTitle className="text-sm font-medium text-white">
-        Evacuees Trend
+        Evacuees Trend (Past 7 Days)
       </CardTitle>
       <ChevronDown size={16} className="text-neutral-400" />
     </CardHeader>
+
     <CardContent>
-      <ResponsiveContainer width="100%" height={100}>
+      <ResponsiveContainer width="100%" height={250}>
         <BarChart
           data={evacueesData}
-          margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+          margin={{ top: 10, right: 0, left: 0, bottom: 10 }}
         >
-          <XAxis dataKey="name" hide />
-          <YAxis hide domain={[0, 600]} />
+          <XAxis
+            dataKey="day"
+            tick={{ fill: "#9ca3af", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fill: "#9ca3af", fontSize: 12 }}
+            axisLine={false}
+            tickLine={false}
+            width={35}
+          />
           <Tooltip
             cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
             content={({ active, payload }) => {
               if (active && payload && payload.length) {
                 return (
                   <div className="p-2 bg-neutral-900 border border-neutral-700 rounded-md text-white text-xs">
-                    {`${payload[0].value} Evacuees`}
+                    <p className="font-semibold text-blue-400">
+                      {payload[0].payload.day}
+                    </p>
+                    <p>{`${payload[0].value} Evacuees`}</p>
                   </div>
                 );
               }
               return null;
             }}
           />
-          <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="evacuees" fill="#3b82f6" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-      <p className="text-xs text-neutral-400 pt-2">- (23) then last week</p>
 
-      {/* Metrics below the chart */}
-      <div className="grid grid-cols-2 gap-4 mt-4 text-xs text-white">
-        <div className="flex flex-col">
-          <span className="text-neutral-400">Users</span>
-          <span className="font-semibold text-lg">32,984</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-neutral-400">Clicks</span>
-          <span className="font-semibold text-lg">2.42M</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-neutral-400">Sales</span>
-          <span className="font-semibold text-lg">2,400$</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-neutral-400">Items</span>
-          <span className="font-semibold text-lg">320</span>
-        </div>
-      </div>
+      <p className="text-xs text-neutral-400 pt-2">
+        Showing evacuees count for the past week
+      </p>
     </CardContent>
   </Card>
 );
 
 // --- Resource Levels Card ---
-const ResourceLevelsCard = () => (
-  <Card className="dark:border-neutral-800" style={cardGradientStyle}>
-    <CardHeader className="flex flex-col space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-white">
-        Resource Levels
-      </CardTitle>
-      <p className="text-xs text-neutral-400">
-        Hello, Mark Johnson! Your Car is ready
-      </p>
-    </CardHeader>
-    <CardContent className="flex flex-col items-center">
-      {/* Battery/Health Circle */}
-      <div className="relative w-32 h-32 flex items-center justify-center mt-4 mb-6">
-        {/* SVG Circle for the progress ring */}
-        <svg viewBox="0 0 100 100" className="absolute">
-          <circle
-            cx="50"
-            cy="50"
-            r="45"
-            fill="none"
-            stroke="#1f2937"
-            strokeWidth="10"
-          />
-          <circle
-            cx="50"
-            cy="50"
-            r="45"
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="10"
-            strokeLinecap="round"
-            strokeDasharray={2 * Math.PI * 45}
-            strokeDashoffset={(1 - 0.68) * 2 * Math.PI * 45}
-            transform="rotate(-90 50 50)"
-          />
-        </svg>
-        <span className="text-3xl font-bold text-white">68%</span>
-        <span className="absolute bottom-2 text-xs text-neutral-400">
-          Current load
-        </span>
-      </div>
+const ResourceLevelsCard = () => {
+  const resources = [
+    { name: "Food Supplies", percent: 85, color: "#22c55e" }, // green
+    { name: "Water", percent: 60, color: "#3b82f6" }, // blue
+    { name: "Medical Kits", percent: 40, color: "#f59e0b" }, // orange
+    { name: "Fuel", percent: 25, color: "#ef4444" }, // red
+    { name: "Blankets", percent: 70, color: "#a855f7" }, // purple
+  ];
 
-      <p className="text-xl font-bold text-white mb-6">0h 58 min</p>
-      <p className="text-xs text-neutral-400">Time to full charge</p>
+  return (
+    <Card className="border-0" style={cardGradientStyle}>
+      <CardHeader className="flex flex-col space-y-0 pb-2 border-b-0">
+        <CardTitle className="text-sm font-medium text-white">
+          Resource Levels
+        </CardTitle>
+        <p className="text-xs text-neutral-400">
+          Current available stock for disaster response
+        </p>
+      </CardHeader>
 
-      <div className="grid grid-cols-3 gap-3 w-full mt-4 border-t border-neutral-800 pt-4">
-        <div className="flex flex-col items-center">
-          <div className="flex items-center text-sm font-semibold text-white">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7 bg-blue-600/30 border-blue-500 mr-2"
-            >
-              <RefreshCw size={14} className="text-blue-500" />
-            </Button>
-            Health
-          </div>
-          <span className="text-xs text-green-400 mt-1">76%</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="flex items-center text-sm font-semibold text-white">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7 bg-blue-600/30 border-blue-500 mr-2"
-            >
-              <Bolt size={14} className="text-blue-500" />
-            </Button>
-            Consumption
-          </div>
-          <span className="text-xs text-neutral-300 mt-1">16.3W/km</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <div className="flex items-center text-sm font-semibold text-white">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-7 w-7 bg-blue-600/30 border-blue-500 mr-2"
-            >
-              <Bolt size={14} className="text-blue-500" />
-            </Button>
-            Efficiency
-          </div>
-          <span className="text-xs text-green-400 mt-1">+20%</span>
-        </div>
-      </div>
+      <CardContent className="pt-2 space-y-4">
+        {resources.map((res, i) => (
+          <div key={i}>
+            <div className="flex justify-between mb-1">
+              <span className="text-sm text-white font-medium">{res.name}</span>
+              <span
+                className={`text-xs font-semibold ${
+                  res.percent < 30
+                    ? "text-red-400"
+                    : res.percent < 60
+                    ? "text-yellow-400"
+                    : "text-green-400"
+                }`}
+              >
+                {res.percent}%
+              </span>
+            </div>
 
-      <div className="w-full mt-4 text-center">
-        <p className="text-xs text-neutral-400">This Week</p>
-        <p className="text-lg font-bold text-white">1.342km</p>
-      </div>
-    </CardContent>
-  </Card>
-);
+            {/* Progress bar */}
+            <div className="w-full bg-neutral-800 rounded-full h-2.5">
+              <div
+                className="h-2.5 rounded-full transition-all duration-500"
+                style={{
+                  width: `${res.percent}%`,
+                  backgroundColor: res.color,
+                  boxShadow: `0 0 2px ${res.color}`,
+                }}
+              ></div>
+            </div>
+          </div>
+        ))}
+
+        {/* Summary */}
+        <div className="mt-6 text-xs text-neutral-400 border-t border-neutral-800 pt-3">
+          <p>
+            Last updated: <span className="text-white">2 hours ago</span>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 // --- Recent Announcements Card ---
-const RecentAnnouncementsCard = () => (
-  <Card className="dark:border-neutral-800" style={cardGradientStyle}>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium text-white">
-        Recent Announcements
-      </CardTitle>
-      <p className="text-xs text-neutral-400">- 30 done this month</p>
-    </CardHeader>
-    <CardContent className="pt-2">
-      {/* Table Header */}
-      <div className="grid grid-cols-4 text-xs font-semibold text-neutral-400 pb-2 border-b border-neutral-800">
-        <span className="col-span-2">COMPANIES</span>
-        <span>MEMBERS</span>
-        <span>BUDGET</span>
-      </div>
+const RecentAnnouncementsCard = () => {
+  const announcements = [
+    {
+      title: "Relief Operations in Marikina",
+      author: "Philippine Red Cross",
+      time: "2 hours ago",
+      category: "Relief",
+    },
+    {
+      title: "Medical Team Deployed to Cebu",
+      author: "DSWD",
+      time: "5 hours ago",
+      category: "Health",
+    },
+    {
+      title: "Flood Alert: Cavite and Laguna",
+      author: "NDRRMC",
+      time: "1 day ago",
+      category: "Alert",
+    },
+    {
+      title: "Evacuation Centers Fully Operational",
+      author: "LGU Quezon City",
+      time: "2 days ago",
+      category: "Update",
+    },
+  ];
 
-      {/* Announcement Items */}
-      {recentAnnouncements.map((announcement, index) => (
-        <div
-          key={index}
-          className="grid grid-cols-4 items-center py-3 border-b border-neutral-800 last:border-b-0"
-        >
-          <div className="flex items-center col-span-2">
-            <div className="h-6 w-6 rounded-full bg-blue-500/20 mr-2 flex items-center justify-center text-blue-400 text-xs font-bold">
-              {announcement.name[0]}
+  const categoryColors: Record<string, string> = {
+    Relief: "#22c55e", // green
+    Health: "#3b82f6", // blue
+    Alert: "#ef4444", // red
+    Update: "#f59e0b", // yellow
+  };
+
+  return (
+    <Card className="border-0" style={cardGradientStyle}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-white">
+          Recent Announcements
+        </CardTitle>
+        <p className="text-xs text-neutral-400">
+          {announcements.length} active this week
+        </p>
+      </CardHeader>
+
+      <CardContent className="pt-2 space-y-3">
+        {announcements.map((a, i) => (
+          <div
+            key={i}
+            className="flex items-start justify-between bg-neutral-900/30 hover:bg-neutral-900/50 
+                       transition-colors rounded-xl p-3 border border-neutral-800"
+          >
+            <div className="flex flex-col">
+              <h3 className="text-sm font-medium text-white">{a.title}</h3>
+              <p className="text-xs text-neutral-400">{a.author}</p>
+              <p className="text-xs text-neutral-500 mt-1">{a.time}</p>
             </div>
-            <span className="text-sm text-white">{announcement.name}</span>
+
+            {/* Category badge */}
+            <span
+              className="text-xs font-semibold px-2 py-1 rounded-lg"
+              style={{
+                backgroundColor: `${categoryColors[a.category]}33`,
+                color: categoryColors[a.category],
+              }}
+            >
+              {a.category}
+            </span>
           </div>
-          <span className="text-sm text-white">{announcement.members}</span>
-          <span className="text-sm text-white">{announcement.budget}</span>
-        </div>
-      ))}
-    </CardContent>
-  </Card>
-);
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
 
 // --- Main Dashboard Component ---
 export default function OrgDashboard() {
   return (
-    <div className="p-4 md:p-6 space-y-4  ">
+    <div className="px-2 md:px-4 space-y-4  ">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+        </div>
+        <div className="flex items-center space-x-3">
+          {/* Search Bar */}
+          <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
+            <Search size={14} className="text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Search..."
+              className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
+            />
+          </div>
+
+          {/* Bell Button */}
+          <Button variant="ghost" size="sm" className="h-8 hover:bg-gray-600">
+            <Bell size={16} />
+          </Button>
+        </div>
+      </div>
       {/* 1. Top Row Metric Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {mockMetrics.map((metric, index) => (
-          <Card
-            key={index}
-            className="dark:border-neutral-800"
-            style={cardGradientStyle}
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card key={index} className="border-0 " style={cardGradientStyle}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
               <CardTitle className="text-sm font-medium text-white">
                 {metric.title}
               </CardTitle>
@@ -403,11 +426,15 @@ export default function OrgDashboard() {
       <MapOverview />
 
       {/* 3. Bottom Row: Chart, Resources, Announcements */}
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-3">
-        <EvacueesTrendChart />
-        <ResourceLevelsCard />
-        <RecentAnnouncementsCard />
+      <div className="grid gap-4 md:grid-cols-3 ">
+        <div>
+          <EvacueesTrendChart />
+        </div>
+        <div className="md:col-span-2">
+          <ResourceLevelsCard />
+        </div>
       </div>
+      <RecentAnnouncementsCard />
     </div>
   );
 }
