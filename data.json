@@ -1,0 +1,39 @@
+{
+  "users": [
+    {
+      "email": "test@example.com",
+      "name": "Test User",
+      "role": "citizen",
+      "passwordHash": "$2a$10$nAAsHSX/tYSFJnGGfJFSieT.bMstgDKmNnIYgaybud2JBi66wNPHa",
+      "createdAt": "2025-10-09T16:46:02.487Z"
+    },
+    {
+      "email": "newuser@example.com",
+      "name": "New User",
+      "role": "citizen",
+      "passwordHash": "$2a$10$J9pjbvQ4hSlsePQkelR/0.3I6hCjqnJSTmsFG0YjCOrOCPBhzojuO",
+      "createdAt": "2025-10-09T17:14:22.690Z"
+    },
+    {
+      "email": "org@example.com",
+      "name": "Organization User",
+      "role": "org",
+      "passwordHash": "$2a$10$kazzoyrzKvYKYH/k3QOvduqa00K797uJrr9NY8PnSOp7IqSu8l7Z2",
+      "createdAt": "2025-10-09T17:14:46.856Z"
+    },
+    {
+      "email": "Carl@gmail.com",
+      "name": "Carl",
+      "role": "citizen",
+      "passwordHash": "$2a$10$8.h8JlGDExToSNBJKYITY.rctdHrW3AcgTBZGPFsfLwLfnnPI33aK",
+      "createdAt": "2025-10-09T17:32:12.594Z"
+    },
+    {
+      "email": "controller@example.com",
+      "name": "Controller Test",
+      "role": "citizen",
+      "passwordHash": "$2a$10$Qyp.0P1AUk0x.BlVDp/wcOKvYh/ew3dy22VLggzz34SVTau8qop6i",
+      "createdAt": "2025-10-09T17:35:28.263Z"
+    }
+  ]
+}

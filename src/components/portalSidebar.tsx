@@ -23,6 +23,8 @@ interface SidebarProps {
 export function PortalSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const { currentUser, logout } = useAuth();
 
+  console.log('PortalSidebar - currentUser:', currentUser);
+
   const navItemsByRole: Record<
     string,
     Array<{ to: string; label: string; icon: JSX.Element }>
@@ -79,7 +81,11 @@ export function PortalSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     ],
   };
 
-  const items = currentUser ? navItemsByRole[currentUser.role] : [];
+  // Ensure we have a valid role and fallback to empty array
+  const role = currentUser?.role || '';
+  const items = navItemsByRole[role] || [];
+  
+  console.log('PortalSidebar - items:', items, 'role:', role);
 
   return (
     <aside
