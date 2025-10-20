@@ -1,5 +1,5 @@
 // API service for communicating with the backend
-const API_BASE_URL = 'https://disasterconnect-api.vercel.app/';
+const API_BASE_URL = 'https://disasterconnect-api.vercel.app/api';
 
 export interface User {
   id: string;
