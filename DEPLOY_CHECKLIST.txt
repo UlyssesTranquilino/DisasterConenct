@@ -1,0 +1,49 @@
+╔═══════════════════════════════════════════════════════════════╗
+║           VERCEL DEPLOYMENT CHECKLIST (FREE)                  ║
+╚═══════════════════════════════════════════════════════════════╝
+
+BACKEND (API folder)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ ] 1. cd API
+[ ] 2. Push to GitHub:
+       - git init
+       - git add .
+       - git commit -m "Backend ready"
+       - Create repo at github.com/new
+       - git remote add origin YOUR_REPO_URL
+       - git push -u origin main
+
+[ ] 3. Deploy on Vercel:
+       - Go to vercel.com/dashboard
+       - Import GitHub repo
+       - Add env var: FIREBASE_SERVICE_ACCOUNT_JSON
+       - Deploy
+
+[ ] 4. Copy backend URL: https://______.vercel.app
+
+[ ] 5. Test: curl https://______.vercel.app/
+
+
+FRONTEND (Root folder)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[ ] 6. Edit src/lib/api.ts:
+       Change line 2 to:
+       const API_BASE_URL = 'https://YOUR-BACKEND-URL.vercel.app';
+
+[ ] 7. Push to GitHub (if not already):
+       - git add .
+       - git commit -m "Update API URL"
+       - git push
+
+[ ] 8. Deploy on Vercel:
+       - Import GitHub repo
+       - Framework: Vite
+       - Deploy
+
+[ ] 9. Visit your app and test login/register!
+
+
+DONE! 🎉
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+See DEPLOY_COMPLETE.md for detailed instructions.
