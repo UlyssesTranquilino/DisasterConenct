@@ -16,18 +16,35 @@ import VolunteerDashboard from "./pages/volunteer/VolunteerDashboard";
 import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
 import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
 
-// --- Role-based route wrapper (keep for future use) ---
+// --- Role-based route wrapper ---
 function RoleRoute({
   roles,
   children,
 }: {
-  roles: Array<'Citizen' | 'Organization' | 'Volunteer'>
-  children: JSX.Element
+  roles: Array<"Citizen" | "Organization" | "Volunteer">;
+  children: JSX.Element;
 }) {
-  const { currentUser } = useAuth()
-  if (!currentUser) return <Navigate to="/login" replace />
-  if (!roles.includes(currentUser.role)) return <Navigate to="/login" replace />
-  return children
+  const { currentUser } = useAuth();
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!roles.includes(currentUser.role)) return <Navigate to="/login" replace />;
+  return children;
+}
+
+// --- Public route wrapper (NEW) ---
+function PublicRoute({ children }: { children: JSX.Element }) {
+  const { currentUser } = useAuth();
+
+  // Redirect logged-in users away from login/register
+  if (currentUser) {
+    if (currentUser.role === "Citizen")
+      return <Navigate to="/citizen/dashboard" replace />;
+    if (currentUser.role === "Organization")
+      return <Navigate to="/org/dashboard" replace />;
+    if (currentUser.role === "Volunteer")
+      return <Navigate to="/volunteer/dashboard" replace />;
+  }
+
+  return children;
 }
 
 // --- Main App Component ---
@@ -66,7 +83,7 @@ export default function App() {
             <Route
               path="/citizen/dashboard"
               element={
-                <RoleRoute roles={['Citizen']}>
+                <RoleRoute roles={["Citizen"]}>
                   <CitizenDashboard />
                 </RoleRoute>
               }
@@ -74,7 +91,7 @@ export default function App() {
             <Route
               path="/citizen/request-help"
               element={
-                <RoleRoute roles={['Citizen']}>
+                <RoleRoute roles={["Citizen"]}>
                   <RequestHelpPage />
                 </RoleRoute>
               }
@@ -82,7 +99,7 @@ export default function App() {
             <Route
               path="/citizen/centers"
               element={
-                <RoleRoute roles={['Citizen']}>
+                <RoleRoute roles={["Citizen"]}>
                   <CitizenCentersPage />
                 </RoleRoute>
               }
@@ -92,7 +109,7 @@ export default function App() {
             <Route
               path="/org/dashboard"
               element={
-                <RoleRoute roles={['Organization']}>
+                <RoleRoute roles={["Organization"]}>
                   <OrgDashboard />
                 </RoleRoute>
               }
@@ -100,7 +117,7 @@ export default function App() {
             <Route
               path="/org/centers"
               element={
-                <RoleRoute roles={['Organization']}>
+                <RoleRoute roles={["Organization"]}>
                   <OrgCentersPage />
                 </RoleRoute>
               }
@@ -108,7 +125,7 @@ export default function App() {
             <Route
               path="/org/add-center"
               element={
-                <RoleRoute roles={['Organization']}>
+                <RoleRoute roles={["Organization"]}>
                   <OrgAddCenterPage />
                 </RoleRoute>
               }
@@ -116,7 +133,7 @@ export default function App() {
             <Route
               path="/org/announcements"
               element={
-                <RoleRoute roles={['Organization']}>
+                <RoleRoute roles={["Organization"]}>
                   <OrgAnnouncementsPage />
                 </RoleRoute>
               }
