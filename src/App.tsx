@@ -1,20 +1,20 @@
-import { Route, Routes, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './lib/auth'
-import { ThemeProvider } from './lib/theme'
-import { AppLayout } from './layouts/AppLayout'
-import LoginPage from './pages/auth/LoginPage'
-import RegisterPage from './pages/auth/RegisterPage'
-import LandingPage from './pages/LandingPage'
-import CitizenDashboard from './pages/citizen/CitizenDashboard'
-import RequestHelpPage from './pages/citizen/RequestHelpPage'
-import CitizenCentersPage from './pages/citizen/CitizenCentersPage'
-import OrgDashboard from './pages/org/OrgDashboard'
-import OrgCentersPage from './pages/org/OrgCentersPage'
-import OrgAddCenterPage from './pages/org/OrgAddCenterPage'
-import OrgAnnouncementsPage from './pages/org/OrgAnnouncementsPage'
-import VolunteerDashboard from './pages/volunteer/VolunteerDashboard'
-import VolunteerNeedsPage from './pages/volunteer/VolunteerNeedsPage'
-import VolunteerRegisterPage from './pages/volunteer/VolunteerRegisterPage'
+import { Route, Routes, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./lib/auth";
+import { ThemeProvider } from "./lib/theme";
+import { AppLayout } from "./layouts/AppLayout";
+import LoginPage from "./pages/auth/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import LandingPage from "./pages/LandingPage";
+import CitizenDashboard from "./pages/citizen/CitizenDashboard";
+import RequestHelpPage from "./pages/citizen/RequestHelpPage";
+import CitizenCentersPage from "./pages/citizen/CitizenCentersPage";
+import OrgDashboard from "./pages/org/OrgDashboard";
+import OrgCentersPage from "./pages/org/OrgCentersPage";
+import OrgAddCenterPage from "./pages/org/OrgAddCenterPage";
+import OrgAnnouncementsPage from "./pages/org/OrgAnnouncementsPage";
+import VolunteerDashboard from "./pages/volunteer/VolunteerDashboard";
+import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
+import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
 
 // --- Role-based route wrapper (keep for future use) ---
 function RoleRoute({
@@ -38,8 +38,22 @@ export default function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicRoute>
+                <RegisterPage />
+              </PublicRoute>
+            }
+          />
 
           {/* Volunteer routes (no role check while testing) */}
           <Route path="/volunteer/dashboard" element={<VolunteerDashboard />} />
@@ -114,5 +128,5 @@ export default function App() {
         </Routes>
       </AuthProvider>
     </ThemeProvider>
-  )
+  );
 }
