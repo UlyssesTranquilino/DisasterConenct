@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import VolunteerMap from "../../components/VolunteerMap";
@@ -22,18 +22,25 @@ export default function VolunteerDashboard() {
       status: "Online",
       date: "14/06/21",
     },
-    // ... rest of your volunteer data
   ]);
 
   const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
+
+  // Remove scrollbar from entire page
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const handleLocationSelect = (location: MapLocation) => {
     setSelectedLocation(location);
   };
 
   return (
-    <div className="p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="pt-1 pb-6 overflow-hidden h-screen">
+      <div className="max-w-7xl mx-auto space-y-8 h-full overflow-hidden">
 
         {/* --- Header Cards --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -77,7 +84,7 @@ export default function VolunteerDashboard() {
             </button>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-hidden">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-gray-400 text-left border-b border-white/10">
@@ -118,57 +125,61 @@ export default function VolunteerDashboard() {
         </div>
 
         {/* --- Map & Center Detail --- */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-6 h-[500px]">
           {/* Map Section */}
-          <div className="lg:col-span-2 rounded-2xl border border-white/10 h-96">
+          <div className="lg:col-span-2 rounded-2xl border border-white/10 h-full">
             <VolunteerMap onLocationSelect={handleLocationSelect} />
           </div>
 
           {/* Detail Section */}
-          <div className="rounded-2xl border border-white/10 p-6 space-y-4">
-            <h2 className="text-lg font-semibold">
-              {selectedLocation ? selectedLocation.name : "Evacuation Center Detail"}
-            </h2>
+          <div className="rounded-2xl bg-transparent border border-white/10 h-full flex flex-col">
+            <div className="p-6 border-b border-white/10">
+              <h2 className="text-lg font-semibold">
+                {selectedLocation ? selectedLocation.name : "Evacuation Center Detail"}
+              </h2>
+            </div>
             
-            {selectedLocation ? (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Capacity</span>
-                  <span className="text-gray-200">{selectedLocation.capacity} people</span>
+            <div className="flex-1 p-6 space-y-4">
+              {selectedLocation ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Capacity</span>
+                    <span className="text-gray-200">{selectedLocation.capacity} people</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Current Occupancy</span>
+                    <span className="text-emerald-400 font-semibold">{selectedLocation.occupancy}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300">Contact</span>
+                    <span className="text-gray-200">{selectedLocation.contact}</span>
+                  </div>
+                  <div className="pt-2 border-t border-white/10">
+                    <p className="text-gray-300 mb-2">Available Supplies:</p>
+                    <ul className="text-sm text-gray-400 space-y-1">
+                      {selectedLocation.supplies.map((supply, index) => (
+                        <li key={index}>• {supply}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Current Occupancy</span>
-                  <span className="text-emerald-400 font-semibold">{selectedLocation.occupancy}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Contact</span>
-                  <span className="text-gray-200">{selectedLocation.contact}</span>
-                </div>
-                <div className="pt-2 border-t border-white/10">
-                  <p className="text-gray-300 mb-2">Available Supplies:</p>
-                  <ul className="text-sm text-gray-400 space-y-1">
-                    {selectedLocation.supplies.map((supply, index) => (
-                      <li key={index}>• {supply}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-400">
-                Click on a map marker to view center details
-                <br />• Shows capacity, available supplies, contact, and occupancy
-              </p>
-            )}
+              ) : (
+                <p className="text-sm text-gray-400">
+                  Click on a map marker to view center details
+                  <br />• Shows capacity, available supplies, contact, and occupancy
+                </p>
+              )}
 
-            {/* Additional stats that show regardless of selection */}
-            <div className="pt-4 border-t border-white/10 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">System Status</span>
-                <span className="text-emerald-400 font-semibold">Operational</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300">Active Centers</span>
-                <span className="text-gray-200">3/5</span>
+              {/* Additional stats that show regardless of selection */}
+              <div className="pt-4 border-t border-white/10 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">System Status</span>
+                  <span className="text-emerald-400 font-semibold">Operational</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-300">Active Centers</span>
+                  <span className="text-gray-200">3/5</span>
+                </div>
               </div>
             </div>
           </div>

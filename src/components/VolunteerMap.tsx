@@ -72,7 +72,7 @@ export default function VolunteerMap({ onLocationSelect }: VolunteerMapProps) {
         center={defaultCenter}
         zoom={13}
         style={{ height: '100%', width: '100%', borderRadius: '0.75rem' }}
-        scrollWheelZoom={true} // Changed to true for scroll wheel zoom
+        scrollWheelZoom={true}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -90,15 +90,15 @@ export default function VolunteerMap({ onLocationSelect }: VolunteerMapProps) {
           >
             <Popup>
               <div className="p-2 min-w-[200px]">
-                <h3 className="font-semibold text-sm text-gray-900">{center.name}</h3>
-                <p className="text-xs text-gray-700 mt-1"> {/* Changed from gray-600 to gray-700 for better visibility */}
+                <h3 className="font-semibold text-sm text-blue-600">{center.name}</h3>
+                <p className="text-xs text-gray-200 mt-1"> {/* Changed from gray-600 to gray-700 for better visibility */}
                   <strong>Capacity:</strong> {center.capacity}<br />
                   <strong>Occupancy:</strong> {center.occupancy}%<br />
                   <strong>Contact:</strong> {center.contact}
                 </p>
                 <div className="mt-2">
-                  <p className="text-xs font-medium text-gray-900">Available Supplies:</p>
-                  <ul className="text-xs text-gray-700 space-y-1 mt-1"> {/* Changed from gray-600 to gray-700 */}
+                  <p className="text-sm font-semibold text-blue-600">Available Supplies:</p>
+                  <ul className="text-xs text-gray-200 space-y-1 mt-1"> {/* Changed from gray-600 to gray-700 */}
                     {center.supplies.map((supply, index) => (
                       <li key={index}>• {supply}</li>
                     ))}

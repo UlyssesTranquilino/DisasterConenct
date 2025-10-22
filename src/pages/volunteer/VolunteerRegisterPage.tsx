@@ -43,14 +43,14 @@ export default function VolunteerRegisterPage() {
     <div className="w-full p-6 flex justify-center items-center h-screen overflow-hidden"> 
       <Card className="w-full max-w-6xl bg-white border border-slate-300 shadow-md py-6 px-8 mx-auto"> 
         <CardHeader className="pb-4">
-          <CardTitle className="text-4xl font-bold text-center text-blue-700">
+          <CardTitle className="text-5xl font-bold text-center text-blue-700">
             Volunteer Registration
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4 text-4xl">
           {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-4 text-slate-800">
+            <form onSubmit={handleSubmit} className="space-y-4 text-blue-700">
               {/* Name */}
               <div className="space-y-2">
                 <label className="block text-base font-medium">Full Name</label>

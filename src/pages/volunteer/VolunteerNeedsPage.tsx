@@ -42,7 +42,7 @@ export default function VolunteerNeedsPage() {
               id="need-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="border border-slate-300 w-40 p-2 rounded-md bg-transparent"
+              className="border border-slate-700 w-40 p-2 rounded-md bg-transparent"
             >
               <option value="all">All</option>
               <option value="medical">Medical</option>
