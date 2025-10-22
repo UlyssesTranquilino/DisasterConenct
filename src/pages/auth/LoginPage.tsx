@@ -22,19 +22,48 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen grid place-items-center p-6">
+ <div className="min-h-screen flex">
+    {/* Left half with logo image */}
+    <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-blue-200 to-white">
+  <img
+    src="src/assets/image-removebg-preview (1).png"
+    alt="DisasterConnect Logo"
+    className="-mt-40 w-[500px] h-auto object-contain drop-shadow-lg"
+  />
+  <h2 className="-mt-20 text-xl text-blue-900 font-semibold text-center max-w-md">
+    "Stay connected with your community in times of crisis"
+  </h2>
+  
+</div>
+
+    {/* Right half */}
+    <div className="flex-1 flex flex-col items-center justify-center relative space-y-6">
+      {/* Title above */}
       <div className="w-full max-w-md">
-        <h1 className="text-2xl font-semibold mb-4">
-          Welcome to DisasterConnect
+        <h1 className="text-left">
+          <span className="block text-2xl font-semibold text-blue-400">
+            Welcome to
+          </span>
+          <span className="block text-4xl font-bold text-blue-200">
+            DisasterConnect!
+          </span>
         </h1>
+    </div>
+
+
+      {/* Glassy container */}
+      <div className="bg-blue-100/30 backdrop-blur-md border border-blue-100/50 shadow-lg rounded-2xl p-8 w-full max-w-md mx-auto min-h-[420px]">
+        <h1 className="block text-3xl font-bold text-blue-900 text-center">Login</h1>
+
         <form onSubmit={onSubmit} className="space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
               {error}
             </div>
           )}
+
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-white">
+            <Label htmlFor="email" className="text-blue-900">
               Email
             </Label>
             <Input
@@ -46,8 +75,9 @@ export default function LoginPage() {
               required
             />
           </div>
+
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-white">
+            <Label htmlFor="password" className="text-blue-900">
               Password
             </Label>
             <Input
@@ -59,17 +89,26 @@ export default function LoginPage() {
               required
             />
           </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <br></br>
+          <br></br>
+          <br></br>
+          <Button
+            type="submit"
+            className="w-full bg-blue-900 hover:bg-blue-950 text-white"
+            disabled={isLoading}
+          >
             {isLoading ? "Logging in..." : "Login"}
           </Button>
         </form>
-        <div className="mt-4 text-sm text-gray-300">
+
+        <p className="text-center text-sm text-blue-100/70 mt-4">
           No account?{" "}
-          <Link to="/register" className="underline hover:text-white">
+          <Link to="/register" className="text-blue-100 hover:underline">
             Register
           </Link>
-        </div>
+        </p>
       </div>
     </div>
-  );
+  </div>
+);
 }
