@@ -117,8 +117,9 @@ export default function LoginPage() {
 
           <Button
             type="button"
+            variant="outline"
             onClick={handleGoogleSignIn}
-            className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 flex items-center justify-center gap-2"
+            className="w-full bg-white hover:bg-gray-50 !text-gray-900 border border-gray-300 flex items-center justify-center gap-2 font-medium"
             disabled={isLoading}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
