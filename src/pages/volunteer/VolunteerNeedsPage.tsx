@@ -20,17 +20,17 @@ export default function VolunteerNeedsPage() {
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 h-screen overflow-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl font-bold tracking-wide">Active Volunteer Needs</h1>
+        <h1 className="text-2xl font-bold tracking-wide text-white">Active Volunteer Needs</h1>
 
         <div className="flex gap-3 w-full md:w-auto items-center">
           <Input
             placeholder="Search needs..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full md:w-64"
+            className="w-full md:w-64 border-white/10 bg-transparent text-white placeholder:text-gray-400"
           />
 
           {/* Filter Dropdown */}
@@ -42,12 +42,12 @@ export default function VolunteerNeedsPage() {
               id="need-filter"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="border border-slate-700 w-40 p-2 rounded-md bg-transparent"
+              className="border border-white/10 w-40 p-2 rounded-md bg-transparent text-white"
             >
-              <option value="all">All</option>
-              <option value="medical">Medical</option>
-              <option value="food">Food</option>
-              <option value="logistics">Logistics</option>
+              <option value="all" className="bg-gray-800 text-white">All</option>
+              <option value="medical" className="bg-gray-800 text-white">Medical</option>
+              <option value="food" className="bg-gray-800 text-white">Food</option>
+              <option value="logistics" className="bg-gray-800 text-white">Logistics</option>
             </select>
           </div>
         </div>
@@ -55,53 +55,53 @@ export default function VolunteerNeedsPage() {
 
       {/* Stats Row */}
       <div className="grid md:grid-cols-3 gap-4">
-        <Card className="border border-slate-200">
+        <Card className="bg-transparent border border-white/10">
           <CardHeader>
-            <CardTitle>Total Active Needs</CardTitle>
+            <CardTitle className="text-white">Total Active Needs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{mockNeeds.length}</div>
+            <div className="text-3xl font-bold text-white">{mockNeeds.length}</div>
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200">
+        <Card className="bg-transparent border border-white/10">
           <CardHeader>
-            <CardTitle>Urgent Requests</CardTitle>
+            <CardTitle className="text-white">Urgent Requests</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">
+            <div className="text-3xl font-bold text-white">
               {mockNeeds.filter((n) => n.priority === "High").length}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-200">
+        <Card className="bg-transparent border border-white/10">
           <CardHeader>
-            <CardTitle>Fulfilled This Week</CardTitle>
+            <CardTitle className="text-white">Fulfilled This Week</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">8</div>
+            <div className="text-3xl font-bold text-white">8</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Needs List */}
-      <div className="grid gap-4">
+      <div className="grid gap-4 overflow-y-auto pb-6">
         {filteredNeeds.map((n) => (
           <Card
             key={n.id}
-            className="hover:shadow-md hover:border-slate-400 transition-all duration-200"
+            className="bg-transparent border border-white/10 hover:border-white/20 transition-all duration-200"
           >
             <CardHeader>
-              <CardTitle className="capitalize text-lg flex justify-between items-center">
+              <CardTitle className="capitalize text-lg flex justify-between items-center text-white">
                 <span>{n.type}</span>
                 <span
                   className={`text-xs px-2 py-1 rounded-full ${
                     n.priority === "High"
-                      ? "bg-red-100 text-red-600"
+                      ? "bg-red-500/20 text-red-400"
                       : n.priority === "Medium"
-                      ? "bg-yellow-100 text-yellow-600"
-                      : "bg-green-100 text-green-600"
+                      ? "bg-yellow-500/20 text-yellow-400"
+                      : "bg-green-500/20 text-green-400"
                   }`}
                 >
                   {n.priority}
@@ -110,8 +110,8 @@ export default function VolunteerNeedsPage() {
             </CardHeader>
 
             <CardContent>
-              <div className="text-sm text-slate-700 mb-2">{n.description}</div>
-              <div className="text-xs text-slate-500">📍 {n.location}</div>
+              <div className="text-sm text-gray-300 mb-2">{n.description}</div>
+              <div className="text-xs text-gray-400">📍 {n.location}</div>
               <div className="mt-3">
                 <Button className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm">
                   Respond
@@ -122,7 +122,7 @@ export default function VolunteerNeedsPage() {
         ))}
 
         {filteredNeeds.length === 0 && (
-          <div className="text-center text-slate-500 py-12">
+          <div className="text-center text-gray-400 py-12">
             No active needs found matching your criteria.
           </div>
         )}
