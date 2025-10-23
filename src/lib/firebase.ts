@@ -3,12 +3,12 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "YOUR_REAL_FIREBASE_API_KEY",
-  authDomain: "your-project-id.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project-id.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef123456"
+  apiKey: "AIzaSyCQNqO0n-F1C2B7S1TQY5SzOSAv7PHJ5NM",
+  authDomain: "dissasterconnect.firebaseapp.com",
+  projectId: "dissasterconnect",
+  storageBucket: "dissasterconnect.firebasestorage.app",
+  messagingSenderId: "797814906879",
+  appId: "1:797814906879:web:164b1425eff15933b3d1ca"
 };
 
 const app = initializeApp(firebaseConfig);

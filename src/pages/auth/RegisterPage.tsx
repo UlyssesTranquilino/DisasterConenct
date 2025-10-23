@@ -9,8 +9,9 @@ export default function RegisterPage() {
   const location = useLocation();
   const { register, completeGoogleProfile, isLoading, error } = useAuth();
   
-  // Check if coming from Google auth flow
-  const googleUserInfo = location.state?.userInfo;
+  // Check if coming from Google auth flow (from location state or sessionStorage)
+  const googleUserInfo = location.state?.userInfo || 
+    (typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('googleUserInfo') || 'null') : null);
   const preSelectedRole = location.state?.selectedRole;
   
   const [role, setRole] = useState<UserRole>(preSelectedRole || "Citizen");
@@ -87,6 +88,8 @@ export default function RegisterPage() {
       // Use completeGoogleProfile for Google users, register for regular users
       if (googleUserInfo) {
         await completeGoogleProfile(googleUserInfo, role, profileData);
+        // Clear sessionStorage after successful registration
+        sessionStorage.removeItem('googleUserInfo');
       } else {
         await register(email, password, name, role, profileData);
         setSuccessMessage("Registration successful! Redirecting to login...");
@@ -209,36 +212,40 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="password" className="text-blue-900 font-medium">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="!bg-black !border-black !text-white"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
+              {!googleUserInfo && (
+                <>
+                  <div>
+                    <Label htmlFor="password" className="text-blue-900 font-medium">
+                      Password
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      className="!bg-black !border-black !text-white"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="confirmPassword" className="text-blue-900 font-medium">
-                  Confirm Password
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  className="!bg-black !border-black !text-white"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="confirmPassword" className="text-blue-900 font-medium">
+                      Confirm Password
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      className="!bg-black !border-black !text-white"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* CIVILIAN FORM */}

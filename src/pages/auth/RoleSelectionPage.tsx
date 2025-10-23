@@ -8,16 +8,18 @@ export default function RoleSelectionPage() {
   const location = useLocation();
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   
-  // Get user info from location state (passed from Google auth)
-  const userInfo = location.state?.userInfo;
+  // Get user info from location state or sessionStorage (passed from Google auth)
+  const userInfo = location.state?.userInfo || 
+    (typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('googleUserInfo') || 'null') : null);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selectedRole) {
       alert("Please select a role to continue");
       return;
     }
 
-    // Navigate to the main register page with role and userInfo
+    // Navigate to register page with selected role and user info
+    // This applies to both Google users and regular users
     navigate("/register", { state: { selectedRole, userInfo } });
   };
 

@@ -15,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/dashboard"); // adjust route
+      // Navigation is handled by login in auth context
     } catch (error) {
       console.error("Login failed:", error);
     }
@@ -24,7 +24,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-      navigate("/dashboard");
+      // Navigation is handled by loginWithGoogle in auth context
     } catch (err) {
       console.error(err);
     }
@@ -112,8 +112,10 @@ export default function LoginPage() {
 
           {/* Google Button */}
           <Button
+            type="button"
             onClick={handleGoogleLogin}
             className="w-full bg-white text-gray-800 border border-gray-300 hover:bg-gray-100 flex items-center justify-center gap-2"
+            disabled={isLoading}
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
             Continue with Google

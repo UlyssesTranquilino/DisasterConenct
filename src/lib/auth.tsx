@@ -187,20 +187,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
+      const idToken = await user.getIdToken()
 
-      // Map Firebase user to your local user structure
-      const googleUser: CurrentUser = {
-        id: user.uid,
+      // Store Google user info temporarily for role selection
+      const googleUserInfo = {
+        idToken,
         email: user.email || '',
         name: user.displayName || 'Google User',
-        role: 'Citizen', // default role
+        uid: user.uid
       }
-
-      // If your backend supports Google login, you could call apiService.loginGoogle(user)
-      saveUserToStorage(googleUser)
-      setCurrentUser(googleUser)
-
-      navigate('/citizen/dashboard')
+      
+      // Try to login with backend (check if user exists)
+      try {
+        const response = await apiService.googleLogin(idToken)
+        const backendUser = response.data.user as CurrentUser
+        
+        // User exists - log them in
+        const normalizedUser = {
+          ...backendUser,
+          role: backendUser.role.charAt(0).toUpperCase() + backendUser.role.slice(1).toLowerCase() as UserRole
+        }
+        
+        apiService.setToken(response.data.token)
+        setCurrentUser(normalizedUser)
+        saveUserToStorage(normalizedUser)
+        
+        // Navigate based on role
+        if (normalizedUser.role === 'Citizen') {
+          navigate('/citizen/dashboard')
+        } else if (normalizedUser.role === 'Organization') {
+          navigate('/org/dashboard')
+        } else if (normalizedUser.role === 'Volunteer') {
+          navigate('/volunteer/dashboard')
+        }
+        
+      } catch (backendError: any) {
+        // User doesn't exist in backend - redirect to role selection
+        if (backendError.message?.includes('not found') || 
+            backendError.message?.includes('User not registered') ||
+            backendError.message?.includes('User does not exist')) {
+          // Store Google user info in sessionStorage for role selection page
+          sessionStorage.setItem('googleUserInfo', JSON.stringify(googleUserInfo))
+          navigate('/select-role')
+          return // Exit early to prevent error from being thrown
+        } else {
+          throw backendError
+        }
+      }
 
     } catch (error) {
       console.error('Google login failed:', error)
