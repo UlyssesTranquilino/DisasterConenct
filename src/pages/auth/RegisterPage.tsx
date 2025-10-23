@@ -52,6 +52,23 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex overflow-hidden">
+      {/* 🏠 HOMEPAGE LOGO BUTTON */}
+        <div className="absolute top-6 right-6 group z-50">
+          <Link to="http://localhost:5173/">
+            <div className="w-[75px] h-[75px] bg-blue-900 rounded-full shadow-lg flex items-center justify-center 
+                            hover:scale-105 hover:shadow-xl transition-all duration-300 relative cursor-pointer">
+              <img src="src/assets/logo.png" 
+              alt="Homepage" 
+              className="w-12 h-12 object-contain filter brightness-[200%]" />
+              <span className="absolute bottom-[-35px] left-1/2 -translate-x-1/2 text-sm bg-gray-800 text-white px-3 py-1 
+                              rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                Homepage
+              </span>
+            </div>
+          </Link>
+        </div>
+
+
       {/* LEFT SIDE */}
       <div className="w-1/3 text-white flex flex-col items-center justify-center px-8 py-10 fixed left-0 top-0 bottom-0">
         <div className="text-center space-y-4">
@@ -101,8 +118,8 @@ export default function RegisterPage() {
                     className={`flex-1 py-4 rounded-lg border text-center font-semibold transition-all duration-200
                       ${
                         role === r
-                          ? "bg-blue-50 border-blue-500 text-blue-900 shadow-md ring-1 ring-blue-400"
-                          : "bg-white border-gray-300 text-gray-600 hover:border-blue-400"
+                          ? "bg-blue-50 border-blue-500 text-black shadow-md ring-1 ring-blue-400"
+                          : "bg-black border-gray-300 text-blue-100 hover:border-blue-400"
                       }`}
                   >
                     {r}
@@ -120,6 +137,7 @@ export default function RegisterPage() {
                 <Input
                   id="name"
                   placeholder="Your name"
+                  className="!bg-black !border-black !text-white"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -134,6 +152,7 @@ export default function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="you@example.com"
+                  className="!bg-black !border-black !text-white"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -148,6 +167,7 @@ export default function RegisterPage() {
                   id="password"
                   type="password"
                   placeholder="••••••••"
+                  className="!bg-black !border-black !text-white"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -163,6 +183,7 @@ export default function RegisterPage() {
                   id="confirmPassword"
                   type="password"
                   placeholder="••••••••"
+                  className="!bg-black !border-black !text-white"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -185,6 +206,7 @@ export default function RegisterPage() {
                   <Input
                     id="location"
                     placeholder="e.g., Sta. Cruz, Naga City"
+                    className="!bg-black !border-black !text-white w-[415.11px]"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     required
@@ -229,15 +251,16 @@ export default function RegisterPage() {
                   <Label htmlFor="skills" className="text-blue-900 font-medium">
                     Relevant Skills & Expertise
                   </Label>
+                  <br/>
                   <Input
                     id="skills"
-                    placeholder="e.g. First Aid Certified, EMT, Search & Rescue, Logistics, etc."
+                    placeholder="e.g. First Aider, EMT, Logistics, etc."
                     value={skills}
                     onChange={(e) => setSkills(e.target.value)}
-                    className="w-[415px]"
+                    className="!bg-black !border-black !text-white w-[415.11px]"
                     required
                   />
-                  <p className="text-gray-500 text-sm mt-1">
+                  <p className="text-gray-500 text-[10px] mt-1">
                     List your main skills to help us assign you to suitable missions.
                   </p>
                 </div>
@@ -252,7 +275,7 @@ export default function RegisterPage() {
                     id="availability"
                     value={availability}
                     onChange={(e) => setAvailability(e.target.value)}
-                    className="border border-gray-300 rounded-md p-2 w-[415px] bg-white"
+                    className="border border-gray-300 rounded-md p-2 w-[415.11px] !bg-black !border-black !text-white"
                     required
                   >
                     <option value="">Select availability</option>
@@ -261,7 +284,7 @@ export default function RegisterPage() {
                     <option>Next day</option>
                     <option>Within 48 hours</option>
                   </select>
-                  <p className="text-gray-500 text-sm mt-1">
+                  <p className="text-gray-500 text-[10px] mt-1">
                     Choose how soon you can respond to emergency deployment requests.
                   </p>
                 </div>
@@ -272,7 +295,7 @@ export default function RegisterPage() {
                     Proof of Volunteer Status (Optional)
                   </Label>
                   <br />
-                  <div className="flex gap-2 items-center w-[415px]">
+                  <div className="flex gap-2 items-center w-[415.11px]">
                     <input
                       id="volProof"
                       type="file"
@@ -290,10 +313,10 @@ export default function RegisterPage() {
                       value={volProof?.name || ""}
                       readOnly
                       placeholder="No file selected"
-                      className="flex-1 border border-gray-300 rounded-md p-2 text-sm bg-white"
+                      className="flex-1 border border-gray-300 rounded-md p-2 text-sm !bg-black !border-black !text-white"
                     />
                   </div>
-                  <p className="text-gray-500 text-sm mt-1 text-[8px]">
+                  <p className="text-gray-500 text-sm mt-1 text-[10px]">
                     You may upload your volunteer ID, training certificate, or accreditation to verify your profile.
                   </p>
                 </div>
@@ -309,7 +332,7 @@ export default function RegisterPage() {
                 </h2>
 
                 <div>
-                  <Label htmlFor="orgName" className="text-blue-900 font-medium w-[415px]">
+                  <Label htmlFor="orgName" className="text-blue-900 font-medium w-[415.11px]">
                     Organization Name
                   </Label>
                   <Input
@@ -318,7 +341,7 @@ export default function RegisterPage() {
                     value={orgName}
                     onChange={(e) => setOrgName(e.target.value)}
                     required
-                    className="w-[415px]"
+                    className="!bg-black !border-black !text-white w-[415.11px]"
                   />
                 </div>
 
@@ -331,7 +354,7 @@ export default function RegisterPage() {
                     id="orgType"
                     value={orgType}
                     onChange={(e) => setOrgType(e.target.value)}
-                    className="border border-gray-300 rounded-md p-2 w-[415px] bg-white"
+                    className="border border-gray-300 rounded-md p-2 !bg-black !border-black !text-white w-[415.11px]"
                     required
                   >
                     <option value="">Select organization type</option>
@@ -353,7 +376,7 @@ export default function RegisterPage() {
                     value={orgContact}
                     onChange={(e) => setOrgContact(e.target.value)}
                     required
-                    className="w-[415px]"
+                    className="!bg-black !border-black !text-white w-[415.11px]"
                   />
                 </div>
 
@@ -380,10 +403,10 @@ export default function RegisterPage() {
                       value={orgProof?.name || ""}
                       readOnly
                       placeholder="No file selected"
-                      className="flex-1 border border-gray-300 rounded-md p-2 text-sm bg-white"
+                      className="flex-1 border border-gray-300 rounded-md p-2 text-sm !bg-black !border-black !text-white w-[415.11px]"
                     />
                   </div>
-                  <p className="text-gray-500 text-sm mt-1 text-[8px]">
+                  <p className="text-gray-500 text-sm mt-1 text-[10px]">
                     You may upload DSWD accreditation, SEC/DTI registration, or any valid document to verify your organization.
                   </p>
                 </div>
@@ -405,7 +428,7 @@ export default function RegisterPage() {
             {/* SUBMIT BUTTON */}
             <Button
               type="submit"
-              className="w-[415px] bg-blue-900 hover:bg-blue-950 text-white py-3 font-semibold"
+              className="w-[415.11px] bg-blue-900 hover:bg-blue-950 text-white py-3 font-semibold"
               disabled={isLoading}
             >
               {isLoading ? "Creating account..." : "Register to DisasterConnect"}
