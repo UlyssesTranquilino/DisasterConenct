@@ -17,13 +17,8 @@ export default function VolunteerRegisterPage() {
 
   // Scrollbar fix - disable scrolling when component mounts
   useEffect(() => {
-    // Store the original overflow value
     const originalStyle = window.getComputedStyle(document.body).overflow;
-    
-    // Disable scrolling on mount
     document.body.style.overflow = 'hidden';
-    
-    // Re-enable scrolling when component unmounts
     return () => {
       document.body.style.overflow = originalStyle;
     };
@@ -41,16 +36,16 @@ export default function VolunteerRegisterPage() {
 
   return (
     <div className="w-full p-6 flex justify-center items-center h-screen overflow-hidden"> 
-      <Card className="w-full max-w-6xl bg-white border border-slate-300 shadow-md py-6 px-8 mx-auto"> 
+      <Card className="w-full max-w-6xl bg-transparent border border-white/10 shadow-md py-6 px-8 mx-auto"> 
         <CardHeader className="pb-4">
-          <CardTitle className="text-5xl font-bold text-center text-blue-700">
+          <CardTitle className="text-5xl/normal font-bold text-center text-white">
             Volunteer Registration
           </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4 text-4xl">
           {!submitted ? (
-            <form onSubmit={handleSubmit} className="space-y-4 text-blue-700">
+            <form onSubmit={handleSubmit} className="space-y-4 text-white">
               {/* Name */}
               <div className="space-y-2">
                 <label className="block text-base font-medium">Full Name</label>
@@ -59,7 +54,7 @@ export default function VolunteerRegisterPage() {
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="border-slate-300 h-11 text-base"
+                  className="border-white/10 bg-transparent h-11 text-base text-white placeholder:text-gray-400 rounded-lg"
                   required
                 />
               </div>
@@ -73,7 +68,7 @@ export default function VolunteerRegisterPage() {
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="border-slate-300 h-11 text-base"
+                  className="border-white/10 bg-transparent h-11 text-base text-white placeholder:text-gray-400 rounded-lg"
                   required
                 />
               </div>
@@ -86,7 +81,7 @@ export default function VolunteerRegisterPage() {
                   placeholder="Enter your phone number"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="border-slate-300 h-11 text-base"
+                  className="border-white/10 bg-transparent h-11 text-base text-white placeholder:text-gray-400 rounded-lg"
                   required
                 />
               </div>
@@ -98,13 +93,13 @@ export default function VolunteerRegisterPage() {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="border border-slate-300 w-full p-3 rounded-md text-base h-11"
+                  className="flex h-11 w-full rounded-lg border border-white/10 bg-transparent text-white px-3 py-2 text-base placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 >
-                  <option value="medical">Medical Support</option>
-                  <option value="food">Food & Supply Distribution</option>
-                  <option value="logistics">Logistics & Transport</option>
-                  <option value="communication">Communication / Information</option>
-                  <option value="rescue">Rescue Operations</option>
+                  <option value="medical" className="bg-gray-800 text-white">Medical Support</option>
+                  <option value="food" className="bg-gray-800 text-white">Food & Supply Distribution</option>
+                  <option value="logistics" className="bg-gray-800 text-white">Logistics & Transport</option>
+                  <option value="communication" className="bg-gray-800 text-white">Communication / Information</option>
+                  <option value="rescue" className="bg-gray-800 text-white">Rescue Operations</option>
                 </select>
               </div>
 
@@ -117,7 +112,7 @@ export default function VolunteerRegisterPage() {
                   placeholder="0"
                   value={formData.experience}
                   onChange={handleChange}
-                  className="border-slate-300 h-11 text-base"
+                  className="border-white/10 bg-transparent h-11 text-base text-white placeholder:text-gray-400 rounded-lg"
                 />
               </div>
 
@@ -129,30 +124,30 @@ export default function VolunteerRegisterPage() {
                   placeholder="Enter your preferred city or province"
                   value={formData.location}
                   onChange={handleChange}
-                  className="border-slate-300 h-11 text-base"
+                  className="border-white/10 bg-transparent h-11 text-base text-white placeholder:text-gray-400 rounded-lg"
                 />
               </div>
 
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-500 text-white mt-4 py-3 text-base font-semibold h-12"
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white mt-4 py-3 text-base font-semibold h-12 rounded-lg"
               >
                 Register as Volunteer
               </Button>
             </form>
           ) : (
-            <div className="text-center py-8 text-slate-800 space-y-4">
-              <h2 className="text-xl font-semibold text-green-600 mb-3">
+            <div className="text-center py-8 text-white space-y-4">
+              <h2 className="text-xl font-semibold text-green-400 mb-3">
                 Registration Successful!
               </h2>
-              <p className="text-base">
+              <p className="text-base text-gray-300">
                 Thank you for registering as a volunteer. We'll contact you soon with deployment
                 details.
               </p>
 
               <Button
                 onClick={() => setSubmitted(false)}
-                className="mt-4 bg-blue-600 hover:bg-blue-500 text-white py-3 px-6 text-base h-11"
+                className="mt-4 bg-indigo-600 hover:bg-indigo-500 text-white py-3 px-6 text-base h-11 rounded-lg"
               >
                 Register Another
               </Button>
