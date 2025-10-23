@@ -74,11 +74,12 @@ class ApiService {
     email: string,
     password: string,
     name: string,
-    role: string
+    role: string,
+    profileData?: any
   ): Promise<AuthResponse> {
     return this.request<AuthResponse>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ email, password, name, role }),
+      body: JSON.stringify({ email, password, name, role, profileData }),
     });
   }
 
@@ -86,6 +87,13 @@ class ApiService {
     return this.request<AuthResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async googleLogin(idToken: string, role?: string, profileData?: any): Promise<AuthResponse> {
+    return this.request<AuthResponse>("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ idToken, role, profileData }),
     });
   }
 

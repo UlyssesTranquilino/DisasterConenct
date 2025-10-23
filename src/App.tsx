@@ -4,6 +4,7 @@ import { ThemeProvider } from "./lib/theme";
 import { AppLayout } from "./layouts/AppLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
+import RoleSelectionPage from "./pages/auth/RoleSelectionPage";
 import LandingPage from "./pages/LandingPage";
 import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 import RequestHelpPage from "./pages/citizen/RequestHelpPage";
@@ -88,6 +89,14 @@ export default function App() {
             element={
               <PublicRoute>
                 <RegisterPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/select-role"
+            element={
+              <PublicRoute>
+                <RoleSelectionPage />
               </PublicRoute>
             }
           />

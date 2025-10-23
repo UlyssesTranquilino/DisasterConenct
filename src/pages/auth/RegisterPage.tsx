@@ -1,20 +1,41 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useAuth, type UserRole } from "../../lib/auth";
 
 export default function RegisterPage() {
-  const { register, isLoading, error } = useAuth();
-  const [role, setRole] = useState<UserRole>("Citizen");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const { register, completeGoogleProfile, isLoading, error } = useAuth();
+  
+  // Check if coming from Google auth flow
+  const googleUserInfo = location.state?.userInfo;
+  const preSelectedRole = location.state?.selectedRole;
+  
+  const [role, setRole] = useState<UserRole>(preSelectedRole || "Citizen");
+  const [name, setName] = useState(googleUserInfo?.name || "");
+  const [email, setEmail] = useState(googleUserInfo?.email || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [location, setLocation] = useState("");
-  const [agreeTerms, setAgreeTerms] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // Pre-fill email and name for Google users
+  useEffect(() => {
+    if (googleUserInfo) {
+      setName(googleUserInfo.name || "");
+      setEmail(googleUserInfo.email || "");
+    }
+  }, [googleUserInfo]);
+
+  // Citizen-specific fields
+  const [userLocation, setUserLocation] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  // Volunteer-specific fields
+  const [skills, setSkills] = useState("");
+  const [availability, setAvailability] = useState("");
+  const [volProof, setVolProof] = useState<File | null>(null);
 
   // Organization-specific fields
   const [orgName, setOrgName] = useState("");
@@ -22,16 +43,15 @@ export default function RegisterPage() {
   const [orgContact, setOrgContact] = useState("");
   const [orgProof, setOrgProof] = useState<File | null>(null);
 
-  // Volunteer-specific fields
-  const [skills, setSkills] = useState("");
-  const [availability, setAvailability] = useState("");
-  const [volProof, setVolProof] = useState<File | null>(null);
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
+    
+    // Skip password validation for Google users
+    if (!googleUserInfo) {
+      if (password !== confirmPassword) {
+        alert("Passwords do not match");
+        return;
+      }
     }
 
     if (role === "Citizen" && !agreeTerms) {
@@ -41,8 +61,36 @@ export default function RegisterPage() {
 
     try {
       setSuccessMessage("");
-      await register(email, password, name, role);
-      setSuccessMessage("Registration successful! Redirecting to login...");
+      
+      // Prepare profile data based on role
+      let profileData = {};
+      
+      if (role === "Citizen") {
+        profileData = {
+          location: userLocation,
+        };
+      } else if (role === "Volunteer") {
+        profileData = {
+          skills,
+          availability,
+          // Note: File upload would need separate handling
+        };
+      } else if (role === "Organization") {
+        profileData = {
+          orgName,
+          orgType,
+          orgContact,
+          // Note: File upload would need separate handling
+        };
+      }
+      
+      // Use completeGoogleProfile for Google users, register for regular users
+      if (googleUserInfo) {
+        await completeGoogleProfile(googleUserInfo, role, profileData);
+      } else {
+        await register(email, password, name, role, profileData);
+        setSuccessMessage("Registration successful! Redirecting to login...");
+      }
     } catch (error) {
       console.error("Registration failed:", error);
     }
@@ -137,37 +185,43 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  readOnly={!!googleUserInfo}
+                  disabled={!!googleUserInfo}
                 />
               </div>
 
-              <div>
-                <Label htmlFor="password" className="text-blue-900 font-medium">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-              </div>
+              {!googleUserInfo && (
+                <>
+                  <div>
+                    <Label htmlFor="password" className="text-blue-900 font-medium">
+                      Password
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="confirmPassword" className="text-blue-900 font-medium">
-                  Confirm Password
-                </Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="confirmPassword" className="text-blue-900 font-medium">
+                      Confirm Password
+                    </Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </>
+              )}
             </div>
 
             {/* CIVILIAN FORM */}
@@ -185,8 +239,8 @@ export default function RegisterPage() {
                   <Input
                     id="location"
                     placeholder="e.g., Sta. Cruz, Naga City"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    value={userLocation}
+                    onChange={(e) => setUserLocation(e.target.value)}
                     required
                   />
                   <p className="text-gray-500 text-sm mt-1">
