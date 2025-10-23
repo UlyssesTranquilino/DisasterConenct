@@ -1,5 +1,6 @@
 // API service for communicating with the backend
-const API_BASE_URL = 'https://disasterconnect-api.vercel.app/api';
+const API_BASE_URL = "https://disasterconnect-api.vercel.app/api";
+// const API_BASE_URL = "http://localhost:5000";
 
 export interface User {
   id: string;
@@ -35,10 +36,10 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         ...options.headers,
       },
       ...options,
@@ -49,7 +50,7 @@ class ApiService {
     if (token) {
       config.headers = {
         ...config.headers,
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       };
     }
 
@@ -63,43 +64,48 @@ class ApiService {
 
       return data;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error("API request failed:", error);
       throw error;
     }
   }
 
   // Auth methods
-  async register(email: string, password: string, name: string, role: string): Promise<AuthResponse> {
-    return this.request<AuthResponse>('/auth/register', {
-      method: 'POST',
+  async register(
+    email: string,
+    password: string,
+    name: string,
+    role: string
+  ): Promise<AuthResponse> {
+    return this.request<AuthResponse>("/auth/register", {
+      method: "POST",
       body: JSON.stringify({ email, password, name, role }),
     });
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    return this.request<AuthResponse>('/auth/login', {
-      method: 'POST',
+    return this.request<AuthResponse>("/auth/login", {
+      method: "POST",
       body: JSON.stringify({ email, password }),
     });
   }
 
   async getProfile(): Promise<{ success: boolean; data: { user: User } }> {
-    return this.request('/auth/profile', {
-      method: 'GET',
+    return this.request("/auth/profile", {
+      method: "GET",
     });
   }
 
   // Token management
   setToken(token: string): void {
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem("auth_token", token);
   }
 
   getToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem("auth_token");
   }
 
   removeToken(): void {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem("auth_token");
   }
 
   // Check if user is authenticated
