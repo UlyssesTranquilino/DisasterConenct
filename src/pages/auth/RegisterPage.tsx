@@ -12,12 +12,30 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [location, setLocation] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Organization-specific fields
+  const [orgName, setOrgName] = useState("");
+  const [orgType, setOrgType] = useState("");
+  const [orgContact, setOrgContact] = useState("");
+  const [orgProof, setOrgProof] = useState<File | null>(null);
+
+  // Volunteer-specific fields
+  const [skills, setSkills] = useState("");
+  const [availability, setAvailability] = useState("");
+  const [volProof, setVolProof] = useState<File | null>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       alert("Passwords do not match");
+      return;
+    }
+
+    if (role === "Citizen" && !agreeTerms) {
+      alert("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
 
@@ -33,39 +51,346 @@ export default function RegisterPage() {
   const roles: UserRole[] = ["Citizen", "Volunteer", "Organization"];
 
   return (
-    <div className="min-h-screen flex">
-      {/* LEFT SIDE (1/3) */}
-      {/* LEFT SIDE (1/3) */}
-<div className="flex-[1] flex flex-col items-center justify-center relative overflow-hidden">
-  <div className="relative text-center space-y-4 p-6 z-10">
-    {/* Logo */}
-    <img
-      src="src/assets/image-removebg-preview (1).png"
-      alt="DisasterConnect Logo"
-      className="relative w-[400px] h-auto object-contain drop-shadow-lg mx-auto z-10"
-    />
+    <div className="min-h-screen flex overflow-hidden">
+      {/* LEFT SIDE */}
+      <div className="w-1/3 text-white flex flex-col items-center justify-center px-8 py-10 fixed left-0 top-0 bottom-0">
+        <div className="text-center space-y-4">
+          <img
+            src="src/assets/image-removebg-preview (1).png"
+            alt="DisasterConnect Logo"
+            className="w-40 h-auto mx-auto"
+          />
+          <h1 className="text-2xl font-bold">DisasterConnect</h1>
+          <p className="text-blue-100">
+            Join the network to connect, mobilize, and save lives in times of crisis.
+          </p>
+          <p className="text-sm mt-6">
+            Already registered?{" "}
+            <Link
+              to="/login"
+              className="underline font-semibold text-white hover:text-blue-200"
+            >
+              Sign in here.
+            </Link>
+          </p>
+        </div>
+      </div>
 
-    {/* Tagline */}
-    <h2 className="relative text-xl text-blue-300 font-semibold max-w-xs mx-auto z-10">
-      Join DisasterConnect and help build a safer, connected community.
-    </h2>
-  </div>
-
-  {/* Decorative Circle (behind logo/text but above background) */}
-  <div className="absolute inset-0 flex items-center justify-center z-0">
-    <div className="translate-y-[-70px] w-[125px] h-[125px] bg-blue-100 border border-blue-200 rounded-full"></div>
-  </div>
-</div>
-
-      {/* RIGHT SIDE (2/3) */}
-      <div className="flex-[2] flex items-center justify-center p-10 bg-gradient-to-br from-blue-200 to-white">
-        <div className="bg-blue-100/30 backdrop-blur-md border border-blue-100/50 shadow-lg rounded-2xl p-8 w-full max-w-lg">
-          <h1 className="text-3xl font-bold text-blue-900 mb-6">
-            Create your account
+      {/* RIGHT SIDE */}
+      <div className="ml-[33.333%] w-2/3 flex flex-col justify-center px-20 py-12 bg-white overflow-y-auto h-screen">
+        <div className="flex flex-col justify-start px-20 py-12 bg-white min-h-screen">
+          <h1 className="text-3xl font-bold text-blue-900 mb-2">
+            Create Your Account
           </h1>
+          <p className="text-gray-600 mb-8">
+            Tell us who you are so we can connect you effectively.
+          </p>
 
-          <form onSubmit={onSubmit} className="space-y-5">
-            {/* Error & Success */}
+          <form onSubmit={onSubmit} className="space-y-8">
+            {/* ROLE SELECTION */}
+            <div>
+              <Label className="text-blue-900 font-semibold mb-2 block">
+                I am registering as:
+              </Label>
+              <div className="flex gap-4 mt-3">
+                {roles.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    className={`flex-1 py-4 rounded-lg border text-center font-semibold transition-all duration-200
+                      ${
+                        role === r
+                          ? "bg-blue-50 border-blue-500 text-blue-900 shadow-md ring-1 ring-blue-400"
+                          : "bg-white border-gray-300 text-gray-600 hover:border-blue-400"
+                      }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* INPUT FIELDS */}
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="name" className="text-blue-900 font-medium">
+                  Full Name
+                </Label>
+                <Input
+                  id="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="email" className="text-blue-900 font-medium">
+                  Email Address
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password" className="text-blue-900 font-medium">
+                  Password
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="confirmPassword" className="text-blue-900 font-medium">
+                  Confirm Password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* CIVILIAN FORM */}
+            {role === "Citizen" && (
+              <>
+                <hr className="my-8 border-gray-300" />
+                <h2 className="text-xl font-semibold text-blue-900 mb-4">
+                  Civilian Profile
+                </h2>
+
+                <div>
+                  <Label htmlFor="location" className="text-blue-900 font-medium mb-1 block">
+                    Current/Primary Location (City, State/Region)
+                  </Label>
+                  <Input
+                    id="location"
+                    placeholder="e.g., Sta. Cruz, Naga City"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    required
+                  />
+                  <p className="text-gray-500 text-sm mt-1">
+                    This helps us provide relevant local alerts and resources.
+                  </p>
+                </div>
+
+                <div className="flex items-center mt-6 space-x-2 bg-white">
+                  <input
+                    type="checkbox"
+                    id="agreeTerms"
+                    checked={agreeTerms}
+                    onChange={(e) => setAgreeTerms(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                  <Label htmlFor="agreeTerms" className="text-gray-700 text-sm">
+                    I agree to the{" "}
+                    <a href="#" className="text-blue-600 underline">
+                      Terms of Service
+                    </a>{" "}
+                    and{" "}
+                    <a href="#" className="text-blue-600 underline">
+                      Privacy Policy
+                    </a>.
+                  </Label>
+                </div>
+              </>
+            )}
+
+            {/* VOLUNTEER FORM */}
+            {role === "Volunteer" && (
+              <>
+                <hr className="my-8 border-gray-300" />
+                <h2 className="text-xl font-semibold text-blue-900 mb-4">
+                  Volunteer Profile
+                </h2>
+
+                {/* Skills */}
+                <div>
+                  <Label htmlFor="skills" className="text-blue-900 font-medium">
+                    Relevant Skills & Expertise
+                  </Label>
+                  <Input
+                    id="skills"
+                    placeholder="e.g. First Aid Certified, EMT, Search & Rescue, Logistics, etc."
+                    value={skills}
+                    onChange={(e) => setSkills(e.target.value)}
+                    className="w-[415px]"
+                    required
+                  />
+                  <p className="text-gray-500 text-sm mt-1">
+                    List your main skills to help us assign you to suitable missions.
+                  </p>
+                </div>
+
+                {/* Availability */}
+                <div className="mt-6">
+                  <Label htmlFor="availability" className="text-blue-900 font-medium">
+                    Emergency Availability
+                  </Label>
+                  <br />
+                  <select
+                    id="availability"
+                    value={availability}
+                    onChange={(e) => setAvailability(e.target.value)}
+                    className="border border-gray-300 rounded-md p-2 w-[415px] bg-white"
+                    required
+                  >
+                    <option value="">Select availability</option>
+                    <option>Immediately</option>
+                    <option>On the day</option>
+                    <option>Next day</option>
+                    <option>Within 48 hours</option>
+                  </select>
+                  <p className="text-gray-500 text-sm mt-1">
+                    Choose how soon you can respond to emergency deployment requests.
+                  </p>
+                </div>
+
+                {/* Verification */}
+                <div className="mt-6">
+                  <Label htmlFor="volProof" className="text-blue-900 font-medium">
+                    Proof of Volunteer Status (Optional)
+                  </Label>
+                  <br />
+                  <div className="flex gap-2 items-center w-[415px]">
+                    <input
+                      id="volProof"
+                      type="file"
+                      onChange={(e) => setVolProof(e.target.files?.[0] ?? null)}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="volProof"
+                      className="bg-blue-900 text-white px-4 py-2 rounded-md cursor-pointer hover:bg-blue-950"
+                    >
+                      Upload File
+                    </label>
+                    <input
+                      type="text"
+                      value={volProof?.name || ""}
+                      readOnly
+                      placeholder="No file selected"
+                      className="flex-1 border border-gray-300 rounded-md p-2 text-sm bg-white"
+                    />
+                  </div>
+                  <p className="text-gray-500 text-sm mt-1 text-[8px]">
+                    You may upload your volunteer ID, training certificate, or accreditation to verify your profile.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* ORGANIZATION FORM */}
+            {role === "Organization" && (
+              <>
+                <hr className="my-8 border-gray-300" />
+                <h2 className="text-xl font-semibold text-blue-900 mb-4">
+                  Organization Profile
+                </h2>
+
+                <div>
+                  <Label htmlFor="orgName" className="text-blue-900 font-medium w-[415px]">
+                    Organization Name
+                  </Label>
+                  <Input
+                    id="orgName"
+                    placeholder="e.g., Philippine Red Cross - Bohol Chapter"
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    required
+                    className="w-[415px]"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="orgType" className="text-blue-100 font-medium">
+                    Organization Type
+                  </Label>
+                  <br />
+                  <select
+                    id="orgType"
+                    value={orgType}
+                    onChange={(e) => setOrgType(e.target.value)}
+                    className="border border-gray-300 rounded-md p-2 w-[415px] bg-white"
+                    required
+                  >
+                    <option value="">Select organization type</option>
+                    <option>Government Agency</option>
+                    <option>Non-Governmental Organization (NGO)</option>
+                    <option>Volunteer / Civic Organization</option>
+                    <option>Private Sector / Company</option>
+                    <option>Academic Institution</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="orgContact" className="text-blue-900 font-medium ">
+                    Contact Information
+                  </Label>
+                  <Input
+                    id="orgContact"
+                    placeholder="e.g., +63 912 345 6789 or org@email.com"
+                    value={orgContact}
+                    onChange={(e) => setOrgContact(e.target.value)}
+                    required
+                    className="w-[415px]"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="orgProof" className="text-blue-900 font-medium">
+                    Proof of Legitimacy (Upload or Registration ID)
+                  </Label>
+                  <br />
+                  <div className="flex gap-2 items-center w-[415px]">
+                    <input
+                      id="orgProof"
+                      type="file"
+                      onChange={(e) => setOrgProof(e.target.files?.[0] ?? null)}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="orgProof"
+                      className="bg-blue-900 text-white px-4 py-2 rounded-md cursor-pointer hover:bg-blue-950"
+                    >
+                      Upload File
+                    </label>
+                    <input
+                      type="text"
+                      value={orgProof?.name || ""}
+                      readOnly
+                      placeholder="No file selected"
+                      className="flex-1 border border-gray-300 rounded-md p-2 text-sm bg-white"
+                    />
+                  </div>
+                  <p className="text-gray-500 text-sm mt-1 text-[8px]">
+                    You may upload DSWD accreditation, SEC/DTI registration, or any valid document to verify your organization.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* FEEDBACK */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
                 {error}
@@ -77,108 +402,18 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* NAME */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-blue-900 font-medium">
-                Name
-              </Label>
-              <Input
-                id="name"
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* EMAIL */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-blue-900 font-medium">
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* PASSWORD */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-blue-900 font-medium">
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-
-            {/* CONFIRM PASSWORD */}
-            <div className="space-y-2">
-              <Label
-                htmlFor="confirmPassword"
-                className="text-blue-900 font-medium"
-              >
-                Confirm Password
-              </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            {/* ROLE SELECTION BOXES */}
-            <div className="space-y-2">
-              <Label className="text-blue-900 font-medium">Select Role</Label>
-              <div className="flex gap-3">
-                {roles.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRole(r)}
-                    className={`flex-1 py-3 rounded-lg font-semibold border transition-all duration-200
-                      ${
-                        role === r
-                          ? "bg-white border-blue-500 shadow-lg text-blue-900 ring-2 ring-blue-400"
-                          : "bg-white/80 border-blue-200 text-gray-600 hover:border-blue-400"
-                      }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* SUBMIT BUTTON */}
             <Button
               type="submit"
-              className="w-full bg-blue-900 hover:bg-blue-950 text-white mt-6"
+              className="w-[415px] bg-blue-900 hover:bg-blue-950 text-white py-3 font-semibold"
               disabled={isLoading}
             >
-              {isLoading ? "Creating account..." : "Register"}
+              {isLoading ? "Creating account..." : "Register to DisasterConnect"}
             </Button>
+            <br />
+            <br />
+            <br />
           </form>
-
-          {/* FOOTER */}
-          <div className="mt-6 text-sm text-blue-800 text-center">
-            Already have an account?{" "}
-            <Link to="/login" className="underline hover:text-blue-950">
-              Login
-            </Link>
-          </div>
         </div>
       </div>
     </div>
