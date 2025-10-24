@@ -38,6 +38,7 @@ export default function LoginPage() {
            <div className="w-[50px] h-[50px] bg-blue-900 rounded-full flex items-center justify-center 
                             hover:scale-105 transition-all duration-300 relative cursor-pointer">
               <img src="src\assets\home (1).png"  alt="Homepage" className="w-6 h-6 object-contain" />
+              <img src="src\assets\home (1).png"  alt="Homepage" className="w-6 h-6 object-contain filter brightness-[200%]" />
             <span className="absolute bottom-[-35px] left-1/2 -translate-x-1/2 text-sm bg-gray-800 text-white px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"> Homepage </span>
           </div>
         </Link>
