@@ -33,21 +33,21 @@ export default function LandingPage() {
       title: "Citizens",
       description:
         "Request Help & Find Safe Zones with real-time updates and directions.",
-      img: "/src/assets/citizen.jpg",
+      img: "/assets/citizen.jpg",
     },
     {
       icon: <Building2 size={24} />,
       title: "Organizations",
       description:
         "Manage Evacuation Centers, capacity, supplies, and announcements.",
-      img: "/src/assets/organization.jpg",
+      img: "/assets/organization.jpg",
     },
     {
       icon: <HelpingHand size={24} />,
       title: "Volunteers & Donors",
       description:
         "Offer Support Where It Matters through curated needs and requests.",
-      img: "/src/assets/volunteer.jpg",
+      img: "/assets/volunteer.jpg",
     },
   ];
   const [activeFeature, setActiveFeature] = useState(0);
