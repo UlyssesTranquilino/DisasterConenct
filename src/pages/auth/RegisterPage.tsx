@@ -8,19 +8,22 @@ import { useAuth, type UserRole } from "../../lib/auth";
 export default function RegisterPage() {
   const location = useLocation();
   const { register, completeGoogleProfile, isLoading, error } = useAuth();
-  
+
   // Check if coming from Google auth flow (from location state or sessionStorage)
-  const googleUserInfo = location.state?.userInfo || 
-    (typeof window !== 'undefined' ? JSON.parse(sessionStorage.getItem('googleUserInfo') || 'null') : null);
+  const googleUserInfo =
+    location.state?.userInfo ||
+    (typeof window !== "undefined"
+      ? JSON.parse(sessionStorage.getItem("googleUserInfo") || "null")
+      : null);
   const preSelectedRole = location.state?.selectedRole;
-  
+
   const [role, setRole] = useState<UserRole>(preSelectedRole || "Citizen");
   const [name, setName] = useState(googleUserInfo?.name || "");
   const [email, setEmail] = useState(googleUserInfo?.email || "");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  
+
   // Pre-fill email and name for Google users
   useEffect(() => {
     if (googleUserInfo) {
@@ -46,7 +49,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Skip password validation for Google users
     if (!googleUserInfo) {
       if (password !== confirmPassword) {
@@ -62,10 +65,10 @@ export default function RegisterPage() {
 
     try {
       setSuccessMessage("");
-      
+
       // Prepare profile data based on role
       let profileData = {};
-      
+
       if (role === "Citizen") {
         profileData = {
           location: userLocation,
@@ -84,12 +87,12 @@ export default function RegisterPage() {
           // Note: File upload would need separate handling
         };
       }
-      
+
       // Use completeGoogleProfile for Google users, register for regular users
       if (googleUserInfo) {
         await completeGoogleProfile(googleUserInfo, role, profileData);
         // Clear sessionStorage after successful registration
-        sessionStorage.removeItem('googleUserInfo');
+        sessionStorage.removeItem("googleUserInfo");
       } else {
         await register(email, password, name, role, profileData);
         setSuccessMessage("Registration successful! Redirecting to login...");
@@ -104,33 +107,38 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex overflow-hidden">
       {/* 🏠 HOMEPAGE LOGO BUTTON */}
-        <div className="absolute top-6 right-6 group z-50">
-          <Link to="/">
-            <div className="w-[75px] h-[75px] bg-white rounded-full flex items-center justify-center 
-                            hover:scale-105 transition-all duration-300 relative cursor-pointer">
-              <img src="src\assets\home (1).png" 
-              alt="Homepage" 
-              className="w-6 h-6 object-contain filter brightness-[200%]" />
-              <span className="absolute bottom-[-35px] left-1/2 -translate-x-1/2 text-sm bg-gray-800 text-white px-3 py-1 
-                              rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Homepage
-              </span>
-            </div>
-          </Link>
-        </div>
-
-
+      <div className="absolute top-6 right-6 group z-50">
+        <Link to="/">
+          <div
+            className="w-[75px] h-[75px] bg-white rounded-full flex items-center justify-center 
+                            hover:scale-105 transition-all duration-300 relative cursor-pointer"
+          >
+            <img
+              src="/assets/home (1).png"
+              alt="Homepage"
+              className="w-6 h-6 object-contain filter brightness-[200%]"
+            />
+            <span
+              className="absolute bottom-[-35px] left-1/2 -translate-x-1/2 text-sm bg-gray-800 text-white px-3 py-1 
+                              rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            >
+              Homepage
+            </span>
+          </div>
+        </Link>
+      </div>
       {/* LEFT SIDE */}
       <div className="w-1/3 text-white flex flex-col items-center justify-center px-8 py-10 fixed left-0 top-0 bottom-0">
         <div className="text-center space-y-4">
           <img
-            src="src/assets/image-removebg-preview (1).png"
+            src="/assets/image-removebg-preview (1).png"
             alt="DisasterConnect Logo"
             className="w-40 h-auto mx-auto"
           />
           <h1 className="text-2xl font-bold">DisasterConnect</h1>
           <p className="text-blue-100">
-            Join the network to connect, mobilize, and save lives in times of crisis.
+            Join the network to connect, mobilize, and save lives in times of
+            crisis.
           </p>
           <p className="text-sm mt-6">
             Already registered?{" "}
@@ -142,9 +150,8 @@ export default function RegisterPage() {
             </Link>
           </p>
         </div>
-      </div>x
-
-      {/* RIGHT SIDE */}
+      </div>
+      x{/* RIGHT SIDE */}
       <div className="ml-[33.333%] w-2/3 flex flex-col justify-center px-20 py-12 bg-white overflow-y-auto h-screen">
         <div className="flex flex-col justify-start px-20 py-12 bg-white min-h-screen">
           <h1 className="text-3xl font-bold text-blue-900 mb-2">
@@ -215,7 +222,10 @@ export default function RegisterPage() {
               {!googleUserInfo && (
                 <>
                   <div>
-                    <Label htmlFor="password" className="text-blue-900 font-medium">
+                    <Label
+                      htmlFor="password"
+                      className="text-blue-900 font-medium"
+                    >
                       Password
                     </Label>
                     <Input
@@ -231,7 +241,10 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="confirmPassword" className="text-blue-900 font-medium">
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-blue-900 font-medium"
+                    >
                       Confirm Password
                     </Label>
                     <Input
@@ -257,7 +270,10 @@ export default function RegisterPage() {
                 </h2>
 
                 <div>
-                  <Label htmlFor="location" className="text-blue-900 font-medium mb-1 block">
+                  <Label
+                    htmlFor="location"
+                    className="text-blue-900 font-medium mb-1 block"
+                  >
                     Current/Primary Location (City, State/Region)
                   </Label>
                   <Input
@@ -289,7 +305,8 @@ export default function RegisterPage() {
                     and{" "}
                     <a href="#" className="text-blue-600 underline">
                       Privacy Policy
-                    </a>.
+                    </a>
+                    .
                   </Label>
                 </div>
               </>
@@ -308,7 +325,7 @@ export default function RegisterPage() {
                   <Label htmlFor="skills" className="text-blue-900 font-medium">
                     Relevant Skills & Expertise
                   </Label>
-                  <br/>
+                  <br />
                   <Input
                     id="skills"
                     placeholder="e.g. First Aider, EMT, Logistics, etc."
@@ -318,13 +335,17 @@ export default function RegisterPage() {
                     required
                   />
                   <p className="text-gray-500 text-[10px] mt-1">
-                    List your main skills to help us assign you to suitable missions.
+                    List your main skills to help us assign you to suitable
+                    missions.
                   </p>
                 </div>
 
                 {/* Availability */}
                 <div className="mt-6">
-                  <Label htmlFor="availability" className="text-blue-900 font-medium">
+                  <Label
+                    htmlFor="availability"
+                    className="text-blue-900 font-medium"
+                  >
                     Emergency Availability
                   </Label>
                   <br />
@@ -342,13 +363,17 @@ export default function RegisterPage() {
                     <option>Within 48 hours</option>
                   </select>
                   <p className="text-gray-500 text-[10px] mt-1">
-                    Choose how soon you can respond to emergency deployment requests.
+                    Choose how soon you can respond to emergency deployment
+                    requests.
                   </p>
                 </div>
 
                 {/* Verification */}
                 <div className="mt-6">
-                  <Label htmlFor="volProof" className="text-blue-900 font-medium">
+                  <Label
+                    htmlFor="volProof"
+                    className="text-blue-900 font-medium"
+                  >
                     Proof of Volunteer Status (Optional)
                   </Label>
                   <br />
@@ -374,7 +399,8 @@ export default function RegisterPage() {
                     />
                   </div>
                   <p className="text-gray-500 text-sm mt-1 text-[10px]">
-                    You may upload your volunteer ID, training certificate, or accreditation to verify your profile.
+                    You may upload your volunteer ID, training certificate, or
+                    accreditation to verify your profile.
                   </p>
                 </div>
               </>
@@ -389,7 +415,10 @@ export default function RegisterPage() {
                 </h2>
 
                 <div>
-                  <Label htmlFor="orgName" className="text-blue-900 font-medium w-[415.11px]">
+                  <Label
+                    htmlFor="orgName"
+                    className="text-blue-900 font-medium w-[415.11px]"
+                  >
                     Organization Name
                   </Label>
                   <Input
@@ -403,7 +432,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="orgType" className="text-blue-100 font-medium">
+                  <Label
+                    htmlFor="orgType"
+                    className="text-blue-100 font-medium"
+                  >
                     Organization Type
                   </Label>
                   <br />
@@ -424,7 +456,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="orgContact" className="text-blue-900 font-medium ">
+                  <Label
+                    htmlFor="orgContact"
+                    className="text-blue-900 font-medium "
+                  >
                     Contact Information
                   </Label>
                   <Input
@@ -438,7 +473,10 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="orgProof" className="text-blue-900 font-medium">
+                  <Label
+                    htmlFor="orgProof"
+                    className="text-blue-900 font-medium"
+                  >
                     Proof of Legitimacy (Upload or Registration ID)
                   </Label>
                   <br />
@@ -464,7 +502,8 @@ export default function RegisterPage() {
                     />
                   </div>
                   <p className="text-gray-500 text-sm mt-1 text-[10px]">
-                    You may upload DSWD accreditation, SEC/DTI registration, or any valid document to verify your organization.
+                    You may upload DSWD accreditation, SEC/DTI registration, or
+                    any valid document to verify your organization.
                   </p>
                 </div>
               </>
@@ -488,7 +527,9 @@ export default function RegisterPage() {
               className="w-[415.11px] bg-blue-900 hover:bg-blue-950 text-white py-3 font-semibold"
               disabled={isLoading}
             >
-              {isLoading ? "Creating account..." : "Register to DisasterConnect"}
+              {isLoading
+                ? "Creating account..."
+                : "Register to DisasterConnect"}
             </Button>
             <br />
             <br />

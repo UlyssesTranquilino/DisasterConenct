@@ -247,7 +247,7 @@ export default function LandingPage() {
           <div className="rounded-xl shadow-lg overflow-hidden">
             <div className="h-48 w-full">
               <img
-                src="/src/assets/news.jpg"
+                src="/assets/news.jpg"
                 alt="Cebu Earthquake"
                 className="w-full h-full object-cover"
               />
@@ -266,7 +266,7 @@ export default function LandingPage() {
           <div className="rounded-xl shadow-lg overflow-hidden">
             <div className="h-48 w-full">
               <img
-                src="/src/assets/news.jpg"
+                src="/assets/news.jpg"
                 alt="Flood Alert"
                 className="w-full h-full object-cover"
               />
@@ -285,7 +285,7 @@ export default function LandingPage() {
           <div className="rounded-xl shadow-lg overflow-hidden">
             <div className="h-48 w-full">
               <img
-                src="/src/assets/news.jpg"
+                src="/assets/news.jpg"
                 alt="Volunteers Help"
                 className="w-full h-full object-cover"
               />
@@ -304,7 +304,7 @@ export default function LandingPage() {
           <div className="rounded-xl shadow-lg overflow-hidden">
             <div className="h-48 w-full">
               <img
-                src="/src/assets/news.jpg"
+                src="/assets/news.jpg"
                 alt="Donation Drive"
                 className="w-full h-full object-cover"
               />
