@@ -52,7 +52,7 @@ export default function LandingPage() {
   const nextFeature = (activeFeature + 1) % features.length
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 overflow-x-hidden">
+    <div className="min-h-screen text-neutral-900 dark:bg-neutral-900 dark:text-neutral-100 overflow-x-hidden">
       {/* Navbar */}
       <header className="sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-neutral-900/60 border-b border-neutral-200/60 dark:border-neutral-800">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
