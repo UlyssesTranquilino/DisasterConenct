@@ -12,10 +12,10 @@ export default function LandingPage() {
 
   // Hero carousel images
   const images = [
-    "../../public/assets/disasterimage1.jpg",
-    "../../public/assets/disasterimage2.jpg",
-    "../../public/assets/disasterimage3.jpeg",
-    "../../public/assets/disasterimage4.jpg",
+    "/assets/disasterimage1.jpg",
+    "/assets/disasterimage2.jpg",
+    "/assets/disasterimage3.jpeg",
+    "/assets/disasterimage4.jpg",
   ];
   const [currentIndex, setCurrentIndex] = useState(0);
 
