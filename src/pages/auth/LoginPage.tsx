@@ -34,7 +34,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex">
       {/* Homepage link */}
       <div className="absolute top-6 right-6 group z-50">
-        <Link to="http://localhost:5173/">
+        <Link to="/home">
           <div className="w-[75px] h-[75px] bg-blue-100 rounded-full shadow-lg flex items-center justify-center hover:scale-105 hover:shadow-xl transition-all duration-300 relative cursor-pointer">
             <img src="src/assets/logo.png" alt="Homepage" className="w-12 h-12 object-contain" />
             <span className="absolute bottom-[-35px] left-1/2 -translate-x-1/2 text-sm bg-gray-800 text-white px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"> Homepage </span>
