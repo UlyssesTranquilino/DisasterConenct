@@ -46,64 +46,79 @@ const FlyToLocation = ({ position }: { position: [number, number] | null }) => {
 interface MapLocation {
   id: number;
   name: string;
+  location: string;
   position: [number, number];
   capacity: number;
   supplies: string[];
   contact: string;
   occupancy: number;
   type?: 'evacuation' | 'urgent' | 'volunteer' | 'searched';
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
 }
 
 interface VolunteerMapProps {
   onLocationSelect?: (location: MapLocation) => void;
+  centers?: MapLocation[];
 }
 
 const defaultCenter: [number, number] = [14.5995, 120.9842]; // Manila
 
-const evacuationCenters: MapLocation[] = [
+// Default centers if none provided
+const defaultEvacuationCenters: MapLocation[] = [
   {
     id: 1,
     name: "Central Evacuation Center",
+    location: "Manila, Metro Manila",
     position: [14.61, 120.98],
     capacity: 500,
     supplies: ["Food", "Water", "Medical", "Blankets"],
     contact: "+1-555-0101",
     occupancy: 68,
-    type: "evacuation"
+    type: "evacuation",
+    coordinates: { lat: 14.61, lng: 120.98 }
   },
   {
     id: 2,
     name: "Northside Shelter - URGENT",
+    location: "Quezon City, Metro Manila",
     position: [14.604, 120.99],
     capacity: 300,
     supplies: ["Food", "Water", "Clothing"],
     contact: "+1-555-0102",
     occupancy: 95,
-    type: "urgent"
+    type: "urgent",
+    coordinates: { lat: 14.604, lng: 120.99 }
   },
   {
     id: 3,
     name: "Community Hall",
+    location: "Makati, Metro Manila",
     position: [14.59, 120.975],
     capacity: 200,
     supplies: ["Food", "Medical"],
     contact: "+1-555-0103",
     occupancy: 80,
-    type: "evacuation"
+    type: "evacuation",
+    coordinates: { lat: 14.59, lng: 120.975 }
   },
   {
     id: 4,
     name: "Volunteer Hub Central",
+    location: "Pasig, Metro Manila",
     position: [14.595, 120.98],
     capacity: 150,
     supplies: ["Medical", "Coordination"],
     contact: "+1-555-0104",
     occupancy: 45,
-    type: "volunteer"
+    type: "volunteer",
+    coordinates: { lat: 14.595, lng: 120.98 }
   }
 ];
 
-export default function VolunteerMap({ onLocationSelect }: VolunteerMapProps) {
+export default function VolunteerMap({ onLocationSelect, centers = defaultEvacuationCenters }: VolunteerMapProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(null);
@@ -155,6 +170,13 @@ export default function VolunteerMap({ onLocationSelect }: VolunteerMapProps) {
     if (occupancy >= 50) return "text-yellow-400";
     return "text-green-400";
   };
+
+  // Convert centers to the format expected by the map
+  const mapCenters = centers.map(center => ({
+    ...center,
+    position: center.coordinates ? [center.coordinates.lat, center.coordinates.lng] as [number, number] : center.position,
+    type: center.type || 'evacuation'
+  }));
 
   return (
     <div className="relative h-full w-full">
@@ -227,7 +249,7 @@ export default function VolunteerMap({ onLocationSelect }: VolunteerMapProps) {
         )}
 
         {/* 📍 Evacuation Centers and Volunteer Locations */}
-        {evacuationCenters.map((center) => (
+        {mapCenters.map((center) => (
           <Marker
             key={center.id}
             position={center.position}
@@ -253,6 +275,10 @@ export default function VolunteerMap({ onLocationSelect }: VolunteerMapProps) {
                 <div className="border-t border-neutral-700 my-2"></div>
                 
                 <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-400">Location:</span>
+                    <span className="text-white text-right">{center.location}</span>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-neutral-400">Capacity:</span>
                     <span className="text-white">{center.capacity} people</span>
