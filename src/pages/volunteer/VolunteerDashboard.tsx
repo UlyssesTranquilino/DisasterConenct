@@ -224,42 +224,50 @@ export default function VolunteerDashboard() {
         </div>
       </div>
 
-      {/* 1. Top Row Metric Cards - Same design as organization */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {mockVolunteerMetrics.map((metric, index) => (
-          <Card key={index} className="border-0" style={cardGradientStyle}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
-              <CardTitle className="text-sm font-medium text-white">
-                {metric.title}
-              </CardTitle>
-              <div className="text-white">
-                {getIconComponent(metric.icon)}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-white">
-                {metric.value}
-              </div>
-              {metric.change && (
-                <p
-                  className={`text-xs ${
-                    metric.change.startsWith("+")
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  {metric.change}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+      {/* 1. Top Row Metric Cards - Wider containers */}
+      <div className="flex justify-center">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl">
+          {mockVolunteerMetrics.map((metric, index) => (
+            <Card key={index} className="border-0 w-full" style={cardGradientStyle}>
+              <CardHeader className="flex flex-col items-center space-y-0 pb-2 border-b-0">
+                <CardTitle className="text-sm font-medium text-white text-center leading-tight">
+                  {metric.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-center space-y-2">
+                {/* Centered Icon */}
+                <div className="flex justify-center">
+                  <div className="text-white">
+                    {getIconComponent(metric.icon, 20)}
+                  </div>
+                </div>
+                {/* Value and Percentage */}
+                <div className="space-y-1">
+                  <div className="text-2xl font-bold text-white">
+                    {metric.value}
+                  </div>
+                  {metric.change && (
+                    <p
+                      className={`text-xs ${
+                        metric.change.startsWith("+")
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      {metric.change}
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
-      {/* 2. Main Content Area - UPDATED LAYOUT */}
+      {/* 2. Main Content Area - FIXED MAP CONTAINER */}
       <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-280px)]">
         
-        {/* Map Overview - Enlarged to take 2/3 of the width */}
+        {/* Map Overview - Fixed container issues */}
         <div className="lg:col-span-2 flex flex-col">
           <Card className="border-0 flex-1 flex flex-col" style={cardGradientStyle}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
@@ -274,39 +282,43 @@ export default function VolunteerDashboard() {
               </Button>
             </CardHeader>
             <CardContent className="flex-1 p-0">
-              <div className="h-full rounded-lg overflow-hidden">
-                <VolunteerMap 
-                  onLocationSelect={handleLocationSelect}
-                  centers={evacuationCenters}
-                />
+              {/* Fixed map container with strict overflow control */}
+              <div className="h-full rounded-lg overflow-hidden relative isolate">
+                <div className="absolute inset-0 rounded-lg overflow-hidden">
+                  <VolunteerMap 
+                    onLocationSelect={handleLocationSelect}
+                    centers={evacuationCenters}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column - Volunteer List replaces the center details */}
+        {/* Right Column - Volunteer List and Center Details */}
         <div className="flex flex-col space-y-6 h-full">
           
-          {/* Volunteer List - Now in the right column */}
-          <Card className="border-0 flex-1" style={cardGradientStyle}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
+          {/* Volunteer List - Scroll container pushed to bottom */}
+          <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b-0">
               <CardTitle className="text-sm font-medium text-white">
                 Volunteer List
               </CardTitle>
               <ChevronDown size={16} className="text-neutral-400" />
             </CardHeader>
             
-            <CardContent className="flex-1 p-0">
-              <div className="overflow-auto h-full">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-gray-400 text-left border-b border-neutral-700">
-                      <th className="p-3 font-medium">Name</th>
-                      <th className="p-3 font-medium">Email</th>
-                      <th className="p-3 font-medium">Role</th>
-                      <th className="p-3 font-medium">Status</th>
-                      <th className="p-3 font-medium">Employed</th>
-                      <th className="p-3 font-medium">Actions</th>
+            <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
+              {/* Scrollable area that takes full available height */}
+              <div className="overflow-auto flex-1">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm">
+                    <tr className="text-gray-400 text-left">
+                      <th className="p-2 font-medium whitespace-nowrap">Name</th>
+                      <th className="p-2 font-medium whitespace-nowrap">Email</th>
+                      <th className="p-2 font-medium whitespace-nowrap">Role</th>
+                      <th className="p-2 font-medium whitespace-nowrap">Status</th>
+                      <th className="p-2 font-medium whitespace-nowrap">Employed</th>
+                      <th className="p-2 font-medium whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -315,12 +327,12 @@ export default function VolunteerDashboard() {
                         key={v.email} 
                         className="border-b border-neutral-800 hover:bg-neutral-800/50 transition-colors"
                       >
-                        <td className="p-3 font-medium text-white">{v.name}</td>
-                        <td className="p-3 text-neutral-300">{v.email}</td>
-                        <td className="p-3 text-neutral-300">{v.role}</td>
-                        <td className="p-3">
+                        <td className="p-2 font-medium text-white whitespace-nowrap">{v.name}</td>
+                        <td className="p-2 text-neutral-300 text-xs whitespace-nowrap">{v.email}</td>
+                        <td className="p-2 text-neutral-300 text-xs whitespace-nowrap">{v.role}</td>
+                        <td className="p-2">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                               v.status === "Online"
                                 ? "bg-emerald-500/20 text-emerald-400"
                                 : "bg-neutral-600/30 text-neutral-400"
@@ -329,18 +341,17 @@ export default function VolunteerDashboard() {
                             {v.status}
                           </span>
                         </td>
-                        <td className="p-3 text-neutral-300">{v.date}</td>
-                        <td className="p-3">
+                        <td className="p-2 text-neutral-300 text-xs whitespace-nowrap">{v.date}</td>
+                        <td className="p-2">
                           <button
                             onClick={() => {
-                              // For demo, edit the first evacuation center
                               if (evacuationCenters[0]) {
                                 handleEditCenter(evacuationCenters[0]);
                               }
                             }}
-                            className="text-blue-400 hover:text-blue-300 cursor-pointer text-sm flex items-center gap-1"
+                            className="text-blue-400 hover:text-blue-300 cursor-pointer text-xs flex items-center gap-1 whitespace-nowrap"
                           >
-                            <Edit size={14} />
+                            <Edit size={12} />
                             Edit Center
                           </button>
                         </td>
@@ -352,9 +363,9 @@ export default function VolunteerDashboard() {
             </CardContent>
           </Card>
 
-          {/* Small Center Detail Panel - Below Volunteer List */}
-          <Card className="border-0" style={cardGradientStyle}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
+          {/* Center Detail Panel - Centered content with enlarged text */}
+          <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b-0">
               <CardTitle className="text-sm font-medium text-white">
                 {selectedLocation ? selectedLocation.name : "Center Details"}
               </CardTitle>
@@ -370,41 +381,51 @@ export default function VolunteerDashboard() {
               )}
             </CardHeader>
             
-            <CardContent className="space-y-3">
+            <CardContent className="flex-1 overflow-auto p-4 flex items-center justify-center">
               {selectedLocation ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-300 text-xs">Location</span>
-                    <span className="text-white text-xs font-medium">{selectedLocation.location}</span>
+                <div className="w-full max-w-md space-y-6">
+                  {/* Center Title - Enlarged */}
+                  <div className="text-center mb-6">
+                    <h3 className="text-white font-semibold text-lg mb-2">{selectedLocation.name}</h3>
+                    <p className="text-neutral-400 text-sm">{selectedLocation.location}</p>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-300 text-xs">Capacity</span>
-                    <span className="text-white text-xs">{selectedLocation.capacity} people</span>
+
+                  {/* Details Grid - Enlarged and centered */}
+                  <div className="space-y-4 bg-neutral-800/30 rounded-lg p-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-300 text-sm font-medium">Capacity</span>
+                      <span className="text-white text-sm font-semibold">{selectedLocation.capacity} people</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-300 text-sm font-medium">Occupancy</span>
+                      <span className="text-emerald-400 font-bold text-sm">{selectedLocation.occupancy}%</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-neutral-300 text-sm font-medium">Contact</span>
+                      <span className="text-white text-sm font-medium text-right">{selectedLocation.contact}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-300 text-xs">Occupancy</span>
-                    <span className="text-emerald-400 font-semibold text-xs">{selectedLocation.occupancy}%</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-neutral-300 text-xs">Contact</span>
-                    <span className="text-white text-xs">{selectedLocation.contact}</span>
-                  </div>
-                  <div className="pt-2 border-t border-neutral-800">
-                    <p className="text-neutral-300 text-xs mb-1">Supplies:</p>
-                    <ul className="text-xs text-neutral-400 space-y-0.5">
+
+                  {/* Supplies Section - Enlarged */}
+                  <div className="bg-neutral-800/30 rounded-lg p-4">
+                    <p className="text-neutral-300 text-sm font-semibold mb-3 text-center">Available Supplies</p>
+                    <div className="grid grid-cols-2 gap-2">
                       {selectedLocation.supplies.map((supply, index) => (
-                        <li key={index}>• {supply}</li>
+                        <div key={index} className="flex items-center space-x-2">
+                          <span className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></span>
+                          <span className="text-white text-sm">{supply}</span>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <MapPin size={20} className="text-neutral-600 mx-auto mb-2" />
-                  <p className="text-xs text-neutral-400">
+                <div className="flex flex-col items-center justify-center text-center py-8 w-full">
+                  <MapPin size={32} className="text-neutral-600 mx-auto mb-4" />
+                  <p className="text-base text-neutral-400 mb-2 font-medium">
                     Click on a map marker
                   </p>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-sm text-neutral-500">
                     to view center details
                   </p>
                 </div>
