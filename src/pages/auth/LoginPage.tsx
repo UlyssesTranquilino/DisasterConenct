@@ -4,26 +4,74 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { useAuth } from "../../lib/auth";
+
 export default function LoginPage() {
   const { login, loginWithGoogle, isLoading, error } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<string>(""); // selected role
+  const [roleError, setRoleError] = useState<string>("");
+
+  /**
+   * STUB: Fetch roles for the currently authenticated user.
+   * -----------------------------
+   * Database/backend developer should replace this with a real implementation.
+   *
+   * Examples:
+   * - Firestore: fetch doc `users/{uid}` and return doc.data().roles
+   * - Backend API: call `/api/user/roles` and return response.roles
+   * - If auth exposes currentUser: use `auth.currentUser.uid` to look up the user record
+   *
+   * Must return an array of strings like: ["civilian", "volunteer"]
+   */
+  async function fetchRolesForCurrentUser(): Promise<string[]> {
+    // ---------- TEMP: placeholder ----------
+    // Keep this as-is for now: returns an empty array so the role-check flow runs,
+    // and the UI shows the "no account found" error until DB dev plugs in real data.
+    return [];
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setRoleError("");
+
+    if (!role) {
+      setRoleError("Please select a role.");
+      return;
+    }
+
     try {
+      // perform login (your useAuth.login). It may not return user data — that's fine.
       await login(email, password);
-      // Navigation is handled by login in auth context
-    } catch (error) {
-      console.error("Login failed:", error);
+
+      // After successful login, fetch roles from DB (the DB dev will implement this).
+      const roles = await fetchRolesForCurrentUser();
+
+      // If fetchRolesForCurrentUser returns nothing or role is not present, show error.
+      if (!roles || !Array.isArray(roles) || !roles.includes(role)) {
+        setRoleError(`No account found under the role: ${role}`);
+        return;
+      }
+
+      // Role exists — redirect to appropriate dashboard
+      if (role === "civilian") navigate("/citizenDashboard");
+      else if (role === "volunteer") navigate("/volunteerDashboard");
+      else if (role === "organization") navigate("/orgDashboard");
+      else {
+        // fallback route if new roles are added in the future
+        navigate("/");
+      }
+    } catch (err) {
+      // Keep original behavior: login error will likely be surfaced by `error` from useAuth.
+      console.error("Login failed:", err);
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-      // Navigation is handled by loginWithGoogle in auth context
+      // Navigation is handled by loginWithGoogle in auth context (same as before)
     } catch (err) {
       console.error(err);
     }
@@ -34,12 +82,9 @@ export default function LoginPage() {
       {/* Homepage link */}
       <div className="absolute top-6 right-6 group z-50">
         <Link to="/">
-          <div
-            className="w-[50px] h-[50px] bg-blue-900 rounded-full flex items-center justify-center 
-                            hover:scale-105 transition-all duration-300 relative cursor-pointer"
-          >
+          <div>
             <img
-              src="/assets/home (1).png"
+              src="src/assets/home (2).png"
               alt="Homepage"
               className="w-6 h-6 object-contain filter brightness-[200%]"
             />
@@ -52,13 +97,13 @@ export default function LoginPage() {
       </div>
 
       {/* Left half with logo image */}
-      <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-blue-200 to-white">
+      <div className="flex-3 flex flex-col items-center justify-center bg-gradient-to-br from-blue-200 to-white">
         <img
-          src="/assets/image-removebg-preview (1).png"
+          src="src/assets/DisasterConnectLogo.png"
           alt="DisasterConnect Logo"
-          className="-mt-40 w-[500px] h-auto object-contain drop-shadow-lg"
+          className="-mt-40 w-[250px] h-auto object-contain drop-shadow-lg"
         />
-        <h2 className="-mt-20 text-xl text-blue-900 font-semibold text-center max-w-md">
+        <h2 className="-mt-50 text-xl text-blue-900 font-semibold text-center max-w-sm px-6">
           "Stay connected with your community in times of crisis"
         </h2>
       </div>
@@ -82,11 +127,20 @@ export default function LoginPage() {
           </h1>
 
           <form onSubmit={onSubmit} className="space-y-4">
+            {/* Auth error from useAuth */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
                 {error}
               </div>
             )}
+
+            {/* Role error (from DB role validation) */}
+            {roleError && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                {roleError}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-blue-900">
                 Email
@@ -117,6 +171,27 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
               />
+            </div>
+
+            {/* Role selection - styled to match inputs */}
+            <div className="space-y-2">
+              <Label htmlFor="role" className="text-blue-900">
+                Select Role
+              </Label>
+
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="!bg-black !border-black !text-white w-full p-2 rounded-lg"
+              >
+                <option value="" disabled className="text-gray-400">
+                  Choose your role
+                </option>
+                <option value="civilian">Civilian</option>
+                <option value="volunteer">Volunteer</option>
+                <option value="organization">Organization</option>
+              </select>
             </div>
 
             <Button

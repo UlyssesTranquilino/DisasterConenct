@@ -131,7 +131,7 @@ export default function RegisterPage() {
       <div className="w-1/3 text-white flex flex-col items-center justify-center px-8 py-10 fixed left-0 top-0 bottom-0">
         <div className="text-center space-y-4">
           <img
-            src="/assets/image-removebg-preview (1).png"
+            src="src/assets/DisasterConnectLogo.png"
             alt="DisasterConnect Logo"
             className="w-40 h-auto mx-auto"
           />
@@ -151,7 +151,7 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
-      x{/* RIGHT SIDE */}
+      {/* RIGHT SIDE */}
       <div className="ml-[33.333%] w-2/3 flex flex-col justify-center px-20 py-12 bg-white overflow-y-auto h-screen">
         <div className="flex flex-col justify-start px-20 py-12 bg-white min-h-screen">
           <h1 className="text-3xl font-bold text-blue-900 mb-2">
