@@ -84,7 +84,7 @@ export default function LoginPage() {
         <Link to="/">
           <div>
             <img
-              src="public\assets\home (2).png"
+              src="public/assets/home (2).png"
               alt="Homepage"
               className="w-6 h-6 object-contain filter brightness-[200%]"
             />
