@@ -131,7 +131,7 @@ export default function RegisterPage() {
       <div className="w-1/3 text-white flex flex-col items-center justify-center px-8 py-10 fixed left-0 top-0 bottom-0">
         <div className="text-center space-y-4">
           <img
-            src="src/assets/DisasterConnectLogo.png"
+            src="/assets/DisasterConnectLogo.png"
             alt="DisasterConnect Logo"
             className="w-40 h-auto mx-auto"
           />
