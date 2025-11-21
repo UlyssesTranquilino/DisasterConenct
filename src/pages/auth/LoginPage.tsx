@@ -84,7 +84,7 @@ export default function LoginPage() {
         <Link to="/">
           <div>
             <img
-              src="src/assets/home (2).png"
+              src="public\assets\home (2).png"
               alt="Homepage"
               className="w-6 h-6 object-contain filter brightness-[200%]"
             />
@@ -99,7 +99,7 @@ export default function LoginPage() {
       {/* Left half with logo image */}
       <div className="flex-3 flex flex-col items-center justify-center bg-gradient-to-br from-blue-200 to-white">
         <img
-          src="src/assets/DisasterConnectLogo.png"
+          src="public\assets\DisasterConnectLogo.png"
           alt="DisasterConnect Logo"
           className="-mt-40 w-[250px] h-auto object-contain drop-shadow-lg"
         />
