@@ -423,9 +423,10 @@ export default function OrgDashboard() {
       </div>
 
       {/* 2. Map Overview (Spanning Full Width) */}
-      <MapOverview />
 
       {/* 3. Bottom Row: Chart, Resources, Announcements */}
+      <MapOverview />
+
       <div className="grid gap-4 md:grid-cols-3 ">
         <div>
           <EvacueesTrendChart />
