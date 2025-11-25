@@ -1,9 +1,38 @@
 import { useState, useEffect } from "react";
-import { MapPin, Search, Bell, ChevronDown, Edit } from "lucide-react";
+import { MapPin, Search, Bell, ChevronDown, Clock, CheckCircle, AlertTriangle, Users, Navigation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import VolunteerMap from "../../components/VolunteerMap";
-import EvacuationCenterPopup from "../../components/volunteer/EvacuationCenterPopup";
+
+// Define types inline
+interface Assignment {
+  id: number;
+  title: string;
+  organization: string;
+  description: string;
+  assignedDate: string;
+  dueDate: string;
+  status: "Pending" | "In Progress" | "Completed" | "Cancelled";
+  priority: "Low" | "Medium" | "High" | "Critical";
+  location: string;
+  coordinates: { lat: number; lng: number };
+  requiredSkills: string[];
+  estimatedHours: number;
+  organizationContact: string;
+  supplies?: string[];
+}
+
+interface Mission {
+  id: number;
+  title: string;
+  organization: string;
+  startDate: string;
+  endDate: string;
+  hoursCompleted: number;
+  status: "Completed" | "Ongoing" | "Cancelled";
+  skillsUsed: string[];
+  feedback?: string;
+}
 
 interface MapLocation {
   id: number;
@@ -21,109 +50,231 @@ interface MapLocation {
   type?: 'evacuation' | 'urgent' | 'volunteer' | 'searched';
 }
 
-// Gradient background style for cards (same as organization)
+// Gradient background style for cards
 const cardGradientStyle = {
   background: "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
   backdropFilter: "blur(10px)",
 };
 
-// Mock metrics for volunteer dashboard - fixed icon rendering
+// Mock metrics for volunteer dashboard - corrected for volunteer perspective
 const mockVolunteerMetrics = [
   {
-    title: "Total Volunteers",
-    value: "3,234",
-    change: "+5%",
-    icon: "MapPin",
+    title: "Active Assignments",
+    value: "3",
+    change: "+1",
+    icon: "Clock",
+    color: "text-blue-400"
   },
   {
-    title: "Active Volunteers",
-    value: "2,300",
-    change: "+0.5%",
-    icon: "Bell",
+    title: "Completed Missions",
+    value: "12",
+    change: "+2",
+    icon: "CheckCircle",
+    color: "text-green-400"
   },
   {
-    title: "Available Volunteers",
-    value: "1,850",
-    change: "+12%",
-    icon: "MapPin",
-  },
-  {
-    title: "Urgent Requests",
-    value: "10",
+    title: "Available Hours",
+    value: "20",
     change: null,
-    icon: "Bell",
+    icon: "Clock",
+    color: "text-yellow-400"
+  },
+  {
+    title: "Urgent Needs Nearby",
+    value: "5",
+    change: null,
+    icon: "AlertTriangle",
+    color: "text-red-400"
   },
 ];
 
-const getIconComponent = (iconName: string, size: number = 16) => {
-  switch (iconName) {
-    case "MapPin":
-      return <MapPin size={size} />;
-    case "Bell":
-      return <Bell size={size} />;
-    default:
-      return <MapPin size={size} />;
-  }
-};
-
-// Mock evacuation centers data
-const mockEvacuationCenters: MapLocation[] = [
+// Mock assignments data based on corrected schema
+const mockAssignments: Assignment[] = [
   {
     id: 1,
-    name: "Quezon City Memorial Center",
-    location: "Quezon City, Metro Manila",
-    position: [14.6506, 121.0500],
-    capacity: 500,
-    supplies: ["Food", "Water", "Medicine", "Blankets"],
-    contact: "+63 912 345 6789",
-    occupancy: 75,
+    title: "Medical Assistance at QC Center",
+    organization: "Red Cross Philippines",
+    description: "Provide basic medical assistance and first aid to evacuees at Quezon City Memorial Center. Volunteers with medical background preferred.",
+    assignedDate: "2024-01-10",
+    dueDate: "2024-01-15",
+    status: "In Progress",
+    priority: "High",
+    location: "Quezon City Memorial Center",
     coordinates: { lat: 14.6506, lng: 121.0500 },
-    type: "evacuation"
+    requiredSkills: ["First Aid", "CPR", "Emergency Response", "Medical Background"],
+    estimatedHours: 8,
+    organizationContact: "+63 912 345 6789",
+    supplies: ["Medical Kits", "First Aid", "Emergency Supplies"]
   },
   {
     id: 2,
-    name: "Rizal Park Evacuation",
-    location: "Manila, Metro Manila",
-    position: [14.5832, 120.9790],
-    capacity: 300,
-    supplies: ["Water", "First Aid", "Emergency Kits"],
-    contact: "+63 917 123 4567",
-    occupancy: 60,
+    title: "Food Distribution Support",
+    organization: "DSWD Relief Operations",
+    description: "Help distribute food packs and manage supply logistics at Rizal Park evacuation area. Physical fitness required for lifting and moving supplies.",
+    assignedDate: "2024-01-11",
+    dueDate: "2024-01-16",
+    status: "Pending",
+    priority: "Medium",
+    location: "Rizal Park, Manila",
     coordinates: { lat: 14.5832, lng: 120.9790 },
-    type: "evacuation"
+    requiredSkills: ["Logistics", "Team Management", "Physical Fitness"],
+    estimatedHours: 6,
+    organizationContact: "+63 917 123 4567",
+    supplies: ["Food Packs", "Water", "Emergency Kits"]
+  },
+  {
+    id: 3,
+    title: "Emergency Shelter Setup",
+    organization: "Local Government Unit",
+    description: "Assist in setting up temporary shelters and emergency facilities for displaced families. Construction experience helpful but not required.",
+    assignedDate: "2024-01-12",
+    dueDate: "2024-01-14",
+    status: "Completed",
+    priority: "High",
+    location: "Marikina Sports Center",
+    coordinates: { lat: 14.6415, lng: 121.1007 },
+    requiredSkills: ["Construction", "Logistics", "Teamwork"],
+    estimatedHours: 4,
+    organizationContact: "+63 918 765 4321",
+    supplies: ["Tents", "Blankets", "Basic Amenities"]
+  },
+  {
+    id: 4,
+    title: "Community Outreach Program",
+    organization: "Local Government Unit",
+    description: "Conduct community outreach and needs assessment in affected barangays.",
+    assignedDate: "2024-01-13",
+    dueDate: "2024-01-18",
+    status: "Pending",
+    priority: "Medium",
+    location: "Taguig City",
+    coordinates: { lat: 14.5176, lng: 121.0509 },
+    requiredSkills: ["Communication", "Community Engagement"],
+    estimatedHours: 5,
+    organizationContact: "+63 919 999 8888",
+    supplies: ["Survey Forms", "Information Materials"]
   }
 ];
 
-export default function VolunteerDashboard() {
-  const [volunteers] = useState([
-    {
-      name: "Esthera Jackson",
-      email: "esthera@simmimple.com",
-      role: "Manager, Organization",
-      status: "Online",
-      date: "14/06/21",
-    },
-    {
-      name: "Alex Johnson",
-      email: "alex.j@example.com",
-      role: "Medical Volunteer",
-      status: "Online",
-      date: "15/06/21",
-    },
-    {
-      name: "Maria Garcia",
-      email: "maria.g@example.com",
-      role: "Logistics Coordinator",
-      status: "Offline",
-      date: "12/06/21",
-    },
-  ]);
+const mockMissions: Mission[] = [
+  {
+    id: 1,
+    title: "Typhoon Relief Operation",
+    organization: "Red Cross Philippines",
+    startDate: "2024-01-05",
+    endDate: "2024-01-08",
+    hoursCompleted: 24,
+    status: "Completed",
+    skillsUsed: ["First Aid", "Crisis Management"],
+    feedback: "Excellent work in providing medical support to affected families."
+  },
+  {
+    id: 2,
+    title: "Flood Rescue Support",
+    organization: "Coast Guard",
+    startDate: "2024-01-02",
+    endDate: "2024-01-04",
+    hoursCompleted: 18,
+    status: "Completed",
+    skillsUsed: ["Water Rescue", "First Aid"],
+    feedback: "Valuable assistance in water rescue operations."
+  },
+  {
+    id: 3,
+    title: "Earthquake Response Mission",
+    organization: "NDRRMC",
+    startDate: "2023-12-28",
+    endDate: "2023-12-31",
+    hoursCompleted: 32,
+    status: "Completed",
+    skillsUsed: ["Search & Rescue", "First Aid", "Logistics"],
+    feedback: "Outstanding performance in search and rescue operations."
+  },
+  {
+    id: 4,
+    title: "Medical Mission in Remote Areas",
+    organization: "Doctors Without Borders",
+    startDate: "2023-12-20",
+    endDate: "2023-12-25",
+    hoursCompleted: 40,
+    status: "Completed",
+    skillsUsed: ["Medical Assistance", "Patient Care"],
+    feedback: "Exceptional medical support provided to remote communities."
+  }
+];
 
-  const [selectedLocation, setSelectedLocation] = useState<MapLocation | null>(null);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [popupMode, setPopupMode] = useState<'add' | 'edit'>('add');
-  const [editingCenter, setEditingCenter] = useState<MapLocation | null>(null);
-  const [evacuationCenters, setEvacuationCenters] = useState<MapLocation[]>(mockEvacuationCenters);
+// Convert assignments to MapLocation format for VolunteerMap
+const convertAssignmentsToMapLocations = (assignments: Assignment[]): MapLocation[] => {
+  return assignments.map(assignment => ({
+    id: assignment.id,
+    name: assignment.title,
+    location: assignment.location,
+    position: [assignment.coordinates.lat, assignment.coordinates.lng] as [number, number],
+    capacity: 100, // Default value for map display
+    supplies: assignment.supplies || [],
+    contact: assignment.organizationContact,
+    occupancy: assignment.status === 'Completed' ? 100 : assignment.status === 'In Progress' ? 50 : 25,
+    coordinates: assignment.coordinates,
+    type: 'volunteer' as const
+  }));
+};
+
+const getIconComponent = (iconName: string, size: number = 16) => {
+  switch (iconName) {
+    case "Clock":
+      return <Clock size={size} />;
+    case "CheckCircle":
+      return <CheckCircle size={size} />;
+    case "AlertTriangle":
+      return <AlertTriangle size={size} />;
+    case "MapPin":
+      return <MapPin size={size} />;
+    case "Users":
+      return <Users size={size} />;
+    case "Bell":
+      return <Bell size={size} />;
+    default:
+      return <Clock size={size} />;
+  }
+};
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Completed":
+      return "bg-green-500/20 text-green-400";
+    case "In Progress":
+      return "bg-blue-500/20 text-blue-400";
+    case "Pending":
+      return "bg-yellow-500/20 text-yellow-400";
+    default:
+      return "bg-gray-500/20 text-gray-400";
+  }
+};
+
+const getPriorityColor = (priority: string) => {
+  switch (priority) {
+    case "High":
+      return "bg-red-500/20 text-red-400";
+    case "Medium":
+      return "bg-yellow-500/20 text-yellow-400";
+    case "Low":
+      return "bg-green-500/20 text-green-400";
+    default:
+      return "bg-gray-500/20 text-gray-400";
+  }
+};
+
+export default function VolunteerDashboard() {
+  const [assignments] = useState<Assignment[]>(mockAssignments);
+  const [missions] = useState<Mission[]>(mockMissions);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(mockAssignments[0]);
+  const [activeTab, setActiveTab] = useState<'assignments' | 'missions'>('assignments');
+  const [search, setSearch] = useState("");
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  // Convert assignments to map locations
+  const mapLocations = convertAssignmentsToMapLocations(assignments);
 
   // Remove scrollbar from entire page
   useEffect(() => {
@@ -133,130 +284,145 @@ export default function VolunteerDashboard() {
     };
   }, []);
 
-  const handleLocationSelect = (location: MapLocation) => {
-    setSelectedLocation(location);
-  };
-
-  const handleAddCenter = () => {
-    setPopupMode('add');
-    setEditingCenter(null);
-    setIsPopupOpen(true);
-  };
-
-  const handleEditCenter = (center: MapLocation) => {
-    setPopupMode('edit');
-    setEditingCenter(center);
-    setIsPopupOpen(true);
-  };
-
-  const handleClosePopup = () => {
-    setIsPopupOpen(false);
-    setEditingCenter(null);
-  };
-
-  const handleSubmitCenter = (data: any) => {
-    if (popupMode === 'add') {
-      // Add new center
-      const newCenter: MapLocation = {
-        id: Date.now(),
-        name: data.name,
-        location: data.location,
-        position: [data.coordinates.lat, data.coordinates.lng],
-        capacity: data.capacity,
-        supplies: data.supplies,
-        contact: data.contact,
-        occupancy: 0, // New center starts with 0 occupancy
-        coordinates: data.coordinates,
-        type: 'evacuation'
-      };
-      setEvacuationCenters(prev => [...prev, newCenter]);
-    } else {
-      // Edit existing center
-      const updatedCenter: MapLocation = {
-        id: editingCenter!.id, // We know editingCenter exists in edit mode
-        name: data.name,
-        location: data.location,
-        capacity: data.capacity,
-        supplies: data.supplies,
-        contact: data.contact,
-        occupancy: editingCenter!.occupancy, // Preserve existing occupancy
-        position: [data.coordinates.lat, data.coordinates.lng],
-        coordinates: data.coordinates,
-        type: editingCenter!.type || 'evacuation' // Preserve existing type
-      };
-
-      setEvacuationCenters(prev => 
-        prev.map(center => 
-          center.id === editingCenter!.id ? updatedCenter : center
-        )
-      );
-      
-      // Update selected location if it's the one being edited
-      if (selectedLocation?.id === editingCenter!.id) {
-        setSelectedLocation(updatedCenter);
-      }
+  // Get user's current location
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
     }
-    handleClosePopup();
+
+    setIsGettingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setIsGettingLocation(false);
+        console.log("User location:", latitude, longitude);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        setIsGettingLocation(false);
+        alert("Unable to retrieve your location. Please check your location settings.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+
+  // Get directions function
+  const getDirections = (assignment: Assignment) => {
+    if (!userLocation) {
+      alert("Please allow location access to get directions");
+      getUserLocation();
+      return;
+    }
+
+    const { lat, lng } = assignment.coordinates;
+    
+    // Check if we're on a mobile device
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // Use device's native maps app
+      const url = `https://maps.google.com/maps?daddr=${lat},${lng}&travelmode=driving`;
+      window.open(url, '_blank');
+    } else {
+      // Use Google Maps web version
+      const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${lat},${lng}`;
+      window.open(url, '_blank');
+    }
+  };
+
+  // Calculate metrics from actual data
+  const calculatedMetrics = [
+    {
+      ...mockVolunteerMetrics[0],
+      value: assignments.filter(a => a.status === 'In Progress' || a.status === 'Pending').length.toString()
+    },
+    {
+      ...mockVolunteerMetrics[1],
+      value: missions.filter(m => m.status === 'Completed').length.toString()
+    },
+    {
+      ...mockVolunteerMetrics[2],
+      value: "20" // This would come from availability data
+    },
+    {
+      ...mockVolunteerMetrics[3],
+      value: "5" // This would come from nearby needs query
+    }
+  ];
+
+  const activeAssignments = assignments.filter(a => a.status !== 'Completed');
+
+  // Filter assignments based on search
+  const filteredAssignments = assignments.filter(assignment =>
+    assignment.title.toLowerCase().includes(search.toLowerCase()) ||
+    assignment.organization.toLowerCase().includes(search.toLowerCase()) ||
+    assignment.location.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const filteredMissions = missions.filter(mission =>
+    mission.title.toLowerCase().includes(search.toLowerCase()) ||
+    mission.organization.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleUpdateStatus = (assignmentId: number, newStatus: Assignment['status']) => {
+    console.log(`Updating assignment ${assignmentId} to ${newStatus}`);
+    // This would update the assignment in Firebase
+    alert(`Assignment status updated to ${newStatus}`);
+    
+    // Update the selected assignment if it's the one being modified
+    if (selectedAssignment && selectedAssignment.id === assignmentId) {
+      setSelectedAssignment({
+        ...selectedAssignment,
+        status: newStatus
+      });
+    }
+  };
+
+  const handleAssignmentSelect = (assignment: Assignment) => {
+    console.log("Selecting assignment:", assignment);
+    setSelectedAssignment(assignment);
+  };
+
+  // Handle map location selection (convert back to assignment)
+  const handleMapLocationSelect = (location: MapLocation) => {
+    const assignment = assignments.find(a => a.id === location.id);
+    if (assignment) {
+      handleAssignmentSelect(assignment);
+    }
   };
 
   return (
-    <div className="px-2 md:px-4 space-y-4 pb-6 overflow-hidden h-screen">
-      {/* Header with Search - Same as organization */}
+    <div className="px-3 md:px-4 space-y-3 pb-3 overflow-hidden h-screen">
+      {/* Header - Simplified without search */}
       <div className="flex justify-between items-center pt-2">
         <div>
-          <h1 className="text-lg font-semibold text-white">Volunteer Dashboard</h1>
+          <h1 className="text-base font-semibold text-white">Volunteer Dashboard</h1>
+          <p className="text-xs text-gray-400">Welcome back, John!</p>
         </div>
-        <div className="flex items-center space-x-3">
-          {/* Search Bar */}
-          <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
-            <Search size={14} className="text-gray-400 mr-2" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
-            />
-          </div>
-
-          {/* Bell Button */}
-          <Button variant="ghost" size="sm" className="h-8 hover:bg-gray-600">
-            <Bell size={16} className="text-white" />
-          </Button>
-        </div>
+        {/* Removed search and bell icon from header */}
       </div>
 
-      {/* 1. Top Row Metric Cards - Wider containers */}
+      {/* 1. Top Row Metric Cards - Shorter */}
       <div className="flex justify-center">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-6xl">
-          {mockVolunteerMetrics.map((metric, index) => (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-5xl">
+          {calculatedMetrics.map((metric, index) => (
             <Card key={index} className="border-0 w-full" style={cardGradientStyle}>
-              <CardHeader className="flex flex-col items-center space-y-0 pb-2 border-b-0">
-                <CardTitle className="text-sm font-medium text-white text-center leading-tight">
-                  {metric.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center space-y-2">
-                {/* Centered Icon */}
-                <div className="flex justify-center">
-                  <div className="text-white">
-                    {getIconComponent(metric.icon, 20)}
-                  </div>
+              <CardContent className="text-center p-3">
+                <div className={`flex justify-center mb-1 ${metric.color}`}>
+                  {getIconComponent(metric.icon, 18)}
                 </div>
-                {/* Value and Percentage */}
-                <div className="space-y-1">
-                  <div className="text-2xl font-bold text-white">
-                    {metric.value}
-                  </div>
-                  {metric.change && (
-                    <p
-                      className={`text-xs ${
-                        metric.change.startsWith("+")
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {metric.change}
-                    </p>
-                  )}
+                <div className="text-xl font-bold text-white">
+                  {metric.value}
+                </div>
+                <div className="text-xs text-white opacity-80">
+                  {metric.title}
                 </div>
               </CardContent>
             </Card>
@@ -264,169 +430,314 @@ export default function VolunteerDashboard() {
         </div>
       </div>
 
-      {/* 2. Main Content Area - FIXED MAP CONTAINER */}
-      <div className="grid lg:grid-cols-3 gap-6 h-[calc(100vh-280px)]">
+      {/* 2. Main Content Area - FIXED HEIGHTS */}
+      <div className="grid lg:grid-cols-3 gap-4 h-[calc(100vh-220px)]">
         
-        {/* Map Overview - Fixed container issues */}
+        {/* Map Overview - Compact */}
         <div className="lg:col-span-2 flex flex-col">
-          <Card className="border-0 flex-1 flex flex-col" style={cardGradientStyle}>
+          <Card className="border-0 flex-1 flex flex-col min-h-0" style={cardGradientStyle}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
               <CardTitle className="text-sm font-medium text-white">
-                Map Overview
+                Assignments Map
               </CardTitle>
-              <Button 
-                onClick={handleAddCenter}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm text-white"
-              >
-                Add Evacuation Center
-              </Button>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs text-gray-400">
+                  {activeAssignments.length} active
+                </span>
+                <Button
+                  size="sm"
+                  className="h-6 px-2 text-xs bg-blue-600 hover:bg-blue-500"
+                  onClick={getUserLocation}
+                  disabled={isGettingLocation}
+                >
+                  {isGettingLocation ? "Locating..." : "My Location"}
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 p-0">
-              {/* Fixed map container with strict overflow control */}
-              <div className="h-full rounded-lg overflow-hidden relative isolate">
-                <div className="absolute inset-0 rounded-lg overflow-hidden">
-                  <VolunteerMap 
-                    onLocationSelect={handleLocationSelect}
-                    centers={evacuationCenters}
-                  />
-                </div>
+            <CardContent className="flex-1 p-0 min-h-0">
+              <div className="h-full rounded-lg overflow-hidden">
+                <VolunteerMap 
+                  centers={mapLocations}
+                  onLocationSelect={handleMapLocationSelect}
+                  userLocation={userLocation}
+                />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column - Volunteer List and Center Details */}
-        <div className="flex flex-col space-y-6 h-full">
+        {/* Right Column - Assignment List and Details - FIXED HEIGHTS */}
+        <div className="flex flex-col space-y-4 h-full">
           
-          {/* Volunteer List - Scroll container pushed to bottom */}
-          <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b-0">
-              <CardTitle className="text-sm font-medium text-white">
-                Volunteer List
-              </CardTitle>
-              <ChevronDown size={16} className="text-neutral-400" />
+          {/* Tabs for Assignments/Missions - FIXED HEIGHT WITH SCROLL */}
+          <Card className="border-0 flex flex-col" style={cardGradientStyle}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-14 border-b-0">
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setActiveTab('assignments')}
+                  className={`text-xs font-medium transition-colors ${
+                    activeTab === 'assignments'
+                      ? 'text-white border-b-2 border-blue-500'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Assignments ({activeAssignments.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('missions')}
+                  className={`text-xs font-medium transition-colors ${
+                    activeTab === 'missions'
+                      ? 'text-white border-b-2 border-blue-500'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Missions ({missions.length})
+                </button>
+              </div>
             </CardHeader>
             
+            {/* Search Bar - INSIDE THE CARD */}
+            <div className="px-3 pt-0 pb-2">
+              <div className="flex items-center bg-gray-900 border border-gray-700 rounded px-2 py-1.5">
+                <Search size={14} className="text-gray-400 mr-1" />
+                <input
+                  type="text"
+                  placeholder={`Search ${activeTab}...`}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="bg-transparent text-xs text-white placeholder-gray-400 focus:outline-none w-full"
+                />
+              </div>
+            </div>
+            
             <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
-              {/* Scrollable area that takes full available height */}
-              <div className="overflow-auto flex-1">
-                <table className="w-full text-xs">
-                  <thead className="sticky top-0 bg-gray-900/95 backdrop-blur-sm">
-                    <tr className="text-gray-400 text-left">
-                      <th className="p-2 font-medium whitespace-nowrap">Name</th>
-                      <th className="p-2 font-medium whitespace-nowrap">Email</th>
-                      <th className="p-2 font-medium whitespace-nowrap">Role</th>
-                      <th className="p-2 font-medium whitespace-nowrap">Status</th>
-                      <th className="p-2 font-medium whitespace-nowrap">Employed</th>
-                      <th className="p-2 font-medium whitespace-nowrap">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {volunteers.map((v, index) => (
-                      <tr 
-                        key={v.email} 
-                        className="border-b border-neutral-800 hover:bg-neutral-800/50 transition-colors"
+              {/* Fixed height container with scroll */}
+              <div className="h-[325px] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+                {activeTab === 'assignments' ? (
+                  <div className="space-y-2">
+                    {filteredAssignments.map((assignment) => (
+                      <div
+                        key={assignment.id}
+                        className={`p-2 bg-gray-800/50 rounded border cursor-pointer transition-all ${
+                          selectedAssignment?.id === assignment.id 
+                            ? 'border-blue-500 bg-blue-500/10' 
+                            : 'border-gray-700 hover:border-blue-500'
+                        }`}
+                        onClick={() => handleAssignmentSelect(assignment)}
                       >
-                        <td className="p-2 font-medium text-white whitespace-nowrap">{v.name}</td>
-                        <td className="p-2 text-neutral-300 text-xs whitespace-nowrap">{v.email}</td>
-                        <td className="p-2 text-neutral-300 text-xs whitespace-nowrap">{v.role}</td>
-                        <td className="p-2">
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
-                              v.status === "Online"
-                                ? "bg-emerald-500/20 text-emerald-400"
-                                : "bg-neutral-600/30 text-neutral-400"
-                            }`}
-                          >
-                            {v.status}
-                          </span>
-                        </td>
-                        <td className="p-2 text-neutral-300 text-xs whitespace-nowrap">{v.date}</td>
-                        <td className="p-2">
-                          <button
-                            onClick={() => {
-                              if (evacuationCenters[0]) {
-                                handleEditCenter(evacuationCenters[0]);
-                              }
-                            }}
-                            className="text-blue-400 hover:text-blue-300 cursor-pointer text-xs flex items-center gap-1 whitespace-nowrap"
-                          >
-                            <Edit size={12} />
-                            Edit Center
-                          </button>
-                        </td>
-                      </tr>
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="text-white font-medium text-xs flex-1 mr-2 line-clamp-1">
+                            {assignment.title}
+                          </h4>
+                          <div className="flex space-x-1">
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${getPriorityColor(assignment.priority)}`}>
+                              {assignment.priority}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <p className="text-blue-400 text-xs mb-1">{assignment.organization}</p>
+                        
+                        <div className="flex justify-between items-center text-xs text-gray-400">
+                          <div className="flex items-center space-x-1">
+                            <MapPin size={10} />
+                            <span className="truncate max-w-[80px]">{assignment.location}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Clock size={10} />
+                            <span>Due: {assignment.dueDate}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {assignment.requiredSkills.slice(0, 2).map((skill: string, index: number) => (
+                            <span key={index} className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+
+                        {assignment.status !== 'Completed' && (
+                          <div className="flex gap-1 mt-2">
+                            <Button
+                              size="sm"
+                              className="text-xs h-6 bg-green-600 hover:bg-green-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateStatus(assignment.id, 'Completed');
+                              }}
+                            >
+                              Complete
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="text-xs h-6 bg-blue-600 hover:bg-blue-500"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                getDirections(assignment);
+                              }}
+                            >
+                              <Navigation size={12} className="mr-1" />
+                              Directions
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {filteredMissions.map((mission) => (
+                      <div
+                        key={mission.id}
+                        className="p-2 bg-gray-800/50 rounded border border-gray-700"
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="text-white font-medium text-xs line-clamp-1">
+                            {mission.title}
+                          </h4>
+                          <span className={`px-1.5 py-0.5 rounded text-xs ${getStatusColor(mission.status)}`}>
+                            {mission.status}
+                          </span>
+                        </div>
+                        <p className="text-blue-400 text-xs mb-1">{mission.organization}</p>
+                        <div className="flex justify-between items-center text-xs text-gray-400">
+                          <span>{mission.startDate}</span>
+                          <span>{mission.hoursCompleted}h</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Center Detail Panel - Centered content with enlarged text */}
-          <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b-0">
+          {/* Assignment Detail Panel - FIXED HEIGHT */}
+          <Card className="border-0 flex flex-col" style={cardGradientStyle}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 border-b-0">
               <CardTitle className="text-sm font-medium text-white">
-                {selectedLocation ? selectedLocation.name : "Center Details"}
+                {selectedAssignment ? "Details" : "Select Assignment"}
               </CardTitle>
-              {selectedLocation && (
-                <Button
-                  onClick={() => handleEditCenter(selectedLocation)}
-                  size="sm"
-                  className="h-7 px-3 text-xs bg-blue-600 hover:bg-blue-500"
-                >
-                  <Edit size={12} className="mr-1" />
-                  Edit
-                </Button>
+              {selectedAssignment && selectedAssignment.status !== 'Completed' && (
+                <div className="flex space-x-1">
+                  <Button
+                    onClick={() => handleUpdateStatus(selectedAssignment.id, 'Completed')}
+                    size="sm"
+                    className="h-6 px-2 text-xs bg-green-600 hover:bg-green-500"
+                  >
+                    Complete
+                  </Button>
+                </div>
               )}
             </CardHeader>
             
-            <CardContent className="flex-1 overflow-auto p-4 flex items-center justify-center">
-              {selectedLocation ? (
-                <div className="w-full max-w-md space-y-6">
-                  {/* Center Title - Enlarged */}
-                  <div className="text-center mb-6">
-                    <h3 className="text-white font-semibold text-lg mb-2">{selectedLocation.name}</h3>
-                    <p className="text-neutral-400 text-sm">{selectedLocation.location}</p>
+            <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
+              {selectedAssignment ? (
+                <div className="flex-1 flex flex-col p-3 space-y-3 h-full">
+                  {/* Assignment Header - Compact */}
+                  <div className="text-center flex-shrink-0">
+                    <h3 className="text-white font-semibold text-sm mb-1 line-clamp-2 leading-tight">{selectedAssignment.title}</h3>
+                    <p className="text-blue-400 text-xs line-clamp-1">{selectedAssignment.organization}</p>
                   </div>
 
-                  {/* Details Grid - Enlarged and centered */}
-                  <div className="space-y-4 bg-neutral-800/30 rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-300 text-sm font-medium">Capacity</span>
-                      <span className="text-white text-sm font-semibold">{selectedLocation.capacity} people</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-300 text-sm font-medium">Occupancy</span>
-                      <span className="text-emerald-400 font-bold text-sm">{selectedLocation.occupancy}%</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-neutral-300 text-sm font-medium">Contact</span>
-                      <span className="text-white text-sm font-medium text-right">{selectedLocation.contact}</span>
-                    </div>
+                  {/* Description - Expanded to fill space */}
+                  <div className="bg-neutral-800/30 rounded p-3 min-h-0 flex flex-col">
+                    <h4 className="text-neutral-300 text-xs font-medium mb-2 flex-shrink-0">Description</h4>
+                    <p className="text-white text-xs leading-relaxed overflow-y-auto flex-1">
+                      {selectedAssignment.description}
+                    </p>
                   </div>
 
-                  {/* Supplies Section - Enlarged */}
-                  <div className="bg-neutral-800/30 rounded-lg p-4">
-                    <p className="text-neutral-300 text-sm font-semibold mb-3 text-center">Available Supplies</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedLocation.supplies.map((supply, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <span className="w-2 h-2 bg-blue-400 rounded-full flex-shrink-0"></span>
-                          <span className="text-white text-sm">{supply}</span>
+                  {/* Details Grid - Takes remaining space */}
+                  <div className="space-y-3 bg-neutral-800/30 rounded p-3 flex-1 min-h-0 flex flex-col">
+                    <div className="grid grid-cols-2 gap-3 flex-shrink-0">
+                      <div className="flex flex-col">
+                        <span className="text-neutral-300 text-xs font-medium">Status</span>
+                        <span className={`px-2 py-1 rounded text-xs mt-1 ${getStatusColor(selectedAssignment.status)}`}>
+                          {selectedAssignment.status}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-neutral-300 text-xs font-medium">Priority</span>
+                        <span className={`px-2 py-1 rounded text-xs mt-1 ${getPriorityColor(selectedAssignment.priority)}`}>
+                          {selectedAssignment.priority}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3 flex-shrink-0">
+                      <div className="flex flex-col">
+                        <span className="text-neutral-300 text-xs font-medium">Due Date</span>
+                        <span className="text-white text-xs mt-1">{selectedAssignment.dueDate}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-neutral-300 text-xs font-medium">Hours</span>
+                        <span className="text-white text-xs mt-1">{selectedAssignment.estimatedHours}h</span>
+                      </div>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      <span className="text-neutral-300 text-xs font-medium">Location</span>
+                      <div className="flex items-center mt-1">
+                        <MapPin size={12} className="text-blue-400 mr-1 flex-shrink-0" />
+                        <span className="text-white text-xs line-clamp-2">{selectedAssignment.location}</span>
+                      </div>
+                    </div>
+
+                    {/* Required Skills - Expanded */}
+                    <div className="flex-1 min-h-0 flex flex-col">
+                      <span className="text-neutral-300 text-xs font-medium flex-shrink-0">Required Skills</span>
+                      <div className="flex flex-wrap gap-1 mt-1 overflow-y-auto flex-1">
+                        {selectedAssignment.requiredSkills.map((skill: string, index: number) => (
+                          <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs flex-shrink-0">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Supplies if available */}
+                    {selectedAssignment.supplies && selectedAssignment.supplies.length > 0 && (
+                      <div className="flex-shrink-0">
+                        <span className="text-neutral-300 text-xs font-medium">Supplies Provided</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selectedAssignment.supplies.map((supply: string, index: number) => (
+                            <span key={index} className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs">
+                              {supply}
+                            </span>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons - Fixed at bottom */}
+                  <div className="flex space-x-2 flex-shrink-0">
+                    <Button 
+                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white text-xs py-2"
+                      onClick={() => getDirections(selectedAssignment)}
+                    >
+                      <Navigation size={14} className="mr-1" />
+                      Get Directions
+                    </Button>
+                    <Button 
+                      className="flex-1 bg-gray-600 hover:bg-gray-500 text-white text-xs py-2"
+                      onClick={getUserLocation}
+                      disabled={isGettingLocation}
+                    >
+                      {isGettingLocation ? "Locating..." : "My Location"}
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center text-center py-8 w-full">
-                  <MapPin size={32} className="text-neutral-600 mx-auto mb-4" />
-                  <p className="text-base text-neutral-400 mb-2 font-medium">
-                    Click on a map marker
+                <div className="flex flex-col items-center justify-center text-center py-8 h-full">
+                  <MapPin size={24} className="text-neutral-600 mx-auto mb-2" />
+                  <p className="text-xs text-neutral-400 font-medium">
+                    No Assignment Selected
                   </p>
-                  <p className="text-sm text-neutral-500">
-                    to view center details
+                  <p className="text-xs text-neutral-500 mt-1">
+                    Select an assignment to view details
                   </p>
                 </div>
               )}
@@ -434,15 +745,6 @@ export default function VolunteerDashboard() {
           </Card>
         </div>
       </div>
-
-      {/* Evacuation Center Popup */}
-      <EvacuationCenterPopup
-        isOpen={isPopupOpen}
-        onClose={handleClosePopup}
-        onSubmit={handleSubmitCenter}
-        editingCenter={editingCenter}
-        mode={popupMode}
-      />
     </div>
   );
 }

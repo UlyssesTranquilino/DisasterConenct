@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { Search, Layers } from 'lucide-react';
+import { Search, Layers, Navigation } from 'lucide-react';
 
 // --- Custom Lucide Marker Icon (same as DisasterMap) ---
 const createLucideMarker = (color: string) =>
@@ -34,12 +34,50 @@ const createLucideMarker = (color: string) =>
     popupAnchor: [-16, -55],
   });
 
+// --- User Location Marker Icon ---
+const createUserLocationMarker = () =>
+  L.divIcon({
+    html: `
+      <div style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transform: translate(-50%, -50%);
+      ">
+        <div style="
+          width: 20px;
+          height: 20px;
+          background: #3b82f6;
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        "></div>
+      </div>
+    `,
+    className: "user-location-marker",
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+
 // --- Helper to Fly Map to New Location ---
 const FlyToLocation = ({ position }: { position: [number, number] | null }) => {
   const map = useMap();
   if (position) {
     map.flyTo(position, 14, { duration: 2 });
   }
+  return null;
+};
+
+// --- Helper to Fly to User Location ---
+const FlyToUserLocation = ({ userLocation }: { userLocation: [number, number] | null }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (userLocation) {
+      map.flyTo(userLocation, 14, { duration: 2 });
+    }
+  }, [userLocation, map]);
+
   return null;
 };
 
@@ -62,6 +100,7 @@ interface MapLocation {
 interface VolunteerMapProps {
   onLocationSelect?: (location: MapLocation) => void;
   centers?: MapLocation[];
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 const defaultCenter: [number, number] = [14.5995, 120.9842]; // Manila
@@ -118,10 +157,11 @@ const defaultEvacuationCenters: MapLocation[] = [
   }
 ];
 
-export default function VolunteerMap({ onLocationSelect, centers = defaultEvacuationCenters }: VolunteerMapProps) {
+export default function VolunteerMap({ onLocationSelect, centers = defaultEvacuationCenters, userLocation }: VolunteerMapProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -130,6 +170,13 @@ export default function VolunteerMap({ onLocationSelect, centers = defaultEvacua
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Update map center when user location is available
+  useEffect(() => {
+    if (userLocation) {
+      setMapCenter([userLocation.lat, userLocation.lng]);
+    }
+  }, [userLocation]);
 
   // --- Fetch location data from Nominatim API ---
   const handleSearch = async (e: React.FormEvent) => {
@@ -178,6 +225,9 @@ export default function VolunteerMap({ onLocationSelect, centers = defaultEvacua
     type: center.type || 'evacuation'
   }));
 
+  // Convert user location to map coordinates
+  const userLocationCoords = userLocation ? [userLocation.lat, userLocation.lng] as [number, number] : null;
+
   return (
     <div className="relative h-full w-full">
       {/* 🔍 Search Bar */}
@@ -218,7 +268,7 @@ export default function VolunteerMap({ onLocationSelect, centers = defaultEvacua
 
       {/* 🗺️ Map */}
       <MapContainer
-        center={defaultCenter}
+        center={mapCenter}
         zoom={12}
         className="h-full w-full rounded-xl z-0 overflow-hidden"
         scrollWheelZoom={true}
@@ -230,6 +280,32 @@ export default function VolunteerMap({ onLocationSelect, centers = defaultEvacua
 
         {/* Fly to searched location */}
         <FlyToLocation position={selectedPosition} />
+
+        {/* Fly to user location when available */}
+        <FlyToUserLocation userLocation={userLocationCoords} />
+
+        {/* 📍 User Location Marker */}
+        {userLocationCoords && (
+          <Marker
+            position={userLocationCoords}
+            icon={createUserLocationMarker()}
+          >
+            <Popup>
+              <div className="text-white w-[200px]">
+                <div className="flex items-center mb-2">
+                  <Navigation size={16} className="text-blue-400 mr-2" />
+                  <h3 className="font-semibold text-blue-400 text-sm">
+                    Your Location
+                  </h3>
+                </div>
+                <p className="text-xs text-neutral-400">
+                  Lat: {userLocationCoords[0].toFixed(6)}<br />
+                  Lng: {userLocationCoords[1].toFixed(6)}
+                </p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
 
         {/* 📍 Search result marker */}
         {selectedPosition && (
@@ -302,11 +378,44 @@ export default function VolunteerMap({ onLocationSelect, centers = defaultEvacua
                     ))}
                   </div>
                 </div>
+
+                {/* Directions Button */}
+                {userLocationCoords && (
+                  <div className="mt-3 pt-2 border-t border-neutral-700">
+                    <button
+                      onClick={() => {
+                        const url = `https://www.google.com/maps/dir/${userLocationCoords[0]},${userLocationCoords[1]}/${center.position[0]},${center.position[1]}`;
+                        window.open(url, '_blank');
+                      }}
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-2 px-3 rounded flex items-center justify-center transition-colors"
+                    >
+                      <Navigation size={14} className="mr-2" />
+                      Get Directions from Your Location
+                    </button>
+                  </div>
+                )}
               </div>
             </Popup>
           </Marker>
         ))}
       </MapContainer>
+
+      {/* User Location Status Indicator */}
+      <div className="absolute bottom-6 left-6 z-[1000]">
+        <div className="bg-black/70 border border-neutral-700 rounded-lg p-3 backdrop-blur-md">
+          <div className="flex items-center space-x-2">
+            <div className={`w-3 h-3 rounded-full ${userLocation ? 'bg-green-500 animate-pulse' : 'bg-gray-500'}`}></div>
+            <span className="text-white text-sm">
+              {userLocation ? 'Location: Active' : 'Location: Offline'}
+            </span>
+          </div>
+          {userLocation && (
+            <div className="text-xs text-neutral-400 mt-1">
+              Lat: {userLocation.lat.toFixed(4)}, Lng: {userLocation.lng.toFixed(4)}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

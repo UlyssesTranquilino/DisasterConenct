@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { mockNeeds } from "../../mock/data";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Search, Bell, ChevronDown, MapPin, Users, Clock, X } from "lucide-react";
+import { Search, Bell, ChevronDown, MapPin, Users, Clock, X, Phone, Mail, AlertCircle } from "lucide-react";
 
 // Gradient background style for cards (same as dashboard)
 const cardGradientStyle = {
@@ -11,18 +10,29 @@ const cardGradientStyle = {
   backdropFilter: "blur(10px)",
 };
 
-// Define proper TypeScript interfaces
+// Define proper TypeScript interfaces based on corrected schema
 interface Need {
   id: number;
-  type: string;
+  title: string;
+  organization: string;
+  organizationId: string;
   description: string;
   location: string;
-  priority: "High" | "Medium" | "Low";
+  coordinates: { lat: number; lng: number };
+  skillsRequired: string[];
   volunteersNeeded: number;
-  urgency: string;
+  volunteersAssigned: number;
+  urgency: "High" | "Medium" | "Low";
+  datePosted: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  status: "Open" | "Filled" | "Closed";
+  estimatedDuration: string;
+  requirements?: string[];
 }
 
-interface FormData {
+interface ApplicationFormData {
   name: string;
   contact: string;
   availability: string;
@@ -33,125 +43,137 @@ interface FormData {
 interface ResponsePopupProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: FormData) => void;
+  onSubmit: (data: ApplicationFormData) => void;
   need: Need | null;
 }
 
-// Complete mock data - don't rely on imported mockNeeds
+// Complete mock data based on corrected schema
 const extendedMockNeeds: Need[] = [
   {
     id: 1,
-    type: "medical",
-    description: "Urgent medical assistance required at evacuation center",
+    title: "Medical Support at Evacuation Center",
+    organization: "Red Cross Philippines",
+    organizationId: "org_redcross_ph",
+    description: "Provide basic medical assistance and first aid to evacuees at Quezon City Memorial Center. Volunteers with medical background preferred.",
     location: "Quezon City Memorial Center",
-    priority: "High",
-    volunteersNeeded: 5,
-    urgency: "Immediate"
+    coordinates: { lat: 14.6506, lng: 121.0500 },
+    skillsRequired: ["First Aid", "CPR", "Emergency Response", "Medical Background"],
+    volunteersNeeded: 3,
+    volunteersAssigned: 1,
+    urgency: "High",
+    datePosted: "2024-01-10",
+    contactPerson: "Dr. Maria Santos",
+    contactPhone: "+63 912 345 6789",
+    contactEmail: "msantos@redcross.org.ph",
+    status: "Open",
+    estimatedDuration: "8 hours",
+    requirements: ["Medical ID", "CPR Certification"]
   },
   {
     id: 2,
-    type: "food",
-    description: "Food distribution and meal preparation for 200 people",
-    location: "Rizal Park Evacuation",
-    priority: "Medium",
-    volunteersNeeded: 8,
-    urgency: "Today"
+    title: "Food Distribution Team",
+    organization: "DSWD Relief Operations",
+    organizationId: "org_dswd_relief",
+    description: "Help distribute food packs and manage supply logistics at Rizal Park evacuation area. Physical fitness required for lifting and moving supplies.",
+    location: "Rizal Park, Manila",
+    coordinates: { lat: 14.5832, lng: 120.9790 },
+    skillsRequired: ["Logistics", "Team Management", "Physical Fitness"],
+    volunteersNeeded: 5,
+    volunteersAssigned: 2,
+    urgency: "Medium",
+    datePosted: "2024-01-11",
+    contactPerson: "Mr. Juan Dela Cruz",
+    contactPhone: "+63 917 123 4567",
+    contactEmail: "jdelacruz@dswd.gov.ph",
+    status: "Open",
+    estimatedDuration: "6 hours",
+    requirements: ["Comfortable Shoes", "Water Bottle"]
   },
   {
     id: 3,
-    type: "logistics",
-    description: "Coordination of supply deliveries to affected areas",
-    location: "Manila Operations Center",
-    priority: "High",
-    volunteersNeeded: 3,
-    urgency: "Immediate"
+    title: "Emergency Shelter Setup",
+    organization: "Local Government Unit - Marikina",
+    organizationId: "org_lgu_marikina",
+    description: "Assist in setting up temporary shelters and emergency facilities for displaced families. Construction experience helpful but not required.",
+    location: "Marikina Sports Center",
+    coordinates: { lat: 14.6415, lng: 121.1007 },
+    skillsRequired: ["Construction", "Logistics", "Teamwork"],
+    volunteersNeeded: 8,
+    volunteersAssigned: 4,
+    urgency: "High",
+    datePosted: "2024-01-12",
+    contactPerson: "Engr. Roberto Lim",
+    contactPhone: "+63 918 765 4321",
+    contactEmail: "rlim@marikina.gov.ph",
+    status: "Open",
+    estimatedDuration: "4 hours",
+    requirements: ["Work Gloves", "Comfortable Clothes"]
   },
   {
     id: 4,
-    type: "medical",
-    description: "Emergency first aid supplies for evacuation center",
-    location: "Manila General Hospital",
-    priority: "High",
-    volunteersNeeded: 3,
-    urgency: "Immediate"
+    title: "Psychological First Aid",
+    organization: "Mental Health Philippines",
+    organizationId: "org_mh_ph",
+    description: "Provide emotional support and psychological first aid to trauma-affected individuals and families.",
+    location: "Various Evacuation Centers",
+    coordinates: { lat: 14.6091, lng: 121.0223 },
+    skillsRequired: ["Counseling", "Psychology", "Active Listening"],
+    volunteersNeeded: 4,
+    volunteersAssigned: 1,
+    urgency: "Medium",
+    datePosted: "2024-01-09",
+    contactPerson: "Dr. Sofia Reyes",
+    contactPhone: "+63 916 555 1234",
+    contactEmail: "sreyes@mentalhealthph.org",
+    status: "Open",
+    estimatedDuration: "6 hours",
+    requirements: ["Psychology Background", "Training Certificate"]
   },
   {
     id: 5,
-    type: "food",
-    description: "Hot meal distribution in affected areas",
-    location: "Quezon City Memorial",
-    priority: "Medium",
-    volunteersNeeded: 5,
-    urgency: "Today"
+    title: "Communication and Information",
+    organization: "NDRRMC Operations",
+    organizationId: "org_ndrrmc",
+    description: "Manage information desk and coordinate communications between different response teams.",
+    location: "Central Command Center, Camp Aguinaldo",
+    coordinates: { lat: 14.6091, lng: 121.0223 },
+    skillsRequired: ["Communication", "Organization", "Multitasking"],
+    volunteersNeeded: 2,
+    volunteersAssigned: 1,
+    urgency: "Low",
+    datePosted: "2024-01-13",
+    contactPerson: "Capt. Anna Torres",
+    contactPhone: "+63 915 444 5678",
+    contactEmail: "atorres@ndrrmc.gov.ph",
+    status: "Open",
+    estimatedDuration: "8 hours",
+    requirements: ["Good Communication Skills"]
   },
   {
     id: 6,
-    type: "logistics",
-    description: "Supply chain coordination and distribution",
-    location: "Central Command Center",
-    priority: "High",
-    volunteersNeeded: 4,
-    urgency: "Immediate"
-  },
-  {
-    id: 7,
-    type: "medical",
-    description: "Mental health support for displaced families",
-    location: "San Juan Evacuation",
-    priority: "Medium",
-    volunteersNeeded: 2,
-    urgency: "This Week"
-  },
-  {
-    id: 8,
-    type: "food",
-    description: "Water purification and distribution",
-    location: "Marikina River Area",
-    priority: "High",
+    title: "Search and Rescue Support",
+    organization: "Coast Guard SAR Team",
+    organizationId: "org_coastguard_sar",
+    description: "Assist in search and rescue operations in flood-affected areas. Water safety training required.",
+    location: "Marikina River Basin",
+    coordinates: { lat: 14.6333, lng: 121.1000 },
+    skillsRequired: ["Water Rescue", "First Aid", "Navigation"],
     volunteersNeeded: 6,
-    urgency: "Immediate"
-  },
-  {
-    id: 9,
-    type: "logistics",
-    description: "Transport coordination for relief goods",
-    location: "Pasig Central",
-    priority: "Medium",
-    volunteersNeeded: 3,
-    urgency: "Today"
-  },
-  {
-    id: 10,
-    type: "medical",
-    description: "Mobile clinic setup in remote areas",
-    location: "Rizal Province",
-    priority: "High",
-    volunteersNeeded: 4,
-    urgency: "Immediate"
-  },
-  {
-    id: 11,
-    type: "food",
-    description: "Food packaging for emergency kits",
-    location: "Makati Relief Center",
-    priority: "Low",
-    volunteersNeeded: 8,
-    urgency: "This Week"
-  },
-  {
-    id: 12,
-    type: "logistics",
-    description: "Warehouse organization and inventory",
-    location: "Taguig Storage Facility",
-    priority: "Medium",
-    volunteersNeeded: 5,
-    urgency: "Today"
+    volunteersAssigned: 3,
+    urgency: "High",
+    datePosted: "2024-01-14",
+    contactPerson: "Lt. Michael Cruz",
+    contactPhone: "+63 919 888 9999",
+    contactEmail: "mcruz@coastguard.gov.ph",
+    status: "Open",
+    estimatedDuration: "12 hours",
+    requirements: ["Water Safety Training", "Physical Fitness"]
   }
 ];
 
 // Response Popup Component
 function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) {
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<ApplicationFormData>({
     name: "",
     contact: "",
     availability: "",
@@ -164,7 +186,7 @@ function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) 
     onSubmit(formData);
   };
 
-  const handleChange = (field: keyof FormData, value: string) => {
+  const handleChange = (field: keyof ApplicationFormData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -177,7 +199,7 @@ function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) 
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg w-full max-w-md border border-gray-700">
         <div className="flex justify-between items-center p-4 border-b border-gray-700">
-          <h3 className="text-lg font-semibold text-white">Respond to Need</h3>
+          <h3 className="text-lg font-semibold text-white">Apply to Volunteer</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition-colors"
@@ -189,8 +211,10 @@ function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Need Details */}
           <div className="bg-gray-700/30 rounded-lg p-3">
-            <h4 className="text-white font-medium text-sm mb-2">Need Details:</h4>
-            <p className="text-gray-300 text-sm capitalize">{need.type} - {need.description}</p>
+            <h4 className="text-white font-medium text-sm mb-2">Opportunity Details:</h4>
+            <p className="text-white text-sm font-medium">{need.title}</p>
+            <p className="text-blue-400 text-xs mt-1">{need.organization}</p>
+            <p className="text-gray-300 text-xs mt-1">{need.description}</p>
             <p className="text-gray-400 text-xs mt-1">📍 {need.location}</p>
           </div>
 
@@ -267,9 +291,9 @@ function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) 
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
+              className="flex-1 bg-green-600 hover:bg-green-500 text-white"
             >
-              Submit Response
+              Submit Application
             </Button>
           </div>
         </form>
@@ -283,6 +307,32 @@ interface StatsMetric {
   value: string;
 }
 
+const getUrgencyColor = (urgency: string) => {
+  switch (urgency) {
+    case "High":
+      return "bg-red-500/20 text-red-400 border-red-500/30";
+    case "Medium":
+      return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    case "Low":
+      return "bg-green-500/20 text-green-400 border-green-500/30";
+    default:
+      return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+  }
+};
+
+const getUrgencyIcon = (urgency: string) => {
+  switch (urgency) {
+    case "High":
+      return <AlertCircle size={14} className="text-red-400" />;
+    case "Medium":
+      return <Clock size={14} className="text-yellow-400" />;
+    case "Low":
+      return <Clock size={14} className="text-green-400" />;
+    default:
+      return <Clock size={14} className="text-gray-400" />;
+  }
+};
+
 export default function VolunteerNeedsPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -293,26 +343,27 @@ export default function VolunteerNeedsPage() {
     const q = search.trim().toLowerCase();
     const matchesSearch =
       !q ||
-      n.type.toLowerCase().includes(q) ||
+      n.title.toLowerCase().includes(q) ||
+      n.organization.toLowerCase().includes(q) ||
       n.description.toLowerCase().includes(q) ||
-      n.location.toLowerCase().includes(q);
-    const matchesFilter = filter === "all" || n.type.toLowerCase() === filter.toLowerCase();
+      n.skillsRequired.some(skill => skill.toLowerCase().includes(q));
+    const matchesFilter = filter === "all" || n.urgency.toLowerCase() === filter.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
   // Mock metrics for stats cards
   const statsMetrics: StatsMetric[] = [
     {
-      title: "Total Active Needs",
+      title: "Total Open Needs",
       value: extendedMockNeeds.length.toString(),
     },
     {
-      title: "Urgent Requests",
-      value: extendedMockNeeds.filter((n) => n.priority === "High").length.toString(),
+      title: "High Priority",
+      value: extendedMockNeeds.filter((n) => n.urgency === "High").length.toString(),
     },
     {
-      title: "Fulfilled This Week",
-      value: "8",
+      title: "Volunteers Needed",
+      value: extendedMockNeeds.reduce((sum, need) => sum + (need.volunteersNeeded - need.volunteersAssigned), 0).toString(),
     },
   ];
 
@@ -326,14 +377,33 @@ export default function VolunteerNeedsPage() {
     setSelectedNeed(null);
   };
 
-  const handleSubmitResponse = (responseData: FormData) => {
-    console.log('Response submitted:', {
-      need: selectedNeed,
-      response: responseData
-    });
-    // Here you would typically send the response to your backend
-    alert('Response submitted successfully!');
+  const handleSubmitResponse = (responseData: ApplicationFormData) => {
+    // This would create an application in Firebase
+    const applicationData = {
+      needId: selectedNeed!.id,
+      organizationId: selectedNeed!.organizationId,
+      volunteerId: "current_volunteer_id", // From auth
+      volunteerName: responseData.name,
+      volunteerContact: responseData.contact,
+      appliedDate: new Date().toISOString(),
+      status: "Pending",
+      availability: responseData.availability,
+      skills: responseData.skills.split(',').map(s => s.trim()),
+      notes: responseData.notes,
+      needTitle: selectedNeed!.title,
+      organizationName: selectedNeed!.organization
+    };
+
+    console.log('Application submitted:', applicationData);
+    // Here you would typically send the application to your backend
+    alert(`Application submitted to ${selectedNeed!.organization}! They will contact you soon.`);
     handleCloseResponse();
+  };
+
+  const handleContactOrganization = (need: Need) => {
+    console.log("Contacting organization:", need.organization);
+    // This could open email client or phone dialer
+    alert(`Contact ${need.contactPerson} at ${need.contactPhone} or ${need.contactEmail}`);
   };
 
   return (
@@ -342,7 +412,8 @@ export default function VolunteerNeedsPage() {
       {/* Header with Search */}
       <div className="flex justify-between items-center pt-2">
         <div>
-          <h1 className="text-lg font-semibold text-white">Active Volunteer Needs</h1>
+          <h1 className="text-lg font-semibold text-white">Available Volunteer Opportunities</h1>
+          <p className="text-sm text-gray-400">Find and apply to help with current needs</p>
         </div>
         <div className="flex items-center space-x-3">
           {/* Search Bar */}
@@ -350,7 +421,7 @@ export default function VolunteerNeedsPage() {
             <Search size={14} className="text-gray-400 mr-2" />
             <input
               type="text"
-              placeholder="Search needs..."
+              placeholder="Search opportunities..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
@@ -364,10 +435,10 @@ export default function VolunteerNeedsPage() {
               onChange={(e) => setFilter(e.target.value)}
               className="appearance-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-[5px] text-sm text-white focus:outline-none focus:border-blue-500 w-40 pr-8"
             >
-              <option value="all" className="bg-gray-800 text-white">All Needs</option>
-              <option value="medical" className="bg-gray-800 text-white">Medical</option>
-              <option value="food" className="bg-gray-800 text-white">Food</option>
-              <option value="logistics" className="bg-gray-800 text-white">Logistics</option>
+              <option value="all" className="bg-gray-800 text-white">All Urgency</option>
+              <option value="high" className="bg-gray-800 text-white">High Priority</option>
+              <option value="medium" className="bg-gray-800 text-white">Medium</option>
+              <option value="low" className="bg-gray-800 text-white">Low</option>
             </select>
             <ChevronDown size={14} className="text-gray-400 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
@@ -403,69 +474,114 @@ export default function VolunteerNeedsPage() {
       <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b-0">
           <CardTitle className="text-sm font-medium text-white">
-            Active Volunteer Needs
+            Available Volunteer Opportunities
           </CardTitle>
           <div className="text-xs text-neutral-400">
-            {filteredNeeds.length} {filteredNeeds.length === 1 ? 'need' : 'needs'} found
+            {filteredNeeds.length} {filteredNeeds.length === 1 ? 'opportunity' : 'opportunities'} found
           </div>
         </CardHeader>
         
         <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
           <div className="overflow-auto flex-1 p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredNeeds.map((n) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredNeeds.map((need) => (
                 <Card 
-                  key={n.id} 
-                  className="border border-neutral-700 bg-neutral-800/20 hover:bg-neutral-800/40 transition-all duration-200 flex flex-col h-64"
+                  key={need.id} 
+                  className="border border-neutral-700 bg-neutral-800/20 hover:bg-neutral-800/40 transition-all duration-200 flex flex-col min-h-96"
                 >
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start gap-2">
-                      <CardTitle className="capitalize text-sm font-medium text-white">
-                        {n.type}
+                      <CardTitle className="text-sm font-medium text-white flex-1">
+                        {need.title}
                       </CardTitle>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${
-                          n.priority === "High"
-                            ? "bg-red-500/20 text-red-400"
-                            : n.priority === "Medium"
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-green-500/20 text-green-400"
-                        }`}
-                      >
-                        {n.priority}
-                      </span>
+                      <div className="flex items-center space-x-1">
+                        {getUrgencyIcon(need.urgency)}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(need.urgency)}`}>
+                          {need.urgency}
+                        </span>
+                      </div>
                     </div>
+                    <p className="text-blue-400 text-xs mt-1">{need.organization}</p>
                   </CardHeader>
 
                   <CardContent className="pt-0 flex-1 flex flex-col">
                     <div className="text-sm text-neutral-300 mb-3 line-clamp-3 flex-1">
-                      {n.description}
+                      {need.description}
                     </div>
                     
                     {/* Additional Info */}
                     <div className="space-y-2 mb-3">
                       <div className="flex items-center gap-2 text-xs text-neutral-400">
                         <MapPin size={12} />
-                        <span className="truncate">{n.location}</span>
+                        <span className="truncate">{need.location}</span>
                       </div>
                       
                       <div className="flex items-center gap-2 text-xs text-neutral-400">
                         <Users size={12} />
-                        <span>{n.volunteersNeeded} volunteers needed</span>
+                        <span>
+                          {need.volunteersAssigned}/{need.volunteersNeeded} volunteers • {need.estimatedDuration}
+                        </span>
                       </div>
                       
                       <div className="flex items-center gap-2 text-xs text-neutral-400">
                         <Clock size={12} />
-                        <span>Urgency: {n.urgency}</span>
+                        <span>Posted: {need.datePosted}</span>
+                      </div>
+                    </div>
+
+                    {/* Skills Required */}
+                    <div className="mb-3">
+                      <p className="text-xs text-neutral-400 mb-1">Skills Required:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {need.skillsRequired.map((skill, index) => (
+                          <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Requirements */}
+                    {need.requirements && need.requirements.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs text-neutral-400 mb-1">Requirements:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {need.requirements.map((req, index) => (
+                            <span key={index} className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                              {req}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Contact Info */}
+                    <div className="mb-3 p-2 bg-gray-800/30 rounded">
+                      <p className="text-xs text-neutral-400 mb-1">Contact:</p>
+                      <p className="text-white text-xs">{need.contactPerson}</p>
+                      <div className="flex items-center gap-1 text-xs text-neutral-400">
+                        <Phone size={10} />
+                        <span>{need.contactPhone}</span>
                       </div>
                     </div>
                     
-                    <Button 
-                      onClick={() => handleRespondClick(n)}
-                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs h-7 w-full mt-auto"
-                    >
-                      Respond to Need
-                    </Button>
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 mt-auto">
+                      <Button 
+                        onClick={() => handleRespondClick(need)}
+                        className="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs h-8"
+                      >
+                        Apply to Help
+                      </Button>
+                      <Button 
+                        onClick={() => handleContactOrganization(need)}
+                        variant="outline"
+                        className="text-xs h-8 border-gray-600 hover:bg-gray-700"
+                        title="Contact Organization"
+                      >
+                        <Phone size={12} />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -476,7 +592,7 @@ export default function VolunteerNeedsPage() {
                     <Search size={32} />
                   </div>
                   <p className="text-sm text-neutral-400 font-medium mb-1">
-                    No active needs found
+                    No opportunities found
                   </p>
                   <p className="text-xs text-neutral-500">
                     Try adjusting your search or filter criteria
