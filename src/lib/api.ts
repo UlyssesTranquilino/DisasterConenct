@@ -86,20 +86,21 @@ class ApiService {
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await this.request<AuthResponse>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (response.success) {
-      this.setToken(response.data.token);
-      this.setUser(response.data.user);
+      if (response.success && response.data?.token) {
+        this.setToken(response.data.token);
+      }
+
+      return response;
+    } catch (error) {
+      this.removeToken();
+      throw error;
     }
-
-    return response;
   }
 
   async googleLogin(
@@ -143,15 +144,18 @@ class ApiService {
   }
 
   // Token management
-  private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  private getToken(): string | null {
+  getToken(): string | null {
+    if (typeof window === "undefined") return null;
     return localStorage.getItem(this.TOKEN_KEY);
   }
 
+  setToken(token: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
+
   removeToken(): void {
+    if (typeof window === "undefined") return;
     localStorage.removeItem(this.TOKEN_KEY);
     localStorage.removeItem(this.USER_KEY);
   }

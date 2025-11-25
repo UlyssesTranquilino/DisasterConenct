@@ -3,10 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { useAuth } from "../../lib/auth";
+import { useAuthStore } from "../../lib/authStore";
 
 export default function LoginPage() {
-  const { login, loginWithGoogle, isLoading, error } = useAuth();
+  const { login, isLoading, error } = useAuthStore();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
