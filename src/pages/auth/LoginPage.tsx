@@ -29,7 +29,7 @@ export default function LoginPage() {
     // ---------- TEMP: placeholder ----------
     // Keep this as-is for now: returns an empty array so the role-check flow runs,
     // and the UI shows the "no account found" error until DB dev plugs in real data.
-    return [];
+    return [role];
   }
 
   const onSubmit = async (e: React.FormEvent) => {

@@ -70,8 +70,35 @@ function PublicRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
+const DEV:number=4
 export default function App() {
-  return (
+  //return <CitizenDashboard />;
+  if (DEV==0) { //test specific pages
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <CitizenDashboard/>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  } else if (DEV==1){
+    return (
+    <ThemeProvider>
+        <AuthProvider>
+          <RequestHelpPage/>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  } else if (DEV==2) { //test specific pages
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+          <CitizenCentersPage />
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  } else {
+    return (
     <ThemeProvider>
       <AuthProvider>
         <Routes>
@@ -215,4 +242,5 @@ export default function App() {
       </AuthProvider>
     </ThemeProvider>
   );
+  }
 }
