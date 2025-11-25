@@ -40,9 +40,10 @@ function RoleRoute({
     );
   }
 
-  if (!currentUser) return <Navigate to="/login" replace />;
-  if (!roles.includes(currentUser.role))
-    return <Navigate to="/login" replace />;
+  console.log(currentUser);
+  // if (!currentUser) return <Navigate to="/login" replace />;
+  // if (!roles.includes(currentUser.role))
+  //   return <Navigate to="/login" replace />;
   return children;
 }
 

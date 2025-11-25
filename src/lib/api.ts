@@ -1,6 +1,6 @@
 // API service for communicating with the backend
-const API_BASE_URL = "https://disasterconnect-api.vercel.app/api";
-// const API_BASE_URL = "http://localhost:5000";
+// const API_BASE_URL = "https://disasterconnect-api.vercel.app/api";
+const API_BASE_URL = "http://localhost:5000/api";
 
 export interface User {
   id: string;
@@ -26,9 +26,12 @@ export interface ErrorResponse {
 
 class ApiService {
   private baseURL: string;
+  private token: string | null = null; // <-- memory token
+  private TOKEN_KEY = "auth_token";
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
+    this.restoreTokenFromStorage(); // auto-restore on creation
   }
 
   private async request<T>(
@@ -46,11 +49,10 @@ class ApiService {
     };
 
     // Add auth token if available
-    const token = this.getToken();
-    if (token) {
+    if (this.token) {
       config.headers = {
         ...config.headers,
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${this.token}`,
       };
     }
 
@@ -69,7 +71,35 @@ class ApiService {
     }
   }
 
-  // Auth methods
+  // ---------------- TOKEN HANDLING ----------------
+
+  setToken(token: string): void {
+    this.token = token;
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
+
+  restoreTokenFromStorage(): void {
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    if (token) {
+      this.token = token;
+    }
+  }
+
+  removeToken(): void {
+    this.token = null;
+    localStorage.removeItem(this.TOKEN_KEY);
+  }
+
+  getToken(): string | null {
+    return this.token;
+  }
+
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  // ---------------- AUTH API ----------------
+
   async register(
     email: string,
     password: string,
@@ -90,7 +120,11 @@ class ApiService {
     });
   }
 
-  async googleLogin(idToken: string, role?: string, profileData?: any): Promise<AuthResponse> {
+  async googleLogin(
+    idToken: string,
+    role?: string,
+    profileData?: any
+  ): Promise<AuthResponse> {
     return this.request<AuthResponse>("/auth/google", {
       method: "POST",
       body: JSON.stringify({ idToken, role, profileData }),
@@ -101,24 +135,6 @@ class ApiService {
     return this.request("/auth/profile", {
       method: "GET",
     });
-  }
-
-  // Token management
-  setToken(token: string): void {
-    localStorage.setItem("auth_token", token);
-  }
-
-  getToken(): string | null {
-    return localStorage.getItem("auth_token");
-  }
-
-  removeToken(): void {
-    localStorage.removeItem("auth_token");
-  }
-
-  // Check if user is authenticated
-  isAuthenticated(): boolean {
-    return !!this.getToken();
   }
 }
 
