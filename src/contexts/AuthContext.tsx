@@ -1,6 +1,12 @@
 // src/contexts/AuthContext.tsx
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import { User } from "firebase/auth";
 import {
   checkAuthState,
@@ -22,9 +28,17 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-  children,
-}) => {
-  const { storedUser, setUser: setStoreUser, setLoading: setStoreLoading, clearAuth } = useAuthStore();
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const {
+    storedUser,
+    setUser: setStoreUser,
+    setLoading: setStoreLoading,
+    clearAuth,
+  } = useAuthStore();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 

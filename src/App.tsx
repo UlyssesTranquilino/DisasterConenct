@@ -1,6 +1,7 @@
 import { Route, Routes, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { ThemeProvider } from "./lib/theme";
+import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { AppLayout } from "./layouts/AppLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -18,8 +19,8 @@ import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
 import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
 
 import OrgEvacuationCentersPage from "./pages/org/OrgEvacuationCentersPage";
-import { OrgReportsPage } from "./pages/org/OrgReportsPage";
-import { OrgVolunteersPage } from "./pages/org/OrgVolunteersPage";
+import OrgReportsPage from "./pages/org/OrgReportsPage";
+import OrgVolunteersPage from "./pages/org/OrgVolunteersPage";
 import { OrgResourcesPage } from "./pages/org/OrgResourcesPage";
 
 function RoleRoute({
@@ -71,10 +72,19 @@ function PublicRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
+// Create a wrapper component for organization routes
+function OrganizationLayout() {
+  return (
+    <OrganizationProvider>
+      <AppLayout />
+    </OrganizationProvider>
+  );
+}
+
 export default function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <ThemeProvider>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
@@ -102,7 +112,7 @@ export default function App() {
             }
           />
 
-          <Route element={<AppLayout />}>
+          <Route element={<OrganizationLayout />}>
             {/* Citizen */}
             <Route
               path="/citizen/dashboard"
@@ -130,59 +140,61 @@ export default function App() {
             />
 
             {/* Organization */}
-            <Route
-              path="/org/dashboard"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgDashboard />
-                </RoleRoute>
-              }
-            />
+            <Route path="/org">
+              <Route
+                path="dashboard"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgDashboard />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/evacuation-centers"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgEvacuationCentersPage />
-                </RoleRoute>
-              }
-            />
+              <Route
+                path="evacuation-centers"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgEvacuationCentersPage />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/resources"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgResourcesPage />
-                </RoleRoute>
-              }
-            />
+              <Route
+                path="resources"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgResourcesPage />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/volunteers"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgVolunteersPage />
-                </RoleRoute>
-              }
-            />
+              <Route
+                path="volunteers"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgVolunteersPage />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/announcements"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgAnnouncementsPage />
-                </RoleRoute>
-              }
-            />
+              <Route
+                path="announcements"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgAnnouncementsPage />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/reports"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgReportsPage />
-                </RoleRoute>
-              }
-            />
+              <Route
+                path="reports"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgReportsPage />
+                  </RoleRoute>
+                }
+              />
+            </Route>
 
             {/* Volunteer */}
             <Route
@@ -213,7 +225,7 @@ export default function App() {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </AuthProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

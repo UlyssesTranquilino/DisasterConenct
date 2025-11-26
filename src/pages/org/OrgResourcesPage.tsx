@@ -1,4 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useOrganization } from "../../contexts/OrganizationContext";
+import {
+  organizationService,
+  Resource,
+} from "../../services/organizationService";
 import {
   Card,
   CardHeader,
@@ -16,7 +21,7 @@ import {
 } from "../../components/components/ui/dialog";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Loader2, AlertCircle } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -25,6 +30,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+// Helper function to format date
+const formatDate = (date?: Date) => {
+  return date ? new Date(date).toLocaleDateString() : "N/A";
+};
 
 const cardGradientStyle = {
   background:
@@ -32,46 +41,11 @@ const cardGradientStyle = {
   backdropFilter: "blur(10px)",
 };
 
-type Resource = {
-  id: number;
-  name: string;
-  quantity: number;
-  unit: string;
-  updatedAt: string;
-};
-
 export const OrgResourcesPage: React.FC = () => {
-  const [resources, setResources] = useState<Resource[]>([
-    {
-      id: 1,
-      name: "Food Packs",
-      quantity: 250,
-      unit: "boxes",
-      updatedAt: "2025-10-09",
-    },
-    {
-      id: 2,
-      name: "Bottled Water",
-      quantity: 480,
-      unit: "bottles",
-      updatedAt: "2025-10-08",
-    },
-    {
-      id: 3,
-      name: "Medical Kits",
-      quantity: 120,
-      unit: "kits",
-      updatedAt: "2025-10-07",
-    },
-    {
-      id: 4,
-      name: "Blankets",
-      quantity: 350,
-      unit: "pcs",
-      updatedAt: "2025-10-06",
-    },
-  ]);
-
+  const { currentOrgId } = useOrganization();
+  const [resources, setResources] = useState<Resource[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Resource | null>(null);
   const [formData, setFormData] = useState({
@@ -79,6 +53,30 @@ export const OrgResourcesPage: React.FC = () => {
     quantity: "",
     unit: "",
   });
+
+  // Fetch resources from the backend
+  const fetchResources = async () => {
+    if (!currentOrgId) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await organizationService.getResources(currentOrgId);
+      setResources(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch resources"
+      );
+      console.error("Error fetching resources:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchResources();
+  }, [currentOrgId]);
 
   const handleOpenAdd = () => {
     setEditing(null);
@@ -90,41 +88,91 @@ export const OrgResourcesPage: React.FC = () => {
     setEditing(res);
     setFormData({
       name: res.name,
-      quantity: String(res.quantity),
+      quantity: res.quantity.toString(),
       unit: res.unit,
     });
     setDialogOpen(true);
   };
 
-  const handleSave = () => {
-    if (editing) {
-      setResources((prev) =>
-        prev.map((r) =>
-          r.id === editing.id
-            ? {
-                ...r,
-                name: formData.name,
-                quantity: Number(formData.quantity),
-                unit: formData.unit,
-                updatedAt: new Date().toISOString().split("T")[0],
-              }
-            : r
-        )
-      );
-    } else {
-      setResources((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          name: formData.name,
-          quantity: Number(formData.quantity),
-          unit: formData.unit,
-          updatedAt: new Date().toISOString().split("T")[0],
-        },
-      ]);
+  const handleSave = async () => {
+    if (!currentOrgId) return;
+
+    try {
+      const resourceData = {
+        name: formData.name,
+        quantity: parseInt(formData.quantity, 10),
+        unit: formData.unit,
+      };
+
+      if (editing && editing.id) {
+        // Update existing resource
+        await organizationService.updateResource(
+          currentOrgId,
+          editing.id,
+          resourceData
+        );
+      } else {
+        // Create new resource
+        await organizationService.createResource(currentOrgId, resourceData);
+      }
+
+      setDialogOpen(false);
+      await fetchResources(); // Refresh the list
+    } catch (err) {
+      console.error("Error saving resource:", err);
+      // You might want to show an error toast here
     }
-    setDialogOpen(false);
   };
+
+  const handleDelete = async (resourceId: string) => {
+    if (
+      !currentOrgId ||
+      !confirm("Are you sure you want to delete this resource?")
+    ) {
+      return;
+    }
+
+    try {
+      await organizationService.deleteResource(currentOrgId, resourceId);
+      await fetchResources(); // Refresh the list
+    } catch (err) {
+      console.error("Error deleting resource:", err);
+      // You might want to show an error toast here
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="ml-2">Loading resources...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center text-red-500 mb-4">
+          <AlertCircle className="w-5 h-5 mr-2" />
+          <span>Error: {error}</span>
+        </div>
+        <Button onClick={fetchResources}>Retry</Button>
+      </div>
+    );
+  }
+
+  // Data for the chart
+  const chartData = resources.map((resource) => ({
+    name: resource.name,
+    quantity: resource.quantity,
+  }));
+
+  // Calculate total resources
+  const totalResources = resources.reduce(
+    (sum, resource) => sum + resource.quantity,
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -158,7 +206,9 @@ export const OrgResourcesPage: React.FC = () => {
               <div className="text-2xl font-bold text-white">
                 {r.quantity} {r.unit}
               </div>
-              <p className="text-xs text-neutral-400">Updated {r.updatedAt}</p>
+              <p className="text-xs text-neutral-400">
+                Updated {formatDate(r.updatedAt as unknown as Date)}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -191,7 +241,9 @@ export const OrgResourcesPage: React.FC = () => {
                   <td className="py-2 px-3">{r.name}</td>
                   <td className="py-2 px-3">{r.quantity}</td>
                   <td className="py-2 px-3">{r.unit}</td>
-                  <td className="py-2 px-3">{r.updatedAt}</td>
+                  <td className="py-2 px-3">
+                    {formatDate(r.updatedAt as unknown as Date)}
+                  </td>
                   <td className="py-2 px-3 text-right">
                     <Button
                       size="sm"
@@ -217,7 +269,7 @@ export const OrgResourcesPage: React.FC = () => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={resources}>
+            <BarChart data={chartData}>
               <XAxis
                 dataKey="name"
                 tick={{ fill: "#9ca3af", fontSize: 12 }}
