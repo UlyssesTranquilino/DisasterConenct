@@ -7,7 +7,14 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { MapPin, Bell, RefreshCw, AlertCircle } from "lucide-react";
+import {
+  MapPin,
+  Bell,
+  RefreshCw,
+  AlertCircle,
+  Users,
+  Package,
+} from "lucide-react";
 import { Skeleton } from "../../components/components/ui/skeleton";
 
 // Update the OrgDashboard component

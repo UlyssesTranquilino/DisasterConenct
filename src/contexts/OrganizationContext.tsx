@@ -1,17 +1,21 @@
 // src/contexts/OrganizationContext.tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
-import {
-  organizationService,
-  OrganizationMetrics,
-} from "../services/organizationService";
-import { useAuth } from "./AuthContext";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "../lib/auth";
+
+import { organizationService } from "../services/organizationService";
 
 interface OrganizationContextType {
-  metrics: OrganizationMetrics | null;
+  currentOrgId: string | null;
+  setCurrentOrgId: (id: string | null) => void;
+  announcements: any[];
+  centers: any[];
+  reports: any[];
+  resources: any[];
+  volunteers: any[];
+  metrics: any;
   loading: boolean;
   error: string | null;
-  refreshData: () => Promise<void>;
-  currentOrgId: string | null;
+  fetchOrganizationData: () => Promise<void>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(
@@ -21,62 +25,82 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(
 export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [metrics, setMetrics] = useState<OrganizationMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { currentUser } = useAuth(); // Assuming you have an AuthContext
-
-  // This would come from your auth or org selection flow
+  const { currentUser } = useAuth();
   const [currentOrgId, setCurrentOrgId] = useState<string | null>(null);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [centers, setCenters] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
+  const [volunteers, setVolunteers] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchOrganizationData = async () => {
     if (!currentOrgId) return;
 
     setLoading(true);
     setError(null);
+
     try {
-      const metricsData = await organizationService.getOrganizationMetrics(
-        currentOrgId
-      );
+      const [
+        announcementsData,
+        centersData,
+        reportsData,
+        resourcesData,
+        volunteersData,
+        metricsData,
+      ] = await Promise.all([
+        organizationService.getAnnouncements(currentOrgId),
+        organizationService.getEvacuationCenters(currentOrgId),
+        organizationService.getReports(currentOrgId),
+        organizationService.getResources(currentOrgId),
+        organizationService.getVolunteers(currentOrgId),
+        organizationService.getOrganizationMetrics(currentOrgId),
+      ]);
+
+      setAnnouncements(announcementsData);
+      setCenters(centersData);
+      setReports(reportsData);
+      setResources(resourcesData);
+      setVolunteers(volunteersData);
       setMetrics(metricsData);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch organization data"
-      );
       console.error("Error fetching organization data:", err);
+      setError("Failed to load organization data");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (currentUser) {
-      // For now, we'll use the user's UID as the org ID
-      // In a real app, you might have a way for users to select an org
-      setCurrentOrgId(currentUser.uid);
+    if (currentUser && currentOrgId) {
+      fetchOrganizationData();
     }
-  }, [currentUser]);
+  }, [currentUser, currentOrgId]);
 
-  useEffect(() => {
-    if (currentOrgId) {
-      fetchData();
-    }
-  }, [currentOrgId]);
-
-  const refreshData = async () => {
-    await fetchData();
+  const value = {
+    currentOrgId,
+    setCurrentOrgId,
+    announcements,
+    centers,
+    reports,
+    resources,
+    volunteers,
+    metrics,
+    loading,
+    error,
+    fetchOrganizationData,
   };
 
   return (
-    <OrganizationContext.Provider
-      value={{ metrics, loading, error, refreshData, currentOrgId }}
-    >
+    <OrganizationContext.Provider value={value}>
       {children}
     </OrganizationContext.Provider>
   );
 };
 
-export const useOrganization = (): OrganizationContextType => {
+export const useOrganization = () => {
   const context = useContext(OrganizationContext);
   if (context === undefined) {
     throw new Error(

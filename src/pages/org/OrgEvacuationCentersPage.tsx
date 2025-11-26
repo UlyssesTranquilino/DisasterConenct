@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -15,10 +15,15 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Search, Edit2 } from "lucide-react";
+import { Search, Edit2, Plus, Trash2, Loader2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import {
+  evacuationCenterService,
+  type EvacuationCenter,
+  type CreateEvacuationCenterData,
+} from "../../services/evacuationCenterService";
 
 const cardGradientStyle = {
   background:
@@ -53,78 +58,25 @@ const FlyToLocation = ({ position }: { position: [number, number] | null }) => {
   return null;
 };
 
-// --- Mock Data ---
-interface Center {
-  id: number;
-  name: string;
-  address: string;
-  head: string;
-  contact: string;
-  capacity: number;
-  occupied: number;
-  lat: number;
-  lon: number;
-}
-
-const initialCenters: Center[] = [
-  {
-    id: 1,
-    name: "Quezon City Hall Evac Center",
-    address: "Elliptical Road, QC",
-    head: "Engr. Maria Santos",
-    contact: "0917-888-1234",
-    capacity: 500,
-    occupied: 420,
-    lat: 14.6488,
-    lon: 121.0509,
-  },
-  {
-    id: 2,
-    name: "Pasig Sports Complex",
-    address: "Shaw Blvd., Pasig",
-    head: "Juan Dela Cruz",
-    contact: "0917-555-9922",
-    capacity: 800,
-    occupied: 760,
-    lat: 14.5733,
-    lon: 121.0851,
-  },
-  {
-    id: 3,
-    name: "Taguig Gymnasium",
-    address: "Bonifacio, Taguig",
-    head: "Karla Mendoza",
-    contact: "0917-555-4488",
-    capacity: 600,
-    occupied: 480,
-    lat: 14.5202,
-    lon: 121.0566,
-  },
-  {
-    id: 4,
-    name: "Manila City College Grounds",
-    address: "Taft Ave., Manila",
-    head: "Ar. Robert Reyes",
-    contact: "0919-333-2211",
-    capacity: 1000,
-    occupied: 950,
-    lat: 14.5995,
-    lon: 120.9842,
-  },
-];
-
 // --- Edit Modal ---
 const EditCenterModal = ({
   center,
   onSave,
+  isLoading = false,
 }: {
-  center: Center;
-  onSave: (updated: Center) => void;
+  center: EvacuationCenter;
+  onSave: (updated: EvacuationCenter) => void;
+  isLoading?: boolean;
 }) => {
   const [form, setForm] = useState(center);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm({
+      ...form,
+      [name]:
+        name === "capacity" || name === "occupied" ? Number(value) : value,
+    });
   };
 
   const handleSave = () => {
@@ -201,9 +153,208 @@ const EditCenterModal = ({
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Latitude</Label>
+              <Input
+                type="number"
+                step="any"
+                name="lat"
+                value={form.lat}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+              />
+            </div>
+            <div>
+              <Label>Longitude</Label>
+              <Input
+                type="number"
+                step="any"
+                name="lng"
+                value={form.lng}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+              />
+            </div>
+          </div>
         </div>
-        <Button onClick={handleSave} className="mt-2 bg-blue-700">
-          Save Changes
+        <Button
+          onClick={handleSave}
+          className="mt-2 bg-blue-700"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            "Save Changes"
+          )}
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// --- Create Center Modal ---
+const CreateCenterModal = ({
+  onSave,
+  isLoading = false,
+}: {
+  onSave: (data: CreateEvacuationCenterData) => void;
+  isLoading?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [form, setForm] = useState<CreateEvacuationCenterData>({
+    name: "",
+    address: "",
+    head: "",
+    contact: "",
+    capacity: 0,
+    occupied: 0,
+    lat: 14.5995,
+    lng: 120.9842,
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setForm({
+      ...form,
+      [name]:
+        name === "capacity" ||
+        name === "occupied" ||
+        name === "lat" ||
+        name === "lng"
+          ? Number(value)
+          : value,
+    });
+  };
+
+  const handleSave = async () => {
+    await onSave(form);
+    setIsOpen(false);
+    // Reset form
+    setForm({
+      name: "",
+      address: "",
+      head: "",
+      contact: "",
+      capacity: 0,
+      occupied: 0,
+      lat: 14.5995,
+      lng: 120.9842,
+    });
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-blue-600 hover:bg-blue-700">
+          <Plus size={16} className="mr-1" /> Add Center
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-neutral-900 border border-neutral-700 text-white">
+        <DialogHeader>
+          <DialogTitle>Create New Evacuation Center</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-3 py-2">
+          <div>
+            <Label>Name *</Label>
+            <Input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              className="bg-neutral-800 border-neutral-700"
+              placeholder="Enter center name"
+            />
+          </div>
+          <div>
+            <Label>Address *</Label>
+            <Input
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              className="bg-neutral-800 border-neutral-700"
+              placeholder="Enter full address"
+            />
+          </div>
+          <div>
+            <Label>Head / Person in Charge</Label>
+            <Input
+              name="head"
+              value={form.head}
+              onChange={handleChange}
+              className="bg-neutral-800 border-neutral-700"
+              placeholder="Enter person in charge"
+            />
+          </div>
+          <div>
+            <Label>Contact</Label>
+            <Input
+              name="contact"
+              value={form.contact}
+              onChange={handleChange}
+              className="bg-neutral-800 border-neutral-700"
+              placeholder="Enter contact number"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Capacity *</Label>
+              <Input
+                type="number"
+                name="capacity"
+                value={form.capacity}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <Label>Currently Occupied</Label>
+              <Input
+                type="number"
+                name="occupied"
+                value={form.occupied}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+                placeholder="0"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Latitude *</Label>
+              <Input
+                type="number"
+                step="any"
+                name="lat"
+                value={form.lat}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+              />
+            </div>
+            <div>
+              <Label>Longitude *</Label>
+              <Input
+                type="number"
+                step="any"
+                name="lng"
+                value={form.lng}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+              />
+            </div>
+          </div>
+        </div>
+        <Button
+          onClick={handleSave}
+          className="mt-2 bg-blue-700"
+          disabled={isLoading || !form.name || !form.address || !form.capacity}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            "Create Center"
+          )}
         </Button>
       </DialogContent>
     </Dialog>
@@ -211,7 +362,7 @@ const EditCenterModal = ({
 };
 
 // --- Map Component ---
-const EvacuationCentersMap = ({ centers }: { centers: Center[] }) => {
+const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
   const [selectedPosition, setSelectedPosition] = useState<
     [number, number] | null
   >(null);
@@ -238,7 +389,7 @@ const EvacuationCentersMap = ({ centers }: { centers: Center[] }) => {
         return (
           <Marker
             key={c.id}
-            position={[c.lat, c.lon]}
+            position={[c.lat, c.lng]}
             icon={createLucideMarker(color)}
           >
             <Popup>
@@ -268,67 +419,208 @@ const EvacuationCentersMap = ({ centers }: { centers: Center[] }) => {
 
 // --- Main Page ---
 export default function OrgEvacuationCentersPage() {
-  const [centers, setCenters] = useState<Center[]>(initialCenters);
+  const [centers, setCenters] = useState<EvacuationCenter[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const handleSave = (updated: Center) => {
-    setCenters((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+  // Replace with actual organization ID from your app context/auth
+  const organizationId = "your-organization-id-here"; // You'll need to get this from your app state
+
+  // Fetch centers on component mount
+  useEffect(() => {
+    fetchCenters();
+  }, []);
+
+  const fetchCenters = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await evacuationCenterService.getEvacuationCenters(
+        organizationId
+      );
+      setCenters(data);
+    } catch (err) {
+      console.error("Error fetching centers:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch centers");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleCreateCenter = async (data: CreateEvacuationCenterData) => {
+    try {
+      setSaving(true);
+      setError(null);
+      await evacuationCenterService.createEvacuationCenter(
+        organizationId,
+        data
+      );
+      await fetchCenters(); // Refresh the list
+    } catch (err) {
+      console.error("Error creating center:", err);
+      setError(err instanceof Error ? err.message : "Failed to create center");
+      throw err; // Re-throw to let the modal handle it
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateCenter = async (updatedCenter: EvacuationCenter) => {
+    try {
+      setSaving(true);
+      setError(null);
+      const { id, ...updateData } = updatedCenter;
+      await evacuationCenterService.updateEvacuationCenter(
+        organizationId,
+        id,
+        updateData
+      );
+
+      // Update local state optimistically
+      setCenters((prev) => prev.map((c) => (c.id === id ? updatedCenter : c)));
+    } catch (err) {
+      console.error("Error updating center:", err);
+      setError(err instanceof Error ? err.message : "Failed to update center");
+      await fetchCenters(); // Refresh to get correct data
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteCenter = async (centerId: string) => {
+    if (!confirm("Are you sure you want to delete this evacuation center?")) {
+      return;
+    }
+
+    try {
+      setError(null);
+      await evacuationCenterService.deleteEvacuationCenter(
+        organizationId,
+        centerId
+      );
+      await fetchCenters(); // Refresh the list
+    } catch (err) {
+      console.error("Error deleting center:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete center");
+    }
+  };
+
+  // Filter centers based on search term
+  const filteredCenters = centers.filter(
+    (center) =>
+      center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      center.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      center.head.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <span className="ml-2 text-white">Loading evacuation centers...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="px-2 md:px-4 space-y-4 text-white">
       <div className="flex justify-between items-center">
         <h1 className="text-lg font-semibold">Evacuation Centers</h1>
-        <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
-          <Search size={14} className="text-gray-400 mr-2" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
-          />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
+            <Search size={14} className="text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Search centers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
+            />
+          </div>
+          <CreateCenterModal onSave={handleCreateCenter} isLoading={saving} />
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+          <strong>Error: </strong>
+          {error}
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-4 border-red-600 text-red-200"
+            onClick={fetchCenters}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Table */}
       <Card className="border-0" style={cardGradientStyle}>
         <CardHeader>
           <CardTitle className="text-sm font-medium text-white">
-            Evacuation Center List
+            Evacuation Center List ({filteredCenters.length} centers)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left text-gray-300">
-              <thead className="text-xs uppercase bg-neutral-900/70 text-neutral-400">
-                <tr>
-                  <th className="px-4 py-2">Name</th>
-                  <th className="px-4 py-2">Address</th>
-                  <th className="px-4 py-2">Head</th>
-                  <th className="px-4 py-2">Contact</th>
-                  <th className="px-4 py-2">Capacity</th>
-                  <th className="px-4 py-2">Occupied</th>
-                  <th className="px-4 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {centers.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="border-b border-neutral-800 hover:bg-neutral-800/50 transition"
-                  >
-                    <td className="px-4 py-2 text-white">{c.name}</td>
-                    <td className="px-4 py-2">{c.address}</td>
-                    <td className="px-4 py-2">{c.head}</td>
-                    <td className="px-4 py-2">{c.contact}</td>
-                    <td className="px-4 py-2">{c.capacity}</td>
-                    <td className="px-4 py-2">{c.occupied}</td>
-                    <td className="px-4 py-2 text-right">
-                      <EditCenterModal center={c} onSave={handleSave} />
-                    </td>
+          {filteredCenters.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              {searchTerm
+                ? "No centers match your search."
+                : "No evacuation centers found."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left text-gray-300">
+                <thead className="text-xs uppercase bg-neutral-900/70 text-neutral-400">
+                  <tr>
+                    <th className="px-4 py-2">Name</th>
+                    <th className="px-4 py-2">Address</th>
+                    <th className="px-4 py-2">Head</th>
+                    <th className="px-4 py-2">Contact</th>
+                    <th className="px-4 py-2">Capacity</th>
+                    <th className="px-4 py-2">Occupied</th>
+                    <th className="px-4 py-2 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredCenters.map((center) => (
+                    <tr
+                      key={center.id}
+                      className="border-b border-neutral-800 hover:bg-neutral-800/50 transition"
+                    >
+                      <td className="px-4 py-2 text-white">{center.name}</td>
+                      <td className="px-4 py-2">{center.address}</td>
+                      <td className="px-4 py-2">{center.head}</td>
+                      <td className="px-4 py-2">{center.contact}</td>
+                      <td className="px-4 py-2">{center.capacity}</td>
+                      <td className="px-4 py-2">{center.occupied}</td>
+                      <td className="px-4 py-2 text-right space-x-2">
+                        <EditCenterModal
+                          center={center}
+                          onSave={handleUpdateCenter}
+                          isLoading={saving}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs text-red-400 border-red-800 hover:bg-red-900/50"
+                          onClick={() => handleDeleteCenter(center.id)}
+                          disabled={saving}
+                        >
+                          <Trash2 size={12} className="mr-1" /> Delete
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
