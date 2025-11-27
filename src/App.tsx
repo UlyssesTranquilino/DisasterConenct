@@ -37,7 +37,7 @@ export default function App() {
     roles,
     children,
   }: {
-    roles: Array<"Citizen" | "Organization" | "Volunteer">;
+    roles: Array<"citizen" | "organization" | "volunteer">;
     children: JSX.Element;
   }) => {
     const { currentUser, isLoading } = useAuth();
@@ -52,7 +52,15 @@ export default function App() {
 
     if (!currentUser) return <Navigate to="/login" replace />;
 
-    if (!roles.includes(currentUser.role)) {
+    // Check if user's activeRole is in the allowed roles (case-insensitive)
+    if (!currentUser.activeRole) {
+      return <Navigate to="/login" replace />;
+    }
+    
+    const userRole = currentUser.activeRole.toLowerCase();
+    const allowedRoles = roles.map(r => r.toLowerCase());
+    
+    if (!allowedRoles.includes(userRole)) {
       return <Navigate to="/login" replace />;
     }
 
@@ -71,12 +79,12 @@ export default function App() {
       );
     }
 
-    if (currentUser) {
-      if (currentUser.role === "Citizen")
+    if (currentUser && currentUser.activeRole) {
+      if (currentUser.activeRole === "citizen")
         return <Navigate to="/citizen/dashboard" replace />;
-      if (currentUser.role === "Organization")
+      if (currentUser.activeRole === "organization")
         return <Navigate to="/org/dashboard" replace />;
-      if (currentUser.role === "Volunteer")
+      if (currentUser.activeRole === "volunteer")
         return <Navigate to="/volunteer/dashboard" replace />;
     }
 
@@ -123,7 +131,7 @@ export default function App() {
               <Route
                 path="/citizen/dashboard"
                 element={
-                  <RoleRoute roles={["Citizen"]}>
+                  <RoleRoute roles={["citizen"]}>
                     <CitizenDashboard />
                   </RoleRoute>
                 }
@@ -132,7 +140,7 @@ export default function App() {
               <Route
                 path="/citizen/request-help"
                 element={
-                  <RoleRoute roles={["Citizen"]}>
+                  <RoleRoute roles={["citizen"]}>
                     <RequestHelpPage />
                   </RoleRoute>
                 }
@@ -141,7 +149,7 @@ export default function App() {
               <Route
                 path="/citizen/centers"
                 element={
-                  <RoleRoute roles={["Citizen"]}>
+                  <RoleRoute roles={["citizen"]}>
                     <CitizenCentersPage />
                   </RoleRoute>
                 }
@@ -151,7 +159,7 @@ export default function App() {
               <Route
                 path="/org/dashboard"
                 element={
-                  <RoleRoute roles={["Organization"]}>
+                  <RoleRoute roles={["organization"]}>
                     <OrgDashboard />
                   </RoleRoute>
                 }
@@ -160,8 +168,26 @@ export default function App() {
               <Route
                 path="/org/evacuation-centers"
                 element={
-                  <RoleRoute roles={["Organization"]}>
+                  <RoleRoute roles={["organization"]}>
                     <OrgEvacuationCentersPage />
+                  </RoleRoute>
+                }
+              />
+
+              <Route
+                path="/org/centers"
+                element={
+                  <RoleRoute roles={["organization"]}>
+                    <OrgCentersPage />
+                  </RoleRoute>
+                }
+              />
+
+              <Route
+                path="/org/centers/add"
+                element={
+                  <RoleRoute roles={["organization"]}>
+                    <OrgAddCenterPage />
                   </RoleRoute>
                 }
               />
@@ -169,7 +195,7 @@ export default function App() {
               <Route
                 path="/org/resources"
                 element={
-                  <RoleRoute roles={["Organization"]}>
+                  <RoleRoute roles={["organization"]}>
                     <OrgResourcesPage />
                   </RoleRoute>
                 }
@@ -178,7 +204,7 @@ export default function App() {
               <Route
                 path="/org/volunteers"
                 element={
-                  <RoleRoute roles={["Organization"]}>
+                  <RoleRoute roles={["organization"]}>
                     <OrgVolunteersPage />
                   </RoleRoute>
                 }
@@ -187,7 +213,7 @@ export default function App() {
               <Route
                 path="/org/announcements"
                 element={
-                  <RoleRoute roles={["Organization"]}>
+                  <RoleRoute roles={["organization"]}>
                     <OrgAnnouncementsPage />
                   </RoleRoute>
                 }
@@ -196,7 +222,7 @@ export default function App() {
               <Route
                 path="/org/reports"
                 element={
-                  <RoleRoute roles={["Organization"]}>
+                  <RoleRoute roles={["organization"]}>
                     <OrgReportsPage />
                   </RoleRoute>
                 }
@@ -206,7 +232,7 @@ export default function App() {
               <Route
                 path="/volunteer/dashboard"
                 element={
-                  <RoleRoute roles={["Volunteer"]}>
+                  <RoleRoute roles={["volunteer"]}>
                     <VolunteerDashboard />
                   </RoleRoute>
                 }
@@ -215,7 +241,7 @@ export default function App() {
               <Route
                 path="/volunteer/needs"
                 element={
-                  <RoleRoute roles={["Volunteer"]}>
+                  <RoleRoute roles={["volunteer"]}>
                     <VolunteerNeedsPage />
                   </RoleRoute>
                 }
@@ -224,7 +250,7 @@ export default function App() {
               <Route
                 path="/volunteer/register"
                 element={
-                  <RoleRoute roles={["Volunteer"]}>
+                  <RoleRoute roles={["volunteer"]}>
                     <VolunteerRegisterPage />
                   </RoleRoute>
                 }

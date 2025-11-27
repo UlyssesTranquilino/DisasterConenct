@@ -1,49 +1,36 @@
-import {
-  User,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  Auth,
-} from "firebase/auth";
-import { auth } from "../lib/firebase"; // Make sure you have firebase initialized
-
-export const checkAuthState = (callback: (user: User | null) => void) => {
-  return onAuthStateChanged(auth, (user) => {
-    callback(user);
-  });
-};
-
-export const signOut = async (): Promise<void> => {
-  try {
-    await firebaseSignOut(auth);
-  } catch (error) {
-    console.error("Error signing out:", error);
-    throw error;
-  }
-};
-
-export const loginWithEmail = async (
+// Backend login for multi-role JWT auth
+export const loginWithBackend = async (
   email: string,
   password: string
-): Promise<{ success: boolean; error?: string }> => {
+): Promise<
+  | { success: true; user: any; token: string }
+  | { success: false; error: string }
+> => {
   try {
-    await signInWithEmailAndPassword(auth, email, password);
-    return { success: true };
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Login failed");
+    return { success: true, user: data.user, token: data.token };
   } catch (error: any) {
-    console.error("Login error:", error);
-    return {
-      success: false,
-      error:
-        error.message || "Failed to sign in. Please check your credentials.",
-    };
+    return { success: false, error: error.message || "Login failed" };
   }
 };
 
-export const initSessionTracking = (
-  auth: Auth,
-  callback: (user: User | null) => void
+// Example: use this for all secure API calls
+export const fetchWithAuth = async (
+  url: string,
+  token: string,
+  options: any = {}
 ) => {
-  return onAuthStateChanged(auth, (user) => {
-    callback(user);
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${token}`,
+    },
   });
 };

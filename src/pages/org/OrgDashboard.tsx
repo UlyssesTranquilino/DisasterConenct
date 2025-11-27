@@ -16,10 +16,32 @@ import {
   Package,
 } from "lucide-react";
 import { Skeleton } from "../../components/components/ui/skeleton";
+import { useAuth } from "../../lib/auth";
+import { useEffect } from "react";
 
 // Update the OrgDashboard component
 export default function OrgDashboard() {
-  const { metrics, loading, error, refreshData } = useOrganization();
+  const {
+    currentOrgId,
+    setCurrentOrgId,
+    announcements,
+    centers,
+    volunteers,
+    metrics,
+    loading,
+    error,
+    fetchOrganizationData,
+  } = useOrganization();
+
+  const { currentUser } = useAuth();
+
+  console.log("ORGID: ", currentOrgId);
+  // Fetch data when component mounts or when currentOrgId changes
+  useEffect(() => {
+    if (currentOrgId) {
+      fetchOrganizationData();
+    }
+  }, [currentOrgId, fetchOrganizationData]);
 
   // Loading state
   if (loading) {
@@ -52,7 +74,7 @@ export default function OrgDashboard() {
           <h2>Error loading dashboard</h2>
         </div>
         <p className="text-gray-600 mb-4">{error}</p>
-        <Button onClick={refreshData}>Retry</Button>
+        <Button onClick={fetchOrganizationData}>Retry</Button>
       </div>
     );
   }
@@ -62,10 +84,37 @@ export default function OrgDashboard() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Organization Dashboard</h1>
-        <Button onClick={refreshData} variant="outline" size="sm">
+        <Button onClick={fetchOrganizationData} variant="outline" size="sm">
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
+      </div>
+
+      {/* Organization Information */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold mb-4">Organization Details</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Organization ID</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground break-all">
+                {currentOrgId || "Not available"}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Announcements</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                {announcements?.length || 0} active
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Metrics Grid */}

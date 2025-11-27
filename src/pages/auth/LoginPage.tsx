@@ -3,15 +3,16 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { useAuth } from "../../lib/auth";
+import { useAuth, type UserRole } from "../../lib/auth";
 
 export default function LoginPage() {
   const { login, loginWithGoogle, isLoading, error } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<string>(""); // selected role
-  const [roleError, setRoleError] = useState<string>("");
+  const [role, setRole] = useState<UserRole>("citizen");
+  const [formError, setFormError] = useState("");
+  const [roleError, setRoleError] = useState("");
 
   /**
    * STUB: Fetch roles for the currently authenticated user.
@@ -32,39 +33,31 @@ export default function LoginPage() {
     return [];
   }
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
     setRoleError("");
 
+    // Basic validation
+    if (!email || !password) {
+      setFormError("Please fill in all required fields");
+      return;
+    }
+
     if (!role) {
-      setRoleError("Please select a role.");
+      setRoleError("Please select your role");
       return;
     }
 
     try {
-      // perform login (your useAuth.login). It may not return user data — that's fine.
+      // Perform login
       await login(email, password);
 
-      // After successful login, fetch roles from DB (the DB dev will implement this).
-      const roles = await fetchRolesForCurrentUser();
-
-      // If fetchRolesForCurrentUser returns nothing or role is not present, show error.
-      if (!roles || !Array.isArray(roles) || !roles.includes(role)) {
-        setRoleError(`No account found under the role: ${role}`);
-        return;
-      }
-
-      // Role exists — redirect to appropriate dashboard
-      if (role === "civilian") navigate("/citizenDashboard");
-      else if (role === "volunteer") navigate("/volunteerDashboard");
-      else if (role === "organization") navigate("/orgDashboard");
-      else {
-        // fallback route if new roles are added in the future
-        navigate("/");
-      }
-    } catch (err) {
-      // Keep original behavior: login error will likely be surfaced by `error` from useAuth.
-      console.error("Login failed:", err);
+      // The login function will handle redirection based on user role
+      // No need for additional navigation here as it's handled in the auth context
+    } catch (error) {
+      console.error("Login error:", error);
+      // Error is already set by the auth context
     }
   };
 
@@ -89,8 +82,7 @@ export default function LoginPage() {
               className="w-6 h-6 object-contain filter brightness-[200%]"
             />
             <span className="absolute bottom-[-35px] left-1/2 -translate-x-1/2 text-sm bg-gray-800 text-white px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              {" "}
-              Homepage{" "}
+              Homepage
             </span>
           </div>
         </Link>
@@ -126,7 +118,7 @@ export default function LoginPage() {
             Login
           </h1>
 
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Auth error from useAuth */}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
@@ -182,13 +174,13 @@ export default function LoginPage() {
               <select
                 id="role"
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => setRole(e.target.value as UserRole)}
                 className="!bg-black !border-black !text-white w-full p-2 rounded-lg"
               >
                 <option value="" disabled className="text-gray-400">
                   Choose your role
                 </option>
-                <option value="civilian">Civilian</option>
+                <option value="citizen">Citizen</option>
                 <option value="volunteer">Volunteer</option>
                 <option value="organization">Organization</option>
               </select>

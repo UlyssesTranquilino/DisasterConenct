@@ -25,17 +25,17 @@ export default function RoleSelectionPage() {
 
   const roles: { value: UserRole; title: string; description: string }[] = [
     {
-      value: "Citizen",
+      value: "citizen",
       title: "Citizen",
       description: "Receive alerts and access emergency resources during disasters",
     },
     {
-      value: "Volunteer",
+      value: "volunteer",
       title: "Volunteer",
       description: "Help communities by responding to emergency deployment requests",
     },
     {
-      value: "Organization",
+      value: "organization",
       title: "Organization",
       description: "Coordinate disaster response efforts and manage resources",
     },

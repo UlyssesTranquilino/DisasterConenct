@@ -6,47 +6,33 @@ interface StoredUserData {
   uid: string;
   email: string | null;
   displayName: string | null;
-  photoURL: string | null;
+  photoURL?: string | null;
+  roles: string[];
+  activeRole: string;
+  token: string;
 }
 
 interface AuthState {
-  user: User | null;
+  user: StoredUserData | null;
   loading: boolean;
-  storedUser: StoredUserData | null;
-  setUser: (user: User | null) => void;
+  setUser: (user: StoredUserData | null) => void;
   setLoading: (loading: boolean) => void;
   clearAuth: () => void;
 }
 
-// In authStore.ts
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
       loading: true,
-      storedUser: null,
-      setUser: (user) =>
-        set({
-          user,
-          storedUser: user
-            ? {
-                uid: user.uid,
-                email: user.email,
-                displayName: user.displayName,
-                photoURL: user.photoURL,
-              }
-            : null,
-        }),
+      setUser: (user) => set({ user }),
       setLoading: (loading) => set({ loading }),
-      clearAuth: () => set({ user: null, storedUser: null, loading: false }),
+      clearAuth: () => set({ user: null, loading: false }),
     }),
     {
       name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
-      // Only persist the storedUser to prevent serialization issues
-      partialize: (state) => ({
-        storedUser: state.storedUser,
-      }),
+      partialize: (state) => ({ user: state.user }),
     }
   )
 );

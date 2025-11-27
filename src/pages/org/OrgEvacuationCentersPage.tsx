@@ -19,6 +19,7 @@ import { Search, Edit2, Plus, Trash2, Loader2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { useAuth } from "../../lib/auth";
 import {
   evacuationCenterService,
   type EvacuationCenter,
@@ -424,16 +425,26 @@ export default function OrgEvacuationCentersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const { currentUser } = useAuth(); // Get the current user from your auth context
 
-  // Replace with actual organization ID from your app context/auth
-  const organizationId = "your-organization-id-here"; // You'll need to get this from your app state
-
-  // Fetch centers on component mount
+  // Set organization ID when user is loaded
   useEffect(() => {
-    fetchCenters();
-  }, []);
+    if (currentUser?.id) {
+      setOrganizationId(currentUser.id);
+    }
+  }, [currentUser]);
+
+  // Fetch centers when organizationId changes
+  useEffect(() => {
+    if (organizationId) {
+      fetchCenters();
+    }
+  }, [organizationId]);
 
   const fetchCenters = async () => {
+    if (!organizationId) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -450,6 +461,11 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleCreateCenter = async (data: CreateEvacuationCenterData) => {
+    if (!organizationId) {
+      setError("No organization ID available");
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -461,13 +477,18 @@ export default function OrgEvacuationCentersPage() {
     } catch (err) {
       console.error("Error creating center:", err);
       setError(err instanceof Error ? err.message : "Failed to create center");
-      throw err; // Re-throw to let the modal handle it
+      throw err;
     } finally {
       setSaving(false);
     }
   };
 
   const handleUpdateCenter = async (updatedCenter: EvacuationCenter) => {
+    if (!organizationId) {
+      setError("No organization ID available");
+      return;
+    }
+
     try {
       setSaving(true);
       setError(null);
@@ -477,13 +498,11 @@ export default function OrgEvacuationCentersPage() {
         id,
         updateData
       );
-
-      // Update local state optimistically
       setCenters((prev) => prev.map((c) => (c.id === id ? updatedCenter : c)));
     } catch (err) {
       console.error("Error updating center:", err);
       setError(err instanceof Error ? err.message : "Failed to update center");
-      await fetchCenters(); // Refresh to get correct data
+      await fetchCenters();
       throw err;
     } finally {
       setSaving(false);
@@ -491,6 +510,11 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleDeleteCenter = async (centerId: string) => {
+    if (!organizationId) {
+      setError("No organization ID available");
+      return;
+    }
+
     if (!confirm("Are you sure you want to delete this evacuation center?")) {
       return;
     }
@@ -501,7 +525,7 @@ export default function OrgEvacuationCentersPage() {
         organizationId,
         centerId
       );
-      await fetchCenters(); // Refresh the list
+      await fetchCenters();
     } catch (err) {
       console.error("Error deleting center:", err);
       setError(err instanceof Error ? err.message : "Failed to delete center");
@@ -512,8 +536,10 @@ export default function OrgEvacuationCentersPage() {
   const filteredCenters = centers.filter(
     (center) =>
       center.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      center.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      center.head.toLowerCase().includes(searchTerm.toLowerCase())
+      (center.address &&
+        center.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (center.head &&
+        center.head.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
@@ -524,7 +550,6 @@ export default function OrgEvacuationCentersPage() {
       </div>
     );
   }
-
   return (
     <div className="px-2 md:px-4 space-y-4 text-white">
       <div className="flex justify-between items-center">

@@ -73,11 +73,48 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Set currentOrgId from user profile when user changes
   useEffect(() => {
-    if (currentUser && currentOrgId) {
-      fetchOrganizationData();
+    if (currentUser) {
+      // Only log in development mode to reduce console noise
+      if (import.meta.env.DEV) {
+        console.log("Current user:", currentUser);
+      }
+      const userOrgId = currentUser.organizationId || 
+                       (currentUser.organizations && currentUser.organizations[0]) ||
+                       null;
+      
+      if (import.meta.env.DEV) {
+        console.log("User organization ID:", userOrgId);
+      }
+
+      if (userOrgId && userOrgId !== currentOrgId) {
+        if (import.meta.env.DEV) {
+          console.log("Setting organization ID:", userOrgId);
+        }
+        setCurrentOrgId(userOrgId);
+      } else if (!userOrgId && currentUser.activeRole === "organization") {
+        // Only warn if user is supposed to have an organization role
+        if (import.meta.env.DEV) {
+          console.warn("No organization ID found in user profile for organization role");
+        }
+        // Here you might want to redirect to a page where the user can select or create an organization
+      }
+    } else {
+      // Reset if user logs out
+      if (import.meta.env.DEV) {
+        console.log("No current user, resetting organization context");
+      }
+      setCurrentOrgId(null);
     }
   }, [currentUser, currentOrgId]);
+
+  // Fetch organization data when currentOrgId changes
+  useEffect(() => {
+    if (currentOrgId) {
+      fetchOrganizationData();
+    }
+  }, [currentOrgId]);
 
   const value = {
     currentOrgId,

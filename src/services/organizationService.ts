@@ -1,19 +1,30 @@
 // src/services/organizationService.ts
 import { auth } from "../lib/firebase";
 
-const API_BASE_URL = "http://localhost:5000/api/organizations";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api") + "/organizations";
 
 // Helper function to get auth headers
-const getAuthHeaders = async () => {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error("User not authenticated");
-  }
-  const token = await user.getIdToken();
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
-  };
+const getAuthHeaders = async (): Promise<HeadersInit> => {
+  // Wait for auth state to be ready
+  return new Promise((resolve, reject) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      unsubscribe();
+      if (!user) {
+        reject(new Error("User not authenticated"));
+        return;
+      }
+
+      try {
+        const token = await user.getIdToken();
+        resolve({
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
 };
 
 // Helper function to handle API responses
