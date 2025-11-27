@@ -1,29 +1,18 @@
-import { auth } from "../lib/firebase";
+import { apiService } from "../lib/api";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
-// Helper function to get auth headers
-const getAuthHeaders = async (): Promise<HeadersInit> => {
-  // Wait for auth state to be ready
-  return new Promise((resolve, reject) => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      unsubscribe();
-      if (!user) {
-        reject(new Error("User not authenticated"));
-        return;
-      }
-
-      try {
-        const token = await user.getIdToken();
-        resolve({
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  });
+// Helper function to get auth headers using JWT token from apiService
+const getAuthHeaders = (): HeadersInit => {
+  const token = apiService.getToken();
+  if (!token) {
+    throw new Error("User not authenticated. Please log in.");
+  }
+  
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 };
 
 // Helper function to handle API responses
@@ -82,7 +71,7 @@ export const evacuationCenterService = {
       `${API_BASE_URL}/organizations/${orgId}/centers`,
       {
         method: "GET",
-        headers: await getAuthHeaders(),
+        headers: getAuthHeaders(),
       }
     );
     return handleResponse(response);
@@ -97,7 +86,7 @@ export const evacuationCenterService = {
       `${API_BASE_URL}/organizations/${orgId}/centers`,
       {
         method: "POST",
-        headers: await getAuthHeaders(),
+        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       }
     );
@@ -109,12 +98,12 @@ export const evacuationCenterService = {
     orgId: string,
     centerId: string,
     data: UpdateEvacuationCenterData
-  ): Promise<{ message: string; centerId: string }> {
+  ): Promise<{ message: string; center: EvacuationCenter }> {
     const response = await fetch(
       `${API_BASE_URL}/organizations/${orgId}/centers/${centerId}`,
       {
         method: "PUT",
-        headers: await getAuthHeaders(),
+        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       }
     );
@@ -130,7 +119,7 @@ export const evacuationCenterService = {
       `${API_BASE_URL}/organizations/${orgId}/centers/${centerId}`,
       {
         method: "DELETE",
-        headers: await getAuthHeaders(),
+        headers: getAuthHeaders(),
       }
     );
     return handleResponse(response);

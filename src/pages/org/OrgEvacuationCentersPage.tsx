@@ -19,7 +19,7 @@ import { Search, Edit2, Plus, Trash2, Loader2 } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useAuth } from "../../lib/auth";
+import { useOrganization } from "../../contexts/OrganizationContext";
 import {
   evacuationCenterService,
   type EvacuationCenter,
@@ -420,36 +420,28 @@ const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
 
 // --- Main Page ---
 export default function OrgEvacuationCentersPage() {
+  const { currentOrgId } = useOrganization();
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const { currentUser } = useAuth(); // Get the current user from your auth context
 
-  // Set organization ID when user is loaded
+  // Fetch centers when currentOrgId changes
   useEffect(() => {
-    if (currentUser?.id) {
-      setOrganizationId(currentUser.id);
-    }
-  }, [currentUser]);
-
-  // Fetch centers when organizationId changes
-  useEffect(() => {
-    if (organizationId) {
+    if (currentOrgId) {
       fetchCenters();
     }
-  }, [organizationId]);
+  }, [currentOrgId]);
 
   const fetchCenters = async () => {
-    if (!organizationId) return;
+    if (!currentOrgId) return;
 
     try {
       setLoading(true);
       setError(null);
       const data = await evacuationCenterService.getEvacuationCenters(
-        organizationId
+        currentOrgId
       );
       setCenters(data);
     } catch (err) {
@@ -461,7 +453,7 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleCreateCenter = async (data: CreateEvacuationCenterData) => {
-    if (!organizationId) {
+    if (!currentOrgId) {
       setError("No organization ID available");
       return;
     }
@@ -470,7 +462,7 @@ export default function OrgEvacuationCentersPage() {
       setSaving(true);
       setError(null);
       await evacuationCenterService.createEvacuationCenter(
-        organizationId,
+        currentOrgId,
         data
       );
       await fetchCenters(); // Refresh the list
@@ -484,7 +476,7 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleUpdateCenter = async (updatedCenter: EvacuationCenter) => {
-    if (!organizationId) {
+    if (!currentOrgId) {
       setError("No organization ID available");
       return;
     }
@@ -493,12 +485,13 @@ export default function OrgEvacuationCentersPage() {
       setSaving(true);
       setError(null);
       const { id, ...updateData } = updatedCenter;
-      await evacuationCenterService.updateEvacuationCenter(
-        organizationId,
+      const response = await evacuationCenterService.updateEvacuationCenter(
+        currentOrgId,
         id,
         updateData
       );
-      setCenters((prev) => prev.map((c) => (c.id === id ? updatedCenter : c)));
+      // Use the updated center from the response
+      setCenters((prev) => prev.map((c) => (c.id === id ? response.center : c)));
     } catch (err) {
       console.error("Error updating center:", err);
       setError(err instanceof Error ? err.message : "Failed to update center");
@@ -510,7 +503,7 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleDeleteCenter = async (centerId: string) => {
-    if (!organizationId) {
+    if (!currentOrgId) {
       setError("No organization ID available");
       return;
     }
@@ -522,7 +515,7 @@ export default function OrgEvacuationCentersPage() {
     try {
       setError(null);
       await evacuationCenterService.deleteEvacuationCenter(
-        organizationId,
+        currentOrgId,
         centerId
       );
       await fetchCenters();
