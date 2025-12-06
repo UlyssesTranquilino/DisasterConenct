@@ -12,6 +12,11 @@ html {
   height: 100%;
 }
 
+/* Force dark mode - always add dark class */
+html.dark {
+  color-scheme: dark;
+}
+
 html::before {
   content: "";
   position: fixed;
@@ -31,8 +36,6 @@ body {
   background: rgb(43, 43, 43);
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.4);
 }
-
-
 
 @layer base {
   :root {
@@ -89,8 +92,6 @@ body {
     --chart-5: 340 75% 55%;
   }
 }
-
-
 
 @layer base {
   * {
