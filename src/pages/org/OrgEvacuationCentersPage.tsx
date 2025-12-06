@@ -420,6 +420,8 @@ const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
 
 // --- Main Page ---
 export default function OrgEvacuationCentersPage() {
+  // Backend infers organization from authenticated user (JWT);
+  // no need to send orgId explicitly from frontend.
   const { currentOrgId } = useOrganization();
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -427,22 +429,17 @@ export default function OrgEvacuationCentersPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch centers when currentOrgId changes
+  // Fetch centers on mount (org inferred from JWT on backend)
   useEffect(() => {
-    if (currentOrgId) {
-      fetchCenters();
-    }
-  }, [currentOrgId]);
+    fetchCenters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchCenters = async () => {
-    if (!currentOrgId) return;
-
     try {
       setLoading(true);
       setError(null);
-      const data = await evacuationCenterService.getEvacuationCenters(
-        currentOrgId
-      );
+      const data = await evacuationCenterService.getEvacuationCenters();
       setCenters(data);
     } catch (err) {
       console.error("Error fetching centers:", err);
@@ -453,18 +450,10 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleCreateCenter = async (data: CreateEvacuationCenterData) => {
-    if (!currentOrgId) {
-      setError("No organization ID available");
-      return;
-    }
-
     try {
       setSaving(true);
       setError(null);
-      await evacuationCenterService.createEvacuationCenter(
-        currentOrgId,
-        data
-      );
+      await evacuationCenterService.createEvacuationCenter(data);
       await fetchCenters(); // Refresh the list
     } catch (err) {
       console.error("Error creating center:", err);
@@ -476,22 +465,12 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleUpdateCenter = async (updatedCenter: EvacuationCenter) => {
-    if (!currentOrgId) {
-      setError("No organization ID available");
-      return;
-    }
-
     try {
       setSaving(true);
       setError(null);
-      const { id, ...updateData } = updatedCenter;
-      const response = await evacuationCenterService.updateEvacuationCenter(
-        currentOrgId,
-        id,
-        updateData
-      );
-      // Use the updated center from the response
-      setCenters((prev) => prev.map((c) => (c.id === id ? response.center : c)));
+      const { id } = updatedCenter;
+      // Backend does not yet expose an update route; update locally for now
+      setCenters((prev) => prev.map((c) => (c.id === id ? updatedCenter : c)));
     } catch (err) {
       console.error("Error updating center:", err);
       setError(err instanceof Error ? err.message : "Failed to update center");
@@ -503,22 +482,14 @@ export default function OrgEvacuationCentersPage() {
   };
 
   const handleDeleteCenter = async (centerId: string) => {
-    if (!currentOrgId) {
-      setError("No organization ID available");
-      return;
-    }
-
     if (!confirm("Are you sure you want to delete this evacuation center?")) {
       return;
     }
 
     try {
       setError(null);
-      await evacuationCenterService.deleteEvacuationCenter(
-        currentOrgId,
-        centerId
-      );
-      await fetchCenters();
+      // Backend does not yet expose a delete route; remove from local state
+      setCenters((prev) => prev.filter((c) => c.id !== centerId));
     } catch (err) {
       console.error("Error deleting center:", err);
       setError(err instanceof Error ? err.message : "Failed to delete center");

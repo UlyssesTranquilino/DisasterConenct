@@ -1,6 +1,7 @@
 import { apiService } from "../lib/api";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 // Helper function to get auth headers using JWT token from apiService
 const getAuthHeaders = (): HeadersInit => {
@@ -8,7 +9,7 @@ const getAuthHeaders = (): HeadersInit => {
   if (!token) {
     throw new Error("User not authenticated. Please log in.");
   }
-  
+
   return {
     "Content-Type": "application/json",
     Authorization: `Bearer ${token}`,
@@ -65,42 +66,34 @@ export interface UpdateEvacuationCenterData {
 }
 
 export const evacuationCenterService = {
-  // Get all evacuation centers for an organization
-  async getEvacuationCenters(orgId: string): Promise<EvacuationCenter[]> {
-    const response = await fetch(
-      `${API_BASE_URL}/organizations/${orgId}/centers`,
-      {
-        method: "GET",
-        headers: getAuthHeaders(),
-      }
-    );
+  // Get all evacuation centers for the authenticated organization user
+  async getEvacuationCenters(): Promise<EvacuationCenter[]> {
+    const response = await fetch(`${API_BASE_URL}/organization/centers`, {
+      method: "GET",
+      headers: getAuthHeaders(),
+    });
     return handleResponse(response);
   },
 
-  // Create a new evacuation center
+  // Create a new evacuation center (org inferred from JWT on backend)
   async createEvacuationCenter(
-    orgId: string,
     data: CreateEvacuationCenterData
-  ): Promise<{ id: string; message: string; center: EvacuationCenter }> {
-    const response = await fetch(
-      `${API_BASE_URL}/organizations/${orgId}/centers`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-      }
-    );
+  ): Promise<{ id: string; message: string; center?: EvacuationCenter }> {
+    const response = await fetch(`${API_BASE_URL}/organization/centers`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
     return handleResponse(response);
   },
 
-  // Update an existing evacuation center
+  // Update an existing evacuation center (expects future backend support)
   async updateEvacuationCenter(
-    orgId: string,
     centerId: string,
     data: UpdateEvacuationCenterData
-  ): Promise<{ message: string; center: EvacuationCenter }> {
+  ): Promise<{ message: string; center?: EvacuationCenter }> {
     const response = await fetch(
-      `${API_BASE_URL}/organizations/${orgId}/centers/${centerId}`,
+      `${API_BASE_URL}/organization/centers/${centerId}`,
       {
         method: "PUT",
         headers: getAuthHeaders(),
@@ -110,13 +103,10 @@ export const evacuationCenterService = {
     return handleResponse(response);
   },
 
-  // Delete an evacuation center
-  async deleteEvacuationCenter(
-    orgId: string,
-    centerId: string
-  ): Promise<{ message: string }> {
+  // Delete an evacuation center (expects future backend support)
+  async deleteEvacuationCenter(centerId: string): Promise<{ message: string }> {
     const response = await fetch(
-      `${API_BASE_URL}/organizations/${orgId}/centers/${centerId}`,
+      `${API_BASE_URL}/organization/centers/${centerId}`,
       {
         method: "DELETE",
         headers: getAuthHeaders(),
