@@ -1,6 +1,12 @@
 // API service for communicating with the backend
 // Use environment variable for API URL, fallback to localhost for development
+// const API_BASE_URL =
+//   import.meta.env.DEV
+//     ? "/api"
+//     : "https://disasterconnect-api.vercel.app/api";
+
 const API_BASE_URL = "https://disasterconnect-api.vercel.app/api";
+// const API_BASE_URL = "http://localhost:5000/api";
 
 export type UserRole = "citizen" | "organization" | "volunteer";
 
@@ -78,7 +84,9 @@ class ApiService {
 
       // Handle network errors
       if (!response.ok && response.status === 0) {
-        throw new Error("Network error: Could not connect to the server. Please ensure the backend is running.");
+        throw new Error(
+          "Network error: Could not connect to the server. Please ensure the backend is running."
+        );
       }
 
       // Handle 204 No Content responses
@@ -93,15 +101,18 @@ class ApiService {
         data = await response.json();
       } else {
         const text = await response.text();
-        throw new Error(text || `Request failed with status ${response.status}`);
+        throw new Error(
+          text || `Request failed with status ${response.status}`
+        );
       }
 
       if (response.status === 401) {
         // Check if this is an auth endpoint (login/register/google) - don't redirect for those
-        const isAuthEndpoint = endpoint.includes("/auth/login") || 
-                              endpoint.includes("/auth/register") || 
-                              endpoint.includes("/auth/google");
-        
+        const isAuthEndpoint =
+          endpoint.includes("/auth/login") ||
+          endpoint.includes("/auth/register") ||
+          endpoint.includes("/auth/google");
+
         if (!isAuthEndpoint) {
           // Token expired or invalid for protected routes
           this.clearToken();
@@ -113,7 +124,9 @@ class ApiService {
 
       if (!response.ok) {
         throw new Error(
-          data.error || data.message || `Request failed with status ${response.status}`
+          data.error ||
+            data.message ||
+            `Request failed with status ${response.status}`
         );
       }
 
@@ -121,8 +134,12 @@ class ApiService {
     } catch (error: any) {
       // Enhanced error handling
       if (error instanceof TypeError && error.message.includes("fetch")) {
-        console.error(`API request to ${endpoint} failed: Network error - Backend may not be running`);
-        throw new Error("Cannot connect to server. Please ensure the backend is running on port 5000.");
+        console.error(
+          `API request to ${endpoint} failed: Network error - Backend may not be running`
+        );
+        throw new Error(
+          "Cannot connect to server. Please ensure the backend is running on port 5000."
+        );
       }
       console.error(`API request to ${endpoint} failed:`, error);
       throw error;
@@ -192,9 +209,10 @@ class ApiService {
     roles?: UserRole[],
     profileData?: any
   ): Promise<AuthResponse> {
+    // Backend expects the Google ID token in a field named `token`
     return this.request<AuthResponse>("/auth/google", {
       method: "POST",
-      body: JSON.stringify({ idToken, roles, profileData }),
+      body: JSON.stringify({ token: idToken, roles, profileData }),
     });
   }
 
@@ -203,12 +221,13 @@ class ApiService {
     roles: UserRole[],
     profileData?: any
   ): Promise<AuthResponse> {
+    // Same endpoint as googleLogin; backend still expects `token`
     return this.request<AuthResponse>("/auth/google", {
       method: "POST",
-      body: JSON.stringify({ 
-        idToken, 
-        roles, // Send as array
-        profileData 
+      body: JSON.stringify({
+        token: idToken,
+        roles, // Send as array so backend can optionally use it later
+        profileData,
       }),
     });
   }

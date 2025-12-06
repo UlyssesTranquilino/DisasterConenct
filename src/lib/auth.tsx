@@ -85,7 +85,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const normalizeRole = (role: string): UserRole => {
     const normalized = role.toLowerCase();
     // Ensure it's a valid UserRole
-    if (normalized === "citizen" || normalized === "organization" || normalized === "volunteer") {
+    if (
+      normalized === "citizen" ||
+      normalized === "organization" ||
+      normalized === "volunteer"
+    ) {
       return normalized as UserRole;
     }
     return "citizen"; // default fallback
@@ -141,14 +145,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Normalize user data from different sources (API, localStorage, etc.)
   const normalizeUser = (user: any): CurrentUser => {
-    const roles = Array.isArray(user.roles) 
-      ? user.roles.map(normalizeRole) 
+    const roles = Array.isArray(user.roles)
+      ? user.roles.map(normalizeRole)
       : [normalizeRole(user.role || "citizen")];
-    
-    const activeRole = user.activeRole 
+
+    const activeRole = user.activeRole
       ? normalizeRole(user.activeRole)
-      : (roles[0] || "citizen");
-    
+      : roles[0] || "citizen";
+
     return {
       id: user.id || user.uid,
       email: user.email,
@@ -181,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Helper function to get dashboard path from role
   const getDashboardPath = (role: UserRole | null): string => {
     if (!role) return "/select-role";
-    
+
     switch (role.toLowerCase()) {
       case "organization":
         return "/org/dashboard";
@@ -248,7 +252,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const normalizedUser: CurrentUser = {
           ...user,
           roles: user.roles?.map(normalizeRole) || roles,
-          activeRole: user.activeRole ? normalizeRole(user.activeRole) : roles[0] || "citizen",
+          activeRole: user.activeRole
+            ? normalizeRole(user.activeRole)
+            : roles[0] || "citizen",
         };
 
         apiService.setToken(token);
@@ -295,6 +301,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const response = await apiService.googleLogin(idToken);
+
+        // If backend says this is a new user, send them to role selection
+        const isNewUser = (response as any)?.data?.isNewUser;
+        if (isNewUser) {
+          setError(null);
+          sessionStorage.setItem(
+            "googleUserInfo",
+            JSON.stringify(googleUserInfo)
+          );
+          navigate("/select-role");
+          return;
+        }
+
+        // Existing user: normalize and log them in directly
         const backendUser = response.data.user;
 
         const normalizedUser: CurrentUser = {
@@ -336,7 +356,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Google login failed:", error);
       // Only set error if we're not redirecting to role selection
-      const errorMessage = error instanceof Error ? error.message.toLowerCase() : "";
+      const errorMessage =
+        error instanceof Error ? error.message.toLowerCase() : "";
       if (
         !errorMessage.includes("not found") &&
         !errorMessage.includes("user does not exist") &&
