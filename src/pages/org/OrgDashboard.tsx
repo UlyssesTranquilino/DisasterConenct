@@ -100,7 +100,7 @@ const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
 
         if (hasOccupiedData) {
           // Calculate utilization if we have occupied data
-          const utilization = Math.round((c.occupied / c.capacity) * 100);
+          const utilization = Math.round((c.occupied! / c.capacity) * 100);
           color =
             utilization > 90
               ? "#ef4444" // Red for full (>90%)
