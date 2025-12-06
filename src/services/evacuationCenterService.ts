@@ -1,7 +1,7 @@
 import { apiService } from "../lib/api";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  "https://disasterconnect-api.vercel.app/api" || "http://localhost:5000/api";
 
 // Helper function to get auth headers using JWT token from apiService
 const getAuthHeaders = (): HeadersInit => {
@@ -72,7 +72,13 @@ export const evacuationCenterService = {
       method: "GET",
       headers: getAuthHeaders(),
     });
-    return handleResponse(response);
+
+    const json = (await handleResponse(response)) as {
+      success: boolean;
+      data: EvacuationCenter[];
+    };
+
+    return json.data;
   },
 
   // Create a new evacuation center (org inferred from JWT on backend)
@@ -84,7 +90,13 @@ export const evacuationCenterService = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+
+    const json = (await handleResponse(response)) as {
+      success: boolean;
+      data: { id: string; message: string; center?: EvacuationCenter };
+    };
+
+    return json.data;
   },
 
   // Update an existing evacuation center (expects future backend support)
