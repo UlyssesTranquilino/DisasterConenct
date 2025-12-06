@@ -116,12 +116,14 @@ const MapPicker: React.FC<MapPickerProps> = ({
       zoom={13}
       className="h-64 rounded-xl mt-2"
       ref={mapRef}
-      whenReady={(mapInstance: any) => {
-        mapRef.current = mapInstance;
-        // Small delay to ensure map is fully rendered
-        setTimeout(() => {
-          mapInstance.invalidateSize();
-        }, 100);
+      whenReady={() => {
+        const mapInstance = mapRef.current;
+        if (mapInstance) {
+          // Small delay to ensure map is fully rendered
+          setTimeout(() => {
+            mapInstance.invalidateSize();
+          }, 100);
+        }
       }}
     >
       <TileLayer
@@ -645,8 +647,8 @@ const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
       zoom={12}
       className="h-[500px] rounded-xl"
       ref={mapRef}
-      whenReady={(mapInstance: any) => {
-        mapRef.current = mapInstance;
+      whenReady={() => {
+        // Map is ready, mapRef.current should be set by ref
       }}
     >
       <TileLayer
@@ -749,6 +751,22 @@ export default function OrgEvacuationCentersPage() {
 
   const handleUpdateCenter = async (updatedCenter: EvacuationCenter) => {
     try {
+      setSaving(true);
+      setError(null);
+
+      const { id, ...updateData } = updatedCenter;
+
+      const response = await evacuationCenterService.updateEvacuationCenter(
+        id,
+        updateData
+      );
+
+      const newCenter = response.center ?? updatedCenter;
+
+      setCenters((prev) => prev.map((c) => (c.id === id ? newCenter : c)));
+
+      toast.success("Evacuation center updated", {
+        description: newCenter.name,
       });
     } catch (err) {
       console.error("Error updating center:", err);
