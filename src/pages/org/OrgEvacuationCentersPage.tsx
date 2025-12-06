@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Card,
   CardHeader,
@@ -15,16 +15,34 @@ import {
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Search, Edit2, Plus, Trash2, Loader2 } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Search, Edit2, Plus, Trash2, Loader2, MapPin } from "lucide-react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { useOrganization } from "../../contexts/OrganizationContext";
 import {
   evacuationCenterService,
   type EvacuationCenter,
   type CreateEvacuationCenterData,
 } from "../../services/evacuationCenterService";
+
+// Fix for Leaflet default icon (ESM-friendly, no require)
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+});
 
 const cardGradientStyle = {
   background:
@@ -59,6 +77,153 @@ const FlyToLocation = ({ position }: { position: [number, number] | null }) => {
   return null;
 };
 
+// Separate Map Picker component for Edit Modal
+interface MapPickerProps {
+  position: [number, number];
+  onPositionChange: (lat: number, lng: number) => void;
+  centerName?: string;
+  centerAddress?: string;
+}
+
+const MapPicker: React.FC<MapPickerProps> = ({
+  position,
+  onPositionChange,
+  centerName = "New Evacuation Center",
+  centerAddress = "Set address",
+}) => {
+  const [mapKey, setMapKey] = useState(0); // Key to force re-render
+  const mapRef = useRef<any>(null);
+
+  const LocationPicker = () => {
+    useMapEvents({
+      click(e) {
+        onPositionChange(e.latlng.lat, e.latlng.lng);
+      },
+    });
+    return null;
+  };
+
+  useEffect(() => {
+    // Reset map key when dialog opens
+    setMapKey((prev) => prev + 1);
+  }, []);
+
+  return (
+    <MapContainer
+      key={mapKey}
+      center={position}
+      zoom={13}
+      className="h-64 rounded-xl mt-2"
+      ref={mapRef}
+      whenCreated={(mapInstance) => {
+        mapRef.current = mapInstance;
+        // Small delay to ensure map is fully rendered
+        setTimeout(() => {
+          mapInstance.invalidateSize();
+        }, 100);
+      }}
+    >
+      <TileLayer
+        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+      />
+      <LocationPicker />
+      <Marker position={position} icon={createLucideMarker("#3b82f6")}>
+        <Popup>
+          <div className="text-xs">
+            {centerName}
+            <br />
+            {centerAddress}
+          </div>
+        </Popup>
+      </Marker>
+    </MapContainer>
+  );
+};
+
+// Separate Map Picker Dialog component
+const MapPickerDialog = ({
+  isOpen,
+  onOpenChange,
+  initialPosition,
+  onSave,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialPosition: [number, number];
+  onSave: (lat: number, lng: number) => void;
+}) => {
+  const [position, setPosition] = useState<[number, number]>(initialPosition);
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setPosition([lat, lng]);
+  };
+
+  const handleSave = () => {
+    onSave(position[0], position[1]);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-neutral-900 border border-neutral-700 text-white max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Select Location on Map</DialogTitle>
+        </DialogHeader>
+        <div className="mt-4">
+          <MapPicker
+            position={position}
+            onPositionChange={handleMapClick}
+            centerName="Selected Location"
+            centerAddress={`Lat: ${position[0].toFixed(
+              6
+            )}, Lng: ${position[1].toFixed(6)}`}
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <div>
+            <Label>Latitude</Label>
+            <Input
+              type="number"
+              step="any"
+              value={position[0]}
+              onChange={(e) =>
+                setPosition([parseFloat(e.target.value) || 0, position[1]])
+              }
+              className="bg-neutral-800 border-neutral-700"
+            />
+          </div>
+          <div>
+            <Label>Longitude</Label>
+            <Input
+              type="number"
+              step="any"
+              value={position[1]}
+              onChange={(e) =>
+                setPosition([position[0], parseFloat(e.target.value) || 0])
+              }
+              className="bg-neutral-800 border-neutral-700"
+            />
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-neutral-700"
+          >
+            Cancel
+          </Button>
+          <Button onClick={handleSave} className="bg-blue-700">
+            <MapPin size={16} className="mr-2" />
+            Use This Location
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // --- Edit Modal ---
 const EditCenterModal = ({
   center,
@@ -70,6 +235,7 @@ const EditCenterModal = ({
   isLoading?: boolean;
 }) => {
   const [form, setForm] = useState(center);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -80,118 +246,153 @@ const EditCenterModal = ({
     });
   };
 
+  const handleMapSelect = (lat: number, lng: number) => {
+    setForm((prev) => ({
+      ...prev,
+      lat,
+      lng,
+    }));
+  };
+
   const handleSave = () => {
     onSave(form);
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 text-xs">
-          <Edit2 size={12} className="mr-1" /> Edit
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="bg-neutral-900 border border-neutral-700 text-white">
-        <DialogHeader>
-          <DialogTitle>Edit Evacuation Center</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-3 py-2">
-          <div>
-            <Label>Name</Label>
-            <Input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-            />
-          </div>
-          <div>
-            <Label>Address</Label>
-            <Input
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-            />
-          </div>
-          <div>
-            <Label>Head / Person in Charge</Label>
-            <Input
-              name="head"
-              value={form.head}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-            />
-          </div>
-          <div>
-            <Label>Contact</Label>
-            <Input
-              name="contact"
-              value={form.contact}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+    <>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="h-7 text-xs">
+            <Edit2 size={12} className="mr-1" /> Edit
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-neutral-900 border border-neutral-700 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Evacuation Center</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
             <div>
-              <Label>Capacity</Label>
+              <Label>Name</Label>
               <Input
-                type="number"
-                name="capacity"
-                value={form.capacity}
+                name="name"
+                value={form.name}
                 onChange={handleChange}
                 className="bg-neutral-800 border-neutral-700"
               />
             </div>
             <div>
-              <Label>Occupied</Label>
+              <Label>Address</Label>
               <Input
-                type="number"
-                name="occupied"
-                value={form.occupied}
-                onChange={handleChange}
-                className="bg-neutral-800 border-neutral-700"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Latitude</Label>
-              <Input
-                type="number"
-                step="any"
-                name="lat"
-                value={form.lat}
+                name="address"
+                value={form.address}
                 onChange={handleChange}
                 className="bg-neutral-800 border-neutral-700"
               />
             </div>
             <div>
-              <Label>Longitude</Label>
+              <Label>Head / Person in Charge</Label>
               <Input
-                type="number"
-                step="any"
-                name="lng"
-                value={form.lng}
+                name="head"
+                value={form.head}
                 onChange={handleChange}
                 className="bg-neutral-800 border-neutral-700"
               />
             </div>
+            <div>
+              <Label>Contact</Label>
+              <Input
+                name="contact"
+                value={form.contact}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Capacity</Label>
+                <Input
+                  type="number"
+                  name="capacity"
+                  value={form.capacity}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+              <div>
+                <Label>Occupied</Label>
+                <Input
+                  type="number"
+                  name="occupied"
+                  value={form.occupied}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Latitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  name="lat"
+                  value={form.lat}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+              <div>
+                <Label>Longitude</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  name="lng"
+                  value={form.lng}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+            </div>
+            {/* Map picker button */}
+            <div className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-neutral-700 hover:bg-neutral-800"
+                onClick={() => setIsMapPickerOpen(true)}
+              >
+                <MapPin size={16} className="mr-2" />
+                Pick Location on Map
+              </Button>
+              <div className="text-xs text-neutral-400 mt-1">
+                {typeof form.lat === "number" && typeof form.lng === "number"
+                  ? `Current: ${form.lat.toFixed(6)}, ${form.lng.toFixed(6)}`
+                  : "Current: not set"}
+              </div>
+            </div>
           </div>
-        </div>
-        <Button
-          onClick={handleSave}
-          className="mt-2 bg-blue-700"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            "Save Changes"
-          )}
-        </Button>
-      </DialogContent>
-    </Dialog>
+          <Button
+            onClick={handleSave}
+            className="mt-2 bg-blue-700"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Separate Map Picker Dialog */}
+      <MapPickerDialog
+        isOpen={isMapPickerOpen}
+        onOpenChange={setIsMapPickerOpen}
+        initialPosition={[form.lat, form.lng]}
+        onSave={handleMapSelect}
+      />
+    </>
   );
 };
 
@@ -204,6 +405,7 @@ const CreateCenterModal = ({
   isLoading?: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const [form, setForm] = useState<CreateEvacuationCenterData>({
     name: "",
     address: "",
@@ -214,6 +416,7 @@ const CreateCenterModal = ({
     lat: 14.5995,
     lng: 120.9842,
   });
+  const [facilitiesInput, setFacilitiesInput] = useState("");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -229,8 +432,24 @@ const CreateCenterModal = ({
     });
   };
 
+  const handleMapSelect = (lat: number, lng: number) => {
+    setForm({
+      ...form,
+      lat,
+      lng,
+    });
+  };
+
   const handleSave = async () => {
-    await onSave(form);
+    const facilities = facilitiesInput
+      .split(",")
+      .map((f) => f.trim())
+      .filter(Boolean);
+
+    await onSave({
+      ...form,
+      facilities,
+    });
     setIsOpen(false);
     // Reset form
     setForm({
@@ -243,141 +462,194 @@ const CreateCenterModal = ({
       lat: 14.5995,
       lng: 120.9842,
     });
+    setFacilitiesInput("");
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button className="bg-blue-600 hover:bg-blue-700">
-          <Plus size={16} className="mr-1" /> Add Center
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="bg-neutral-900 border border-neutral-700 text-white">
-        <DialogHeader>
-          <DialogTitle>Create New Evacuation Center</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-3 py-2">
-          <div>
-            <Label>Name *</Label>
-            <Input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-              placeholder="Enter center name"
-            />
-          </div>
-          <div>
-            <Label>Address *</Label>
-            <Input
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-              placeholder="Enter full address"
-            />
-          </div>
-          <div>
-            <Label>Head / Person in Charge</Label>
-            <Input
-              name="head"
-              value={form.head}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-              placeholder="Enter person in charge"
-            />
-          </div>
-          <div>
-            <Label>Contact</Label>
-            <Input
-              name="contact"
-              value={form.contact}
-              onChange={handleChange}
-              className="bg-neutral-800 border-neutral-700"
-              placeholder="Enter contact number"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+    <>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <Plus size={16} className="mr-1" /> Add Center
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-neutral-900 border border-neutral-700 text-white max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Evacuation Center</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
             <div>
-              <Label>Capacity *</Label>
+              <Label>Name *</Label>
               <Input
-                type="number"
-                name="capacity"
-                value={form.capacity}
+                name="name"
+                value={form.name}
                 onChange={handleChange}
                 className="bg-neutral-800 border-neutral-700"
-                placeholder="0"
+                placeholder="Enter center name"
               />
             </div>
             <div>
-              <Label>Currently Occupied</Label>
+              <Label>Address *</Label>
               <Input
-                type="number"
-                name="occupied"
-                value={form.occupied}
+                name="address"
+                value={form.address}
                 onChange={handleChange}
                 className="bg-neutral-800 border-neutral-700"
-                placeholder="0"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <Label>Latitude *</Label>
-              <Input
-                type="number"
-                step="any"
-                name="lat"
-                value={form.lat}
-                onChange={handleChange}
-                className="bg-neutral-800 border-neutral-700"
+                placeholder="Enter full address"
               />
             </div>
             <div>
-              <Label>Longitude *</Label>
+              <Label>Head / Person in Charge</Label>
               <Input
-                type="number"
-                step="any"
-                name="lng"
-                value={form.lng}
+                name="head"
+                value={form.head}
                 onChange={handleChange}
                 className="bg-neutral-800 border-neutral-700"
+                placeholder="Enter person in charge"
               />
             </div>
+            <div>
+              <Label>Contact</Label>
+              <Input
+                name="contact"
+                value={form.contact}
+                onChange={handleChange}
+                className="bg-neutral-800 border-neutral-700"
+                placeholder="Enter contact number"
+              />
+            </div>
+            <div>
+              <Label>Facilities (comma-separated)</Label>
+              <Input
+                name="facilities"
+                value={facilitiesInput}
+                onChange={(e) => setFacilitiesInput(e.target.value)}
+                className="bg-neutral-800 border-neutral-700"
+                placeholder="Medical Station, Kitchen, Wifi"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Capacity *</Label>
+                <Input
+                  type="number"
+                  name="capacity"
+                  value={form.capacity}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <Label>Currently Occupied</Label>
+                <Input
+                  type="number"
+                  name="occupied"
+                  value={form.occupied}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Latitude *</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  name="lat"
+                  value={form.lat}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+              <div>
+                <Label>Longitude *</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  name="lng"
+                  value={form.lng}
+                  onChange={handleChange}
+                  className="bg-neutral-800 border-neutral-700"
+                />
+              </div>
+            </div>
+            {/* Map picker button */}
+            <div className="mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-neutral-700 hover:bg-neutral-800"
+                onClick={() => setIsMapPickerOpen(true)}
+              >
+                <MapPin size={16} className="mr-2" />
+                Pick Location on Map
+              </Button>
+              <div className="text-xs text-neutral-400 mt-1">
+                Current: {form.lat.toFixed(6)}, {form.lng.toFixed(6)}
+              </div>
+            </div>
           </div>
-        </div>
-        <Button
-          onClick={handleSave}
-          className="mt-2 bg-blue-700"
-          disabled={isLoading || !form.name || !form.address || !form.capacity}
-        >
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            "Create Center"
-          )}
-        </Button>
-      </DialogContent>
-    </Dialog>
+          <Button
+            onClick={handleSave}
+            className="mt-2 bg-blue-700"
+            disabled={
+              isLoading || !form.name || !form.address || !form.capacity
+            }
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Create Center"
+            )}
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Separate Map Picker Dialog for Create */}
+      <MapPickerDialog
+        isOpen={isMapPickerOpen}
+        onOpenChange={setIsMapPickerOpen}
+        initialPosition={[form.lat, form.lng]}
+        onSave={handleMapSelect}
+      />
+    </>
   );
 };
 
-// --- Map Component ---
+// --- Main Map Component ---
 const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
-  const [selectedPosition, setSelectedPosition] = useState<
-    [number, number] | null
-  >(null);
+  const [mapKey, setMapKey] = useState(0);
+  const mapRef = useRef<any>(null);
 
   const center: [number, number] = [14.5995, 120.9842];
 
+  // Re-initialize map when centers change
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current.invalidateSize();
+      }, 100);
+    }
+  }, [centers]);
+
   return (
-    <MapContainer center={center} zoom={12} className="h-[500px] rounded-xl">
+    <MapContainer
+      key={mapKey}
+      center={center}
+      zoom={12}
+      className="h-[500px] rounded-xl"
+      ref={mapRef}
+      whenCreated={(mapInstance) => {
+        mapRef.current = mapInstance;
+      }}
+    >
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
       />
-      <FlyToLocation position={selectedPosition} />
-
       {centers.map((c) => {
         const utilization = Math.round((c.occupied / c.capacity) * 100);
         const color =
@@ -514,6 +786,7 @@ export default function OrgEvacuationCentersPage() {
       </div>
     );
   }
+
   return (
     <div className="px-2 md:px-4 space-y-4 text-white">
       <div className="flex justify-between items-center">

@@ -52,6 +52,8 @@ export interface CreateEvacuationCenterData {
   occupied?: number;
   lat: number;
   lng: number;
+  lon?: number;
+  facilities?: string[];
 }
 
 export interface UpdateEvacuationCenterData {
@@ -75,20 +77,39 @@ export const evacuationCenterService = {
 
     const json = (await handleResponse(response)) as {
       success: boolean;
-      data: EvacuationCenter[];
+      data: any[];
     };
 
-    return json.data;
+    // Normalize backend lon -> frontend lng so maps and forms work consistently
+    const normalized: EvacuationCenter[] = json.data.map((item: any) => ({
+      ...item,
+      lng: item.lng ?? item.lon,
+    }));
+
+    return normalized;
   },
 
   // Create a new evacuation center (org inferred from JWT on backend)
   async createEvacuationCenter(
     data: CreateEvacuationCenterData
   ): Promise<{ id: string; message: string; center?: EvacuationCenter }> {
+    const payload = {
+      name: data.name,
+      address: data.address,
+      capacity: data.capacity,
+      lat: data.lat,
+      lon: data.lon ?? data.lng,
+      facilities: data.facilities ?? [],
+      // Extra metadata the backend model may choose to store
+      head: data.head,
+      contact: data.contact,
+      occupied: data.occupied ?? 0,
+    };
+
     const response = await fetch(`${API_BASE_URL}/organization/centers`, {
       method: "POST",
       headers: getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
 
     const json = (await handleResponse(response)) as {
