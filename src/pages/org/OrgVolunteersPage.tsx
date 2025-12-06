@@ -1,32 +1,43 @@
 import { useState, useEffect } from "react";
-import { organizationService } from "../../services/organizationService";
-import { useOrganization } from "../../contexts/OrganizationContext";
-import { Volunteer, VolunteerStatus } from "../../services/organizationService";
+import {
+  organizationService,
+  Volunteer,
+  VolunteerStatus,
+} from "../../services/organizationService";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/components/ui/badge";
-import { User, Shield, Phone, MapPin, Loader2, Search } from "lucide-react";
+import { User, Phone, MapPin, Loader2, Search, Pencil } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../../components/ui/card";
 
-const statusColors = {
+const statusColors: Record<VolunteerStatus, string> = {
   Active: "bg-green-100 text-green-800",
   "On Duty": "bg-blue-100 text-blue-800",
   Standby: "bg-yellow-100 text-yellow-800",
 };
 
+const cardGradientStyle = {
+  background:
+    "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
+  backdropFilter: "blur(10px)",
+};
+
 export default function OrgVolunteersPage() {
-  const { currentOrgId } = useOrganization();
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const fetchVolunteers = async () => {
-    if (!currentOrgId) return;
-
     setLoading(true);
     setError(null);
     try {
-      const data = await organizationService.getVolunteers(currentOrgId);
-      setVolunteers(data);
+      const res = await organizationService.getOrgVolunteers();
+      setVolunteers(res.data);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to fetch volunteers"
@@ -39,32 +50,15 @@ export default function OrgVolunteersPage() {
 
   useEffect(() => {
     fetchVolunteers();
-  }, [currentOrgId]);
+  }, []);
 
-  const handleStatusChange = async (
+  const handleStatusChange = (
     volunteerId: string,
     newStatus: VolunteerStatus
   ) => {
-    if (!currentOrgId) return;
-
-    try {
-      await organizationService.updateVolunteerStatus(
-        currentOrgId,
-        volunteerId,
-        newStatus
-      );
-      // Update local state to reflect the change
-      setVolunteers((prev) =>
-        prev.map((v) =>
-          v.id === volunteerId ? { ...v, status: newStatus } : v
-        )
-      );
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to update volunteer status"
-      );
-      console.error("Error updating volunteer status:", err);
-    }
+    setVolunteers((prev) =>
+      prev.map((v) => (v.id === volunteerId ? { ...v, status: newStatus } : v))
+    );
   };
 
   const filteredVolunteers = volunteers.filter(
@@ -76,157 +70,257 @@ export default function OrgVolunteersPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="px-2 md:px-4 space-y-4 text-white">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px] w-40 animate-pulse">
+              <Search size={14} className="text-gray-500 mr-2" />
+              <div className="h-4 flex-1 bg-neutral-800 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Summary cards skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <Card key={idx} className="border-0" style={cardGradientStyle}>
+              <CardHeader className="pb-2">
+                <div className="h-4 w-32 bg-neutral-800/80 rounded animate-pulse" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-6 w-24 bg-neutral-800/80 rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-neutral-900/80 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table skeleton */}
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader>
+            <div className="h-4 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-neutral-800/80 pb-2"
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="h-10 w-10 rounded-full bg-neutral-800 animate-pulse" />
+                    <div className="space-y-1">
+                      <div className="h-3 w-32 bg-neutral-800/80 rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-neutral-900/80 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <div className="h-6 w-20 bg-neutral-800/80 rounded-full animate-pulse" />
+                    <div className="h-7 w-24 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Volunteers</h1>
-          <p className="text-gray-500">Manage your organization's volunteers</p>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search volunteers..."
-            className="pl-10 pr-4 py-2 border rounded-md w-full md:w-64"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+    <div className="px-2 md:px-4 space-y-6 text-white">
+      {/* --- Header --- */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-lg font-semibold">Volunteers</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
+            <Search size={14} className="text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Search volunteers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
+            />
+          </div>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+          <strong>Error: </strong>
           {error}
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-4 border-red-600 text-red-200"
+            onClick={fetchVolunteers}
+          >
+            Retry
+          </Button>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Name
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Role
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Location
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredVolunteers.length > 0 ? (
-                filteredVolunteers.map((volunteer) => (
-                  <tr key={volunteer.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <User className="h-5 w-5 text-gray-500" />
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {volunteer.name}
-                          </div>
-                          <div className="text-sm text-gray-500 flex items-center">
-                            <Phone className="w-3 h-3 mr-1" />
-                            {volunteer.contact}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {volunteer.role}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 flex items-center">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {volunteer.location}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge className={statusColors[volunteer.status]}>
-                        {volunteer.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <select
-                        value={volunteer.status}
-                        onChange={(e) =>
-                          handleStatusChange(
-                            volunteer.id!,
-                            e.target.value as VolunteerStatus
-                          )
-                        }
-                        className="text-sm border rounded p-1"
-                      >
-                        {Object.keys(statusColors).map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    <div className="flex flex-col items-center justify-center">
-                      <User className="w-12 h-12 text-gray-300 mb-2" />
-                      <p>No volunteers found</p>
-                      {searchTerm && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => setSearchTerm("")}
-                        >
-                          Clear search
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* --- Summary Cards --- */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              Total Volunteers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {volunteers.length}
+            </div>
+            <p className="text-xs text-neutral-400">
+              Registered in your organization
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              Active Volunteers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {volunteers.filter((v) => v.status === "Active").length}
+            </div>
+            <p className="text-xs text-neutral-400">Currently active</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              On Duty
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {volunteers.filter((v) => v.status === "On Duty").length}
+            </div>
+            <p className="text-xs text-neutral-400">Currently assigned</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              Available
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white">
+              {volunteers.filter((v) => v.status === "Standby").length}
+            </div>
+            <p className="text-xs text-neutral-400">Ready for assignment</p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* --- Main Table --- */}
+      <Card className="border-0" style={cardGradientStyle}>
+        <CardHeader>
+          <CardTitle className="text-white text-sm font-medium">
+            Volunteers List ({filteredVolunteers.length} volunteers)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {filteredVolunteers.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              {searchTerm
+                ? "No volunteers match your search."
+                : "No volunteers found."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left text-gray-300">
+                <thead className="text-xs uppercase bg-neutral-900/70 text-neutral-400">
+                  <tr>
+                    <th className="px-4 py-2">Volunteer</th>
+                    <th className="px-4 py-2">Role</th>
+                    <th className="px-4 py-2">Location</th>
+                    <th className="px-4 py-2">Status</th>
+                    <th className="px-4 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredVolunteers.map((volunteer) => (
+                    <tr
+                      key={volunteer.id}
+                      className="border-b border-neutral-800 hover:bg-neutral-800/50 transition"
+                    >
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-neutral-800 flex items-center justify-center">
+                            <User className="h-5 w-5 text-neutral-400" />
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">
+                              {volunteer.name}
+                            </div>
+                            <div className="text-xs text-neutral-400 flex items-center">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {volunteer.contact}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">{volunteer.role}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center">
+                          <MapPin className="w-3 h-3 mr-1 text-neutral-400" />
+                          {volunteer.location}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <Badge className={statusColors[volunteer.status]}>
+                          {volunteer.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2 text-right space-x-2">
+                        <select
+                          value={volunteer.status}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              volunteer.id!,
+                              e.target.value as VolunteerStatus
+                            )
+                          }
+                          className="bg-neutral-800 border border-neutral-700 text-white text-xs px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          {Object.keys(statusColors).map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() =>
+                            console.log("Edit volunteer:", volunteer.id)
+                          }
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
