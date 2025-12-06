@@ -17,7 +17,9 @@ export default function RegisterPage() {
       : null);
   const preSelectedRole = location.state?.selectedRole;
 
-  const [role, setRole] = useState<UserRole>(preSelectedRole || "Citizen");
+  const [role, setRole] = useState<UserRole>(
+    (preSelectedRole?.toLowerCase() as UserRole) || "citizen"
+  );
   const [name, setName] = useState(googleUserInfo?.name || "");
   const [email, setEmail] = useState(googleUserInfo?.email || "");
   const [password, setPassword] = useState("");
@@ -58,7 +60,7 @@ export default function RegisterPage() {
       }
     }
 
-    if (role === "Citizen" && !agreeTerms) {
+    if (role === "citizen" && !agreeTerms) {
       alert("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
@@ -69,17 +71,17 @@ export default function RegisterPage() {
       // Prepare profile data based on role
       let profileData = {};
 
-      if (role === "Citizen") {
+      if (role === "citizen") {
         profileData = {
           location: userLocation,
         };
-      } else if (role === "Volunteer") {
+      } else if (role === "volunteer") {
         profileData = {
           skills,
           availability,
           // Note: File upload would need separate handling
         };
-      } else if (role === "Organization") {
+      } else if (role === "organization") {
         profileData = {
           orgName,
           orgType,
@@ -102,7 +104,7 @@ export default function RegisterPage() {
     }
   };
 
-  const roles: UserRole[] = ["Citizen", "Volunteer", "Organization"];
+  const roles: UserRole[] = ["citizen", "volunteer", "organization"];
 
   return (
     <div className="min-h-screen flex overflow-hidden">
@@ -131,7 +133,7 @@ export default function RegisterPage() {
       <div className="w-1/3 text-white flex flex-col items-center justify-center px-8 py-10 fixed left-0 top-0 bottom-0">
         <div className="text-center space-y-4">
           <img
-            src="/assets/image-removebg-preview (1).png"
+            src="/assets/DisasterConnectLogo.png"
             alt="DisasterConnect Logo"
             className="w-40 h-auto mx-auto"
           />
@@ -151,7 +153,7 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
-      x{/* RIGHT SIDE */}
+      {/* RIGHT SIDE */}
       <div className="ml-[33.333%] w-2/3 flex flex-col justify-center px-20 py-12 bg-white overflow-y-auto h-screen">
         <div className="flex flex-col justify-start px-20 py-12 bg-white min-h-screen">
           <h1 className="text-3xl font-bold text-blue-900 mb-2">
@@ -262,7 +264,7 @@ export default function RegisterPage() {
             </div>
 
             {/* CIVILIAN FORM */}
-            {role === "Citizen" && (
+            {role === "citizen" && (
               <>
                 <hr className="my-8 border-gray-300" />
                 <h2 className="text-xl font-semibold text-blue-900 mb-4">
@@ -313,7 +315,7 @@ export default function RegisterPage() {
             )}
 
             {/* VOLUNTEER FORM */}
-            {role === "Volunteer" && (
+            {role === "volunteer" && (
               <>
                 <hr className="my-8 border-gray-300" />
                 <h2 className="text-xl font-semibold text-blue-900 mb-4">
@@ -407,7 +409,7 @@ export default function RegisterPage() {
             )}
 
             {/* ORGANIZATION FORM */}
-            {role === "Organization" && (
+            {role === "organization" && (
               <>
                 <hr className="my-8 border-gray-300" />
                 <h2 className="text-xl font-semibold text-blue-900 mb-4">

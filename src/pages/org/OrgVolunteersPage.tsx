@@ -1,341 +1,232 @@
-import React, { useState } from "react";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "../../components/ui/card";
+import { useState, useEffect } from "react";
+import { organizationService } from "../../services/organizationService";
+import { useOrganization } from "../../contexts/OrganizationContext";
+import { Volunteer, VolunteerStatus } from "../../services/organizationService";
 import { Button } from "../../components/ui/button";
-import {
-  Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogContent,
-  DialogFooter,
-} from "../../components/components/ui/dialog";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Plus, Pencil } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { cn } from "../../lib/utils";
+import { Badge } from "../../components/components/ui/badge";
+import { User, Shield, Phone, MapPin, Loader2, Search } from "lucide-react";
 
-const cardGradientStyle = {
-  background:
-    "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
-  backdropFilter: "blur(10px)",
+const statusColors = {
+  Active: "bg-green-100 text-green-800",
+  "On Duty": "bg-blue-100 text-blue-800",
+  Standby: "bg-yellow-100 text-yellow-800",
 };
 
-type Volunteer = {
-  id: number;
-  name: string;
-  role: string;
-  contact: string;
-  location: string;
-  status: string;
-};
+export default function OrgVolunteersPage() {
+  const { currentOrgId } = useOrganization();
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-// --- Custom Lucide Marker ---
-const createLucideMarker = (color: string) =>
-  L.divIcon({
-    html: `
-      <div style="
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        transform: translate(-50%, -100%);
-      ">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"
-             viewBox="0 0 24 24" fill="none" stroke="${color}"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             class="lucide lucide-map-pin drop-shadow-md">
-          <path d="M12 21s8-4.5 8-10a8 8 0 1 0-16 0c0 5.5 8 10 8 10z"/>
-          <circle cx="12" cy="11" r="3"/>
-        </svg>
-      </div>
-    `,
-    className: "",
-    iconSize: [28, 28],
-    iconAnchor: [16, 32],
-    popupAnchor: [-16, -50],
-  });
+  const fetchVolunteers = async () => {
+    if (!currentOrgId) return;
 
-export const OrgVolunteersPage = () => {
-  const [volunteers, setVolunteers] = useState<Volunteer[]>([
-    {
-      id: 1,
-      name: "Team Alpha",
-      role: "Medical Support",
-      contact: "0917-123-4567",
-      location: "Manila",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Rescue Unit 3",
-      role: "Rescue",
-      contact: "0917-888-9999",
-      location: "Cavite",
-      status: "On Duty",
-    },
-    {
-      id: 3,
-      name: "Relief Team North",
-      role: "Logistics",
-      contact: "0922-555-3333",
-      location: "Quezon City",
-      status: "Standby",
-    },
-  ]);
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Volunteer | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    role: "",
-    contact: "",
-    location: "",
-    status: "",
-  });
-
-  const handleOpenAdd = () => {
-    setEditing(null);
-    setFormData({ name: "", role: "", contact: "", location: "", status: "" });
-    setDialogOpen(true);
-  };
-
-  const handleOpenEdit = (v: Volunteer) => {
-    setEditing(v);
-    setFormData({
-      name: v.name,
-      role: v.role,
-      contact: v.contact,
-      location: v.location,
-      status: v.status,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (editing) {
-      setVolunteers((prev) =>
-        prev.map((v) => (v.id === editing.id ? { ...v, ...formData } : v))
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await organizationService.getVolunteers(currentOrgId);
+      setVolunteers(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch volunteers"
       );
-    } else {
-      setVolunteers((prev) => [...prev, { id: prev.length + 1, ...formData }]);
+      console.error("Error fetching volunteers:", err);
+    } finally {
+      setLoading(false);
     }
-    setDialogOpen(false);
   };
+
+  useEffect(() => {
+    fetchVolunteers();
+  }, [currentOrgId]);
+
+  const handleStatusChange = async (
+    volunteerId: string,
+    newStatus: VolunteerStatus
+  ) => {
+    if (!currentOrgId) return;
+
+    try {
+      await organizationService.updateVolunteerStatus(
+        currentOrgId,
+        volunteerId,
+        newStatus
+      );
+      // Update local state to reflect the change
+      setVolunteers((prev) =>
+        prev.map((v) =>
+          v.id === volunteerId ? { ...v, status: newStatus } : v
+        )
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update volunteer status"
+      );
+      console.error("Error updating volunteer status:", err);
+    }
+  };
+
+  const filteredVolunteers = volunteers.filter(
+    (volunteer) =>
+      volunteer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      volunteer.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      volunteer.location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Volunteers</h1>
-        <Button
-          size="sm"
-          onClick={handleOpenAdd}
-          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500"
-        >
-          <Plus size={14} /> Add Volunteer
-        </Button>
+    <div className="p-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Volunteers</h1>
+          <p className="text-gray-500">Manage your organization's volunteers</p>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search volunteers..."
+            className="pl-10 pr-4 py-2 border rounded-md w-full md:w-64"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
 
-      {/* --- Top Small Cards --- */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">
-              Total Volunteers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl text-white font-bold">{volunteers.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Active</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl text-green-400 font-bold">
-              {volunteers.filter((v) => v.status === "Active").length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">On Duty</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl text-blue-400 font-bold">
-              {volunteers.filter((v) => v.status === "On Duty").length}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Standby</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl text-yellow-400 font-bold">
-              {volunteers.filter((v) => v.status === "Standby").length}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          {error}
+        </div>
+      )}
 
-      {/* --- Volunteers Table --- */}
-      <Card className="border-0" style={cardGradientStyle}>
-        <CardHeader>
-          <CardTitle className="text-white text-sm font-medium">
-            Volunteer Directory
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <table className="w-full text-sm text-left text-neutral-300">
-            <thead className="text-xs uppercase text-neutral-400 border-b border-neutral-700">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="py-2 px-3">Name</th>
-                <th className="py-2 px-3">Role</th>
-                <th className="py-2 px-3">Contact</th>
-                <th className="py-2 px-3">Location</th>
-                <th className="py-2 px-3">Status</th>
-                <th className="py-2 px-3 text-right">Actions</th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Name
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Role
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Location
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Status
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {volunteers.map((v) => (
-                <tr
-                  key={v.id}
-                  className="border-b border-neutral-800 hover:bg-neutral-900/40"
-                >
-                  <td className="py-2 px-3">{v.name}</td>
-                  <td className="py-2 px-3">{v.role}</td>
-                  <td className="py-2 px-3">{v.contact}</td>
-                  <td className="py-2 px-3">{v.location}</td>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredVolunteers.length > 0 ? (
+                filteredVolunteers.map((volunteer) => (
+                  <tr key={volunteer.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                          <User className="h-5 w-5 text-gray-500" />
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {volunteer.name}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center">
+                            <Phone className="w-3 h-3 mr-1" />
+                            {volunteer.contact}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {volunteer.role}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 flex items-center">
+                        <MapPin className="w-3 h-3 mr-1" />
+                        {volunteer.location}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <Badge className={statusColors[volunteer.status]}>
+                        {volunteer.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <select
+                        value={volunteer.status}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            volunteer.id!,
+                            e.target.value as VolunteerStatus
+                          )
+                        }
+                        className="text-sm border rounded p-1"
+                      >
+                        {Object.keys(statusColors).map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
                   <td
-                    className={cn(
-                      "py-2 px-3 font-semibold",
-                      v.status === "Active"
-                        ? "text-green-400"
-                        : v.status === "On Duty"
-                        ? "text-blue-400"
-                        : "text-yellow-400"
-                    )}
+                    colSpan={5}
+                    className="px-6 py-8 text-center text-gray-500"
                   >
-                    {v.status}
-                  </td>
-                  <td className="py-2 px-3 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleOpenEdit(v)}
-                    >
-                      <Pencil size={14} />
-                    </Button>
+                    <div className="flex flex-col items-center justify-center">
+                      <User className="w-12 h-12 text-gray-300 mb-2" />
+                      <p>No volunteers found</p>
+                      {searchTerm && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          Clear search
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
-        </CardContent>
-      </Card>
-
-      {/* --- Volunteer Map --- */}
-      <Card className="border-0 h-[450px]" style={cardGradientStyle}>
-        <CardHeader>
-          <CardTitle className="text-white text-sm font-medium">
-            Volunteer Locations
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-full">
-          <MapContainer
-            center={[14.5995, 120.9842]}
-            zoom={11}
-            className="h-full w-full rounded-lg overflow-hidden"
-          >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-            />
-            {volunteers.map((v, i) => (
-              <Marker
-                key={i}
-                position={[
-                  14.59 + Math.random() * 0.04,
-                  120.97 + Math.random() * 0.04,
-                ]}
-                icon={createLucideMarker(
-                  v.status === "Active"
-                    ? "#22c55e"
-                    : v.status === "On Duty"
-                    ? "#3b82f6"
-                    : "#f59e0b"
-                )}
-              >
-                <Popup>
-                  <div className="text-white w-[180px]">
-                    <h3 className="font-semibold text-blue-400 text-sm mb-1">
-                      {v.name}
-                    </h3>
-                    <p className="text-xs text-neutral-400">{v.role}</p>
-                    <p className="text-xs text-neutral-500 mt-1">{v.contact}</p>
-                    <p className="text-xs text-neutral-500">{v.location}</p>
-                    <p className="text-xs mt-1">
-                      Status:{" "}
-                      <span className="font-semibold text-green-400">
-                        {v.status}
-                      </span>
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </CardContent>
-      </Card>
-
-      {/* --- Dialog for Add/Edit Volunteer --- */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#0b0f26] border border-neutral-800 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {editing ? "Edit Volunteer" : "Add Volunteer"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {["name", "role", "contact", "location", "status"].map((key) => (
-              <div key={key} className="grid gap-2">
-                <Label htmlFor={key}>
-                  {key[0].toUpperCase() + key.slice(1)}
-                </Label>
-                <Input
-                  id={key}
-                  value={(formData as any)[key]}
-                  onChange={(e) =>
-                    setFormData({ ...formData, [key]: e.target.value })
-                  }
-                  placeholder={`Enter ${key}`}
-                  className="bg-neutral-900 border-neutral-700 text-white"
-                />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="bg-blue-600 hover:bg-blue-500"
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     </div>
   );
-};
+}
