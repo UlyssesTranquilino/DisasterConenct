@@ -1,5 +1,6 @@
-import { Route, Routes, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./lib/auth";
+import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
+import { useAuthStore } from "./lib/authStore";
+import { AuthProvider } from "./components/AuthProvider";
 import { ThemeProvider } from "./lib/theme";
 import { AppLayout } from "./layouts/AppLayout";
 import LoginPage from "./pages/auth/LoginPage";
@@ -29,7 +30,7 @@ function RoleRoute({
   roles: Array<"Citizen" | "Organization" | "Volunteer">;
   children: JSX.Element;
 }) {
-  const { currentUser, isLoading } = useAuth();
+  const { user, isLoading } = useAuthStore();
 
   // Show loading state while checking authentication
   if (isLoading) {
@@ -40,14 +41,14 @@ function RoleRoute({
     );
   }
 
-  if (!currentUser) return <Navigate to="/login" replace />;
-  if (!roles.includes(currentUser.role))
-    return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!roles.includes(user.role)) return <Navigate to="/login" replace />;
   return children;
 }
 
 function PublicRoute({ children }: { children: JSX.Element }) {
-  const { currentUser, isLoading } = useAuth();
+  const { user, isLoading } = useAuthStore();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -58,13 +59,12 @@ function PublicRoute({ children }: { children: JSX.Element }) {
   }
 
   // If user is logged in, redirect to their dashboard
-  if (currentUser) {
-    if (currentUser.role === "Citizen")
-      return <Navigate to="/citizen/dashboard" replace />;
-    if (currentUser.role === "Organization")
-      return <Navigate to="/org/dashboard" replace />;
-    if (currentUser.role === "Volunteer")
-      return <Navigate to="/volunteer/dashboard" replace />;
+  if (user) {
+    // Use setTimeout to prevent navigation during render
+    setTimeout(() => {
+      navigate(`/${user.role.toLowerCase()}/dashboard`);
+    }, 0);
+    return null;
   }
 
   return children;
@@ -75,6 +75,7 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route
             path="/login"

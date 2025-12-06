@@ -11,7 +11,7 @@ const firebaseConfig = {
   storageBucket: "dissasterconnect.firebasestorage.app",
   messagingSenderId: "797814906879",
   appId: "1:797814906879:web:164b1425eff15933b3d1ca",
-  measurementId: "G-SPYY119PDQ"
+  measurementId: "G-SPYY119PDQ",
 };
 
 // Initialize Firebase
