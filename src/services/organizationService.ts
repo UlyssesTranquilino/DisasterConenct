@@ -9,8 +9,12 @@ export interface EvacuationCenter {
   name: string;
   address: string;
   capacity: number;
+  occupied?: number;
   lat: number;
-  lon: number;
+  lon?: number;
+  lng?: number; // For backward compatibility
+  head?: string;
+  contact?: string;
   facilities: string[];
   createdAt?: string;
   updatedAt?: string;
