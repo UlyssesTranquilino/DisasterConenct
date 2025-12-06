@@ -1,32 +1,63 @@
 import { useState, useEffect } from "react";
-import { organizationService } from "../../services/organizationService";
-import { useOrganization } from "../../contexts/OrganizationContext";
-import { Report, ReportStatus } from "../../services/organizationService";
+import {
+  organizationService,
+  Report,
+} from "../../services/organizationService";
 import { Button } from "../../components/ui/button";
-import { Plus, FileText, Loader2, Search } from "lucide-react";
+import { Plus, Loader2, Pencil, Trash2, Search } from "lucide-react";
+import { toast } from "sonner";
+
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../../components/ui/card";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogContent,
+  DialogFooter,
+} from "../../components/components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+
+const cardGradientStyle = {
+  background:
+    "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
+  backdropFilter: "blur(10px)",
+};
 
 const statusColors = {
-  Completed: "bg-green-100 text-green-800",
-  Ongoing: "bg-blue-100 text-blue-800",
-  Pending: "bg-yellow-100 text-yellow-800",
+  Pending: "text-yellow-400",
+  Reviewed: "text-blue-400",
+  Closed: "text-green-400",
 };
 
 export default function OrgReportsPage() {
-  const { currentOrgId } = useOrganization();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Report | null>(null);
+  const [formData, setFormData] = useState({
+    title: "",
+    body: "",
+    status: "Pending" as "Pending" | "Reviewed" | "Closed",
+  });
+
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ReportStatus | "All">("All");
+  const [statusFilter, setStatusFilter] = useState<
+    "All" | "Pending" | "Reviewed" | "Closed"
+  >("All");
 
   const fetchReports = async () => {
-    if (!currentOrgId) return;
-
     setLoading(true);
     setError(null);
     try {
-      const data = await organizationService.getReports(currentOrgId);
-      setReports(data);
+      const res = await organizationService.getReports();
+      setReports(res.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch reports");
       console.error("Error fetching reports:", err);
@@ -37,29 +68,80 @@ export default function OrgReportsPage() {
 
   useEffect(() => {
     fetchReports();
-  }, [currentOrgId]);
+  }, []);
 
-  const handleCreateReport = async (title: string, content: string) => {
-    if (!currentOrgId) return;
+  const handleOpenAdd = () => {
+    setEditing(null);
+    setFormData({ title: "", body: "", status: "Pending" });
+    setDialogOpen(true);
+  };
 
+  const handleOpenEdit = (r: Report) => {
+    setEditing(r);
+    setFormData({
+      title: r.title,
+      body: r.body,
+      status: (r.status as "Pending" | "Reviewed" | "Closed") || "Pending",
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
     try {
-      await organizationService.createReport(currentOrgId, {
-        title,
-        content,
-        author: "Current User", // Replace with actual user name
-        status: "Pending",
-      });
+      if (!formData.title || !formData.body) {
+        toast.error("Title and body are required");
+        return;
+      }
+
+      if (editing && editing.id) {
+        await organizationService.updateReport(editing.id, {
+          title: formData.title,
+          body: formData.body,
+          status: formData.status,
+        });
+        toast.success("Report updated", { description: formData.title });
+      } else {
+        await organizationService.createReport({
+          title: formData.title,
+          body: formData.body,
+          status: formData.status,
+        });
+        toast.success("Report created", {
+          description: formData.title,
+        });
+      }
+
+      setDialogOpen(false);
       await fetchReports();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create report");
-      console.error("Error creating report:", err);
+      console.error("Error saving report:", err);
+      toast.error("Failed to save report", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
+    }
+  };
+
+  const handleDeleteReport = async (id: string) => {
+    if (!confirm("Delete this report?")) return;
+
+    try {
+      await organizationService.deleteReport(id);
+      setReports((prev) => prev.filter((r) => r.id !== id));
+      toast.success("Report deleted");
+    } catch (err) {
+      console.error("Error deleting report:", err);
+      toast.error("Failed to delete report", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
     }
   };
 
   const filteredReports = reports.filter((report) => {
     const matchesSearch =
       report.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.content.toLowerCase().includes(searchTerm.toLowerCase());
+      report.body.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "All" || report.status === statusFilter;
@@ -69,126 +151,257 @@ export default function OrgReportsPage() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="space-y-6 px-2 md:px-4 text-white">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          <div className="h-9 w-32 bg-blue-900/70 rounded-md animate-pulse" />
+        </div>
+
+        {/* Table skeleton */}
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader>
+            <div className="h-4 w-48 bg-neutral-800/80 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-neutral-800/80 pb-2"
+                >
+                  <div className="space-y-1 flex-1">
+                    <div className="h-3 w-40 bg-neutral-800/80 rounded animate-pulse" />
+                    <div className="h-3 w-64 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <div className="h-7 w-16 bg-neutral-800/80 rounded animate-pulse" />
+                    <div className="h-7 w-16 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="text-red-500 mb-4">Error: {error}</div>
+        <Button onClick={fetchReports}>Retry</Button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Reports</h1>
-          <p className="text-gray-500">View and manage incident reports</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search reports..."
-              className="pl-10 pr-4 py-2 border rounded-md w-full"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value as ReportStatus | "All")
-            }
-            className="border rounded-md px-3 py-2"
-          >
-            <option value="All">All Statuses</option>
-            <option value="Pending">Pending</option>
-            <option value="Ongoing">Ongoing</option>
-            <option value="Completed">Completed</option>
-          </select>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            New Report
-          </Button>
-        </div>
+    <div className="space-y-6 px-2 md:px-4 text-white">
+      {/* --- Header --- */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-lg font-semibold text-white">Reports</h1>
+        <Button
+          size="sm"
+          onClick={handleOpenAdd}
+          className="flex items-center gap-1 bg-blue-700 hover:bg-blue-500"
+        >
+          <Plus size={14} /> New Report
+        </Button>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
+      {/* --- Search and Filter --- */}
+      <div className="flex gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <Input
+            type="text"
+            placeholder="Search reports..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-neutral-900 border-neutral-700 text-white"
+          />
         </div>
-      )}
+        <select
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(
+              e.target.value as "All" | "Pending" | "Reviewed" | "Closed"
+            )
+          }
+          className="bg-neutral-900 border border-neutral-700 text-white text-sm rounded-md p-2"
+        >
+          <option value="All">Status (All)</option>
+          <option value="Pending">Pending</option>
+          <option value="Reviewed">Reviewed</option>
+          <option value="Closed">Closed</option>
+        </select>
+      </div>
 
-      <div className="space-y-4">
-        {filteredReports.length > 0 ? (
-          filteredReports.map((report) => (
-            <div
-              key={report.id}
-              className="bg-white rounded-lg shadow overflow-hidden"
-            >
-              <div className="p-4 border-b flex justify-between items-center">
-                <div>
-                  <h3 className="text-lg font-medium">{report.title}</h3>
-                  <div className="flex items-center mt-1 text-sm text-gray-500">
-                    <span>By {report.author}</span>
-                    <span className="mx-2">•</span>
-                    <span>{new Date(report.date).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    statusColors[report.status as keyof typeof statusColors] ||
-                    "bg-gray-100 text-gray-800"
-                  }`}
+      {/* --- Table of Reports --- */}
+      <Card className="border-0" style={cardGradientStyle}>
+        <CardHeader>
+          <CardTitle className="text-white text-sm font-medium">
+            Report List
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full text-sm text-left text-neutral-300">
+            <thead className="text-xs uppercase text-neutral-400 border-b border-neutral-700">
+              <tr>
+                <th className="py-2 px-3">Title</th>
+                <th className="py-2 px-3">Author</th>
+                <th className="py-2 px-3">Date</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredReports.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b border-neutral-800 hover:bg-neutral-900/40"
                 >
-                  {report.status}
-                </div>
-              </div>
-              <div className="p-4">
-                <p className="text-gray-700 whitespace-pre-line">
-                  {report.content}
-                </p>
-                <div className="mt-4 flex justify-end space-x-2">
-                  <Button variant="outline" size="sm">
-                    Edit
-                  </Button>
-                  <Button
-                    variant={
-                      report.status === "Completed" ? "outline" : "default"
-                    }
-                    size="sm"
-                    onClick={() => {
-                      // Implement status update
-                      const newStatus =
-                        report.status === "Completed" ? "Ongoing" : "Completed";
-                      // You would call an update function here
-                    }}
+                  <td className="py-2 px-3 font-medium text-white">
+                    {r.title}
+                  </td>
+                  <td className="py-2 px-3 text-neutral-400">{r.author}</td>
+                  <td className="py-2 px-3">
+                    {(() => {
+                      // Handle Firestore Timestamp object
+                      if (
+                        r.date &&
+                        typeof r.date === "object" &&
+                        "_seconds" in r.date
+                      ) {
+                        return new Date(
+                          r.date._seconds * 1000
+                        ).toLocaleDateString();
+                      }
+                      // Handle regular date string
+                      const dateField = r.date || r.createdAt;
+                      if (!dateField) return "N/A";
+                      try {
+                        const date = new Date(dateField);
+                        return isNaN(date.getTime())
+                          ? "N/A"
+                          : date.toLocaleDateString();
+                      } catch {
+                        return "N/A";
+                      }
+                    })()}
+                  </td>
+                  <td className="py-2 px-3 font-semibold">
+                    <span
+                      className={
+                        statusColors[r.status as keyof typeof statusColors] ||
+                        "text-neutral-400"
+                      }
+                    >
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="py-2 px-3 text-right space-x-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => handleOpenEdit(r)}
+                    >
+                      <Pencil size={14} />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-red-400 border-red-800 hover:bg-red-900/50"
+                      onClick={() => handleDeleteReport(r.id!)}
+                    >
+                      <Trash2 size={12} className="mr-1" /> Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+              {filteredReports.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="py-4 px-3 text-center text-neutral-400"
                   >
-                    {report.status === "Completed" ? "Reopen" : "Mark Complete"}
-                  </Button>
-                </div>
-              </div>
+                    No reports found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* --- Add/Edit Dialog --- */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="bg-[#0b0f26] border border-neutral-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {editing ? "Edit Report" : "New Report"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                placeholder="Enter report title"
+                className="bg-neutral-900 border-neutral-700 text-white"
+              />
             </div>
-          ))
-        ) : (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <FileText className="w-12 h-12 mx-auto text-gray-300 mb-2" />
-            <p className="text-gray-500">No reports found</p>
-            {(searchTerm || statusFilter !== "All") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("All");
-                }}
+            <div className="grid gap-2">
+              <Label htmlFor="body">Body</Label>
+              <textarea
+                id="body"
+                value={formData.body}
+                onChange={(e) =>
+                  setFormData({ ...formData, body: e.target.value })
+                }
+                placeholder="Write report details..."
+                className="bg-neutral-900 border border-neutral-700 rounded-md text-sm p-2 text-white h-28 resize-none"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <select
+                id="status"
+                value={formData.status}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    status: e.target.value as "Pending" | "Reviewed" | "Closed",
+                  })
+                }
+                className="bg-neutral-900 border border-neutral-700 text-white text-sm rounded-md p-2"
               >
-                Clear filters
-              </Button>
-            )}
+                <option value="Pending">Pending</option>
+                <option value="Reviewed">Reviewed</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </div>
           </div>
-        )}
-      </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              className="bg-blue-600 hover:bg-blue-500"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -146,6 +146,14 @@ class ApiService {
     }
   }
 
+  // Public request method for organization service
+  public async apiRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    return this.request<T>(endpoint, options);
+  }
+
   // ---------------- TOKEN HANDLING ----------------
 
   setToken(token: string): void {

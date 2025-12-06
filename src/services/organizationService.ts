@@ -21,7 +21,13 @@ export interface Announcement {
   title: string;
   body: string;
   status: "Draft" | "Published" | "Archived";
-  createdAt?: string;
+  date?:
+    | {
+        _seconds: number;
+        _nanoseconds: number;
+      }
+    | string; // Firestore Timestamp or string
+  createdAt?: string; // Keep for compatibility
   updatedAt?: string;
 }
 
@@ -40,7 +46,13 @@ export interface Report {
   body: string;
   status: "Pending" | "Reviewed" | "Closed";
   author: string;
-  createdAt?: string;
+  date?:
+    | {
+        _seconds: number;
+        _nanoseconds: number;
+      }
+    | string; // Firestore Timestamp or string
+  createdAt?: string; // Keep for compatibility
 }
 
 export interface VolunteerProfile {
@@ -93,7 +105,7 @@ export const organizationService = {
 
   // ============ EVACUATION CENTERS ============
   async createEvacuationCenter(center: EvacuationCenter) {
-    return apiService.request<{ success: boolean; data: EvacuationCenter }>(
+    return apiService.apiRequest<{ success: boolean; data: EvacuationCenter }>(
       `${organizationService.BASE_PATH}/centers`,
       {
         method: "POST",
@@ -105,7 +117,7 @@ export const organizationService = {
   // Add these methods to your organizationService object:
 
   async updateEvacuationCenter(id: string, center: Partial<EvacuationCenter>) {
-    return apiService.request<{ success: boolean; data: EvacuationCenter }>(
+    return apiService.apiRequest<{ success: boolean; data: EvacuationCenter }>(
       `${organizationService.BASE_PATH}/centers/${id}`,
       {
         method: "PUT",
@@ -115,14 +127,14 @@ export const organizationService = {
   },
 
   async deleteEvacuationCenter(id: string) {
-    return apiService.request<{ success: boolean }>(
+    return apiService.apiRequest<{ success: boolean }>(
       `${organizationService.BASE_PATH}/centers/${id}`,
       { method: "DELETE" }
     );
   },
 
   async updateAnnouncement(id: string, announcement: Partial<Announcement>) {
-    return apiService.request<{ success: boolean; data: Announcement }>(
+    return apiService.apiRequest<{ success: boolean; data: Announcement }>(
       `${organizationService.BASE_PATH}/announcements/${id}`,
       {
         method: "PUT",
@@ -132,14 +144,14 @@ export const organizationService = {
   },
 
   async deleteAnnouncement(id: string) {
-    return apiService.request<{ success: boolean }>(
+    return apiService.apiRequest<{ success: boolean }>(
       `${organizationService.BASE_PATH}/announcements/${id}`,
       { method: "DELETE" }
     );
   },
 
   async updateResource(id: string, resource: Partial<Resource>) {
-    return apiService.request<{ success: boolean; data: Resource }>(
+    return apiService.apiRequest<{ success: boolean; data: Resource }>(
       `${organizationService.BASE_PATH}/resources/${id}`,
       {
         method: "PUT",
@@ -149,7 +161,7 @@ export const organizationService = {
   },
 
   async deleteResource(id: string) {
-    return apiService.request<{ success: boolean }>(
+    return apiService.apiRequest<{ success: boolean }>(
       `${organizationService.BASE_PATH}/resources/${id}`,
       { method: "DELETE" }
     );
@@ -158,7 +170,7 @@ export const organizationService = {
   // Add these methods to get assignments and needs
   async getAssignments() {
     // Note: You'll need to add this endpoint to your backend
-    return apiService.request<{ success: boolean; data: Assignment[] }>(
+    return apiService.apiRequest<{ success: boolean; data: Assignment[] }>(
       `${organizationService.BASE_PATH}/assignments`,
       { method: "GET" }
     );
@@ -166,7 +178,7 @@ export const organizationService = {
 
   async updateAssignment(id: string, assignment: Partial<Assignment>) {
     // Note: You'll need to add this endpoint to your backend
-    return apiService.request<{ success: boolean; data: Assignment }>(
+    return apiService.apiRequest<{ success: boolean; data: Assignment }>(
       `${organizationService.BASE_PATH}/assignments/${id}`,
       {
         method: "PUT",
@@ -177,7 +189,7 @@ export const organizationService = {
 
   async deleteAssignment(id: string) {
     // Note: You'll need to add this endpoint to your backend
-    return apiService.request<{ success: boolean }>(
+    return apiService.apiRequest<{ success: boolean }>(
       `${organizationService.BASE_PATH}/assignments/${id}`,
       { method: "DELETE" }
     );
@@ -185,7 +197,7 @@ export const organizationService = {
 
   async getNeeds() {
     // Note: You'll need to add this endpoint to your backend
-    return apiService.request<{ success: boolean; data: Need[] }>(
+    return apiService.apiRequest<{ success: boolean; data: Need[] }>(
       `${organizationService.BASE_PATH}/needs`,
       { method: "GET" }
     );
@@ -193,7 +205,7 @@ export const organizationService = {
 
   async updateNeed(id: string, need: Partial<Need>) {
     // Note: You'll need to add this endpoint to your backend
-    return apiService.request<{ success: boolean; data: Need }>(
+    return apiService.apiRequest<{ success: boolean; data: Need }>(
       `${organizationService.BASE_PATH}/needs/${id}`,
       {
         method: "PUT",
@@ -204,22 +216,22 @@ export const organizationService = {
 
   async deleteNeed(id: string) {
     // Note: You'll need to add this endpoint to your backend
-    return apiService.request<{ success: boolean }>(
+    return apiService.apiRequest<{ success: boolean }>(
       `${organizationService.BASE_PATH}/needs/${id}`,
       { method: "DELETE" }
     );
   },
 
   async getEvacuationCenters() {
-    return apiService.request<{ success: boolean; data: EvacuationCenter[] }>(
-      `${organizationService.BASE_PATH}/centers`,
-      { method: "GET" }
-    );
+    return apiService.apiRequest<{
+      success: boolean;
+      data: EvacuationCenter[];
+    }>(`${organizationService.BASE_PATH}/centers`, { method: "GET" });
   },
 
   // ============ ANNOUNCEMENTS ============
   async createAnnouncement(announcement: Announcement) {
-    return apiService.request<{ success: boolean; data: Announcement }>(
+    return apiService.apiRequest<{ success: boolean; data: Announcement }>(
       `${organizationService.BASE_PATH}/announcements`,
       {
         method: "POST",
@@ -229,7 +241,7 @@ export const organizationService = {
   },
 
   async getAnnouncements() {
-    return apiService.request<{ success: boolean; data: Announcement[] }>(
+    return apiService.apiRequest<{ success: boolean; data: Announcement[] }>(
       `${organizationService.BASE_PATH}/announcements`,
       { method: "GET" }
     );
@@ -237,7 +249,7 @@ export const organizationService = {
 
   // ============ RESOURCES ============
   async createResource(resource: Resource) {
-    return apiService.request<{ success: boolean; data: Resource }>(
+    return apiService.apiRequest<{ success: boolean; data: Resource }>(
       `${organizationService.BASE_PATH}/resources`,
       {
         method: "POST",
@@ -247,7 +259,7 @@ export const organizationService = {
   },
 
   async getResources() {
-    return apiService.request<{ success: boolean; data: Resource[] }>(
+    return apiService.apiRequest<{ success: boolean; data: Resource[] }>(
       `${organizationService.BASE_PATH}/resources`,
       { method: "GET" }
     );
@@ -255,7 +267,7 @@ export const organizationService = {
 
   // ============ REPORTS ============
   async createReport(report: Report) {
-    return apiService.request<{ success: boolean; data: Report }>(
+    return apiService.apiRequest<{ success: boolean; data: Report }>(
       `${organizationService.BASE_PATH}/reports`,
       {
         method: "POST",
@@ -265,23 +277,40 @@ export const organizationService = {
   },
 
   async getReports() {
-    return apiService.request<{ success: boolean; data: Report[] }>(
+    return apiService.apiRequest<{ success: boolean; data: Report[] }>(
       `${organizationService.BASE_PATH}/reports`,
       { method: "GET" }
     );
   },
 
+  async updateReport(id: string, report: Partial<Report>) {
+    return apiService.apiRequest<{ success: boolean; data: Report }>(
+      `${organizationService.BASE_PATH}/reports/${id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(report),
+      }
+    );
+  },
+
+  async deleteReport(id: string) {
+    return apiService.apiRequest<{ success: boolean }>(
+      `${organizationService.BASE_PATH}/reports/${id}`,
+      { method: "DELETE" }
+    );
+  },
+
   // ============ VOLUNTEERS LIST ============
   async getOrgVolunteers() {
-    return apiService.request<{ success: boolean; data: VolunteerProfile[] }>(
-      `${organizationService.BASE_PATH}/volunteers`,
-      { method: "GET" }
-    );
+    return apiService.apiRequest<{
+      success: boolean;
+      data: VolunteerProfile[];
+    }>(`${organizationService.BASE_PATH}/volunteers`, { method: "GET" });
   },
 
   // ============ DIRECT ASSIGN TASK (POST /api/organization/assignments) ============
   async assignTask(assignment: Assignment) {
-    return apiService.request<{ success: boolean; data: Assignment }>(
+    return apiService.apiRequest<{ success: boolean; data: Assignment }>(
       `${organizationService.BASE_PATH}/assignments`,
       {
         method: "POST",
@@ -292,7 +321,7 @@ export const organizationService = {
 
   // ============ POST A NEED (POST /api/organization/needs) ============
   async postNeed(need: Need) {
-    return apiService.request<{ success: boolean; data: Need }>(
+    return apiService.apiRequest<{ success: boolean; data: Need }>(
       `${organizationService.BASE_PATH}/needs`,
       {
         method: "POST",

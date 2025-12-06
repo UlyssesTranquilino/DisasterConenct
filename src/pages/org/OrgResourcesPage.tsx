@@ -32,8 +32,23 @@ import {
   ResponsiveContainer,
 } from "recharts";
 // Helper function to format date
-const formatDate = (date?: Date) => {
-  return date ? new Date(date).toLocaleDateString() : "N/A";
+const formatDate = (date?: any) => {
+  if (!date) return "N/A";
+
+  // Handle Firestore Timestamp object
+  if (date && typeof date === "object" && "_seconds" in date) {
+    return new Date(date._seconds * 1000).toLocaleDateString();
+  }
+
+  // Handle regular date string or Date object
+  try {
+    const parsedDate = new Date(date);
+    return isNaN(parsedDate.getTime())
+      ? "N/A"
+      : parsedDate.toLocaleDateString();
+  } catch {
+    return "N/A";
+  }
 };
 
 const cardGradientStyle = {
@@ -41,6 +56,20 @@ const cardGradientStyle = {
     "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
   backdropFilter: "blur(10px)",
 };
+
+// Color palette for different resources
+const resourceColors = [
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#14b8a6", // teal
+  "#f97316", // orange
+  "#6366f1", // indigo
+  "#84cc16", // lime
+];
 
 export const OrgResourcesPage: React.FC = () => {
   const { currentOrgId } = useOrganization();
@@ -235,10 +264,12 @@ export const OrgResourcesPage: React.FC = () => {
     );
   }
 
-  // Data for the chart
-  const chartData = resources.map((resource) => ({
+  // Data for the chart with colors
+  const chartData = resources.map((resource, index) => ({
     name: resource.name,
     quantity: resource.quantity,
+    unit: resource.unit,
+    fill: resourceColors[index % resourceColors.length],
   }));
 
   // Calculate total resources
@@ -280,7 +311,7 @@ export const OrgResourcesPage: React.FC = () => {
                 {r.quantity} {r.unit}
               </div>
               <p className="text-xs text-neutral-400">
-                Updated {formatDate(r.updatedAt as unknown as Date)}
+                Updated {formatDate(r.updatedAt)}
               </p>
             </CardContent>
           </Card>
@@ -314,9 +345,7 @@ export const OrgResourcesPage: React.FC = () => {
                   <td className="py-2 px-3">{r.name}</td>
                   <td className="py-2 px-3">{r.quantity}</td>
                   <td className="py-2 px-3">{r.unit}</td>
-                  <td className="py-2 px-3">
-                    {formatDate(r.updatedAt as unknown as Date)}
-                  </td>
+                  <td className="py-2 px-3">{formatDate(r.updatedAt)}</td>
                   <td className="py-2 px-3 text-right space-x-2">
                     <Button
                       size="sm"
