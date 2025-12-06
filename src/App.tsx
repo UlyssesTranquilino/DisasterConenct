@@ -16,7 +16,7 @@ import OrgAnnouncementsPage from "./pages/org/OrgAnnouncementsPage";
 import VolunteerDashboard from "./pages/volunteer/VolunteerDashboard";
 import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
 import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
-
+import 'leaflet/dist/leaflet.css';
 import OrgEvacuationCentersPage from "./pages/org/OrgEvacuationCentersPage";
 import { OrgReportsPage } from "./pages/org/OrgReportsPage";
 import { OrgVolunteersPage } from "./pages/org/OrgVolunteersPage";

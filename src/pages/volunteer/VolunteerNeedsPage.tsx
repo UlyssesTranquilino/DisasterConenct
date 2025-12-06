@@ -1,36 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Search, Bell, ChevronDown, MapPin, Users, Clock, X, Phone, Mail, AlertCircle } from "lucide-react";
+import { apiService, type Need } from "../../lib/api"; 
 
 // Gradient background style for cards (same as dashboard)
 const cardGradientStyle = {
   background: "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
   backdropFilter: "blur(10px)",
 };
-
-// Define proper TypeScript interfaces based on corrected schema
-interface Need {
-  id: number;
-  title: string;
-  organization: string;
-  organizationId: string;
-  description: string;
-  location: string;
-  coordinates: { lat: number; lng: number };
-  skillsRequired: string[];
-  volunteersNeeded: number;
-  volunteersAssigned: number;
-  urgency: "High" | "Medium" | "Low";
-  datePosted: string;
-  contactPerson: string;
-  contactPhone: string;
-  contactEmail: string;
-  status: "Open" | "Filled" | "Closed";
-  estimatedDuration: string;
-  requirements?: string[];
-}
 
 interface ApplicationFormData {
   name: string;
@@ -46,130 +25,6 @@ interface ResponsePopupProps {
   onSubmit: (data: ApplicationFormData) => void;
   need: Need | null;
 }
-
-// Complete mock data based on corrected schema
-const extendedMockNeeds: Need[] = [
-  {
-    id: 1,
-    title: "Medical Support at Evacuation Center",
-    organization: "Red Cross Philippines",
-    organizationId: "org_redcross_ph",
-    description: "Provide basic medical assistance and first aid to evacuees at Quezon City Memorial Center. Volunteers with medical background preferred.",
-    location: "Quezon City Memorial Center",
-    coordinates: { lat: 14.6506, lng: 121.0500 },
-    skillsRequired: ["First Aid", "CPR", "Emergency Response", "Medical Background"],
-    volunteersNeeded: 3,
-    volunteersAssigned: 1,
-    urgency: "High",
-    datePosted: "2024-01-10",
-    contactPerson: "Dr. Maria Santos",
-    contactPhone: "+63 912 345 6789",
-    contactEmail: "msantos@redcross.org.ph",
-    status: "Open",
-    estimatedDuration: "8 hours",
-    requirements: ["Medical ID", "CPR Certification"]
-  },
-  {
-    id: 2,
-    title: "Food Distribution Team",
-    organization: "DSWD Relief Operations",
-    organizationId: "org_dswd_relief",
-    description: "Help distribute food packs and manage supply logistics at Rizal Park evacuation area. Physical fitness required for lifting and moving supplies.",
-    location: "Rizal Park, Manila",
-    coordinates: { lat: 14.5832, lng: 120.9790 },
-    skillsRequired: ["Logistics", "Team Management", "Physical Fitness"],
-    volunteersNeeded: 5,
-    volunteersAssigned: 2,
-    urgency: "Medium",
-    datePosted: "2024-01-11",
-    contactPerson: "Mr. Juan Dela Cruz",
-    contactPhone: "+63 917 123 4567",
-    contactEmail: "jdelacruz@dswd.gov.ph",
-    status: "Open",
-    estimatedDuration: "6 hours",
-    requirements: ["Comfortable Shoes", "Water Bottle"]
-  },
-  {
-    id: 3,
-    title: "Emergency Shelter Setup",
-    organization: "Local Government Unit - Marikina",
-    organizationId: "org_lgu_marikina",
-    description: "Assist in setting up temporary shelters and emergency facilities for displaced families. Construction experience helpful but not required.",
-    location: "Marikina Sports Center",
-    coordinates: { lat: 14.6415, lng: 121.1007 },
-    skillsRequired: ["Construction", "Logistics", "Teamwork"],
-    volunteersNeeded: 8,
-    volunteersAssigned: 4,
-    urgency: "High",
-    datePosted: "2024-01-12",
-    contactPerson: "Engr. Roberto Lim",
-    contactPhone: "+63 918 765 4321",
-    contactEmail: "rlim@marikina.gov.ph",
-    status: "Open",
-    estimatedDuration: "4 hours",
-    requirements: ["Work Gloves", "Comfortable Clothes"]
-  },
-  {
-    id: 4,
-    title: "Psychological First Aid",
-    organization: "Mental Health Philippines",
-    organizationId: "org_mh_ph",
-    description: "Provide emotional support and psychological first aid to trauma-affected individuals and families.",
-    location: "Various Evacuation Centers",
-    coordinates: { lat: 14.6091, lng: 121.0223 },
-    skillsRequired: ["Counseling", "Psychology", "Active Listening"],
-    volunteersNeeded: 4,
-    volunteersAssigned: 1,
-    urgency: "Medium",
-    datePosted: "2024-01-09",
-    contactPerson: "Dr. Sofia Reyes",
-    contactPhone: "+63 916 555 1234",
-    contactEmail: "sreyes@mentalhealthph.org",
-    status: "Open",
-    estimatedDuration: "6 hours",
-    requirements: ["Psychology Background", "Training Certificate"]
-  },
-  {
-    id: 5,
-    title: "Communication and Information",
-    organization: "NDRRMC Operations",
-    organizationId: "org_ndrrmc",
-    description: "Manage information desk and coordinate communications between different response teams.",
-    location: "Central Command Center, Camp Aguinaldo",
-    coordinates: { lat: 14.6091, lng: 121.0223 },
-    skillsRequired: ["Communication", "Organization", "Multitasking"],
-    volunteersNeeded: 2,
-    volunteersAssigned: 1,
-    urgency: "Low",
-    datePosted: "2024-01-13",
-    contactPerson: "Capt. Anna Torres",
-    contactPhone: "+63 915 444 5678",
-    contactEmail: "atorres@ndrrmc.gov.ph",
-    status: "Open",
-    estimatedDuration: "8 hours",
-    requirements: ["Good Communication Skills"]
-  },
-  {
-    id: 6,
-    title: "Search and Rescue Support",
-    organization: "Coast Guard SAR Team",
-    organizationId: "org_coastguard_sar",
-    description: "Assist in search and rescue operations in flood-affected areas. Water safety training required.",
-    location: "Marikina River Basin",
-    coordinates: { lat: 14.6333, lng: 121.1000 },
-    skillsRequired: ["Water Rescue", "First Aid", "Navigation"],
-    volunteersNeeded: 6,
-    volunteersAssigned: 3,
-    urgency: "High",
-    datePosted: "2024-01-14",
-    contactPerson: "Lt. Michael Cruz",
-    contactPhone: "+63 919 888 9999",
-    contactEmail: "mcruz@coastguard.gov.ph",
-    status: "Open",
-    estimatedDuration: "12 hours",
-    requirements: ["Water Safety Training", "Physical Fitness"]
-  }
-];
 
 // Response Popup Component
 function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) {
@@ -334,36 +189,65 @@ const getUrgencyIcon = (urgency: string) => {
 };
 
 export default function VolunteerNeedsPage() {
+  const [needs, setNeeds] = useState<Need[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [isResponseOpen, setIsResponseOpen] = useState(false);
   const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredNeeds = extendedMockNeeds.filter((n) => {
+  // Fetch needs from API
+  useEffect(() => {
+    fetchNeeds();
+  }, []);
+
+  const fetchNeeds = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiService.getNeeds();
+      
+      if (response.success && response.data) {
+        setNeeds(response.data);
+      } else {
+        setError("Failed to load volunteer opportunities");
+      }
+    } catch (error) {
+      console.error("Failed to fetch needs:", error);
+      setError("Failed to load volunteer opportunities");
+      // Fallback to empty array if API fails
+      setNeeds([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredNeeds = needs.filter((n) => {
     const q = search.trim().toLowerCase();
     const matchesSearch =
       !q ||
       n.title.toLowerCase().includes(q) ||
       n.organization.toLowerCase().includes(q) ||
       n.description.toLowerCase().includes(q) ||
-      n.skillsRequired.some(skill => skill.toLowerCase().includes(q));
+      n.skillsRequired?.some(skill => skill.toLowerCase().includes(q));
     const matchesFilter = filter === "all" || n.urgency.toLowerCase() === filter.toLowerCase();
     return matchesSearch && matchesFilter;
   });
 
-  // Mock metrics for stats cards
+  // Stats metrics based on real data
   const statsMetrics: StatsMetric[] = [
     {
       title: "Total Open Needs",
-      value: extendedMockNeeds.length.toString(),
+      value: needs.length.toString(),
     },
     {
       title: "High Priority",
-      value: extendedMockNeeds.filter((n) => n.urgency === "High").length.toString(),
+      value: needs.filter((n) => n.urgency === "High").length.toString(),
     },
     {
       title: "Volunteers Needed",
-      value: extendedMockNeeds.reduce((sum, need) => sum + (need.volunteersNeeded - need.volunteersAssigned), 0).toString(),
+      value: needs.reduce((sum, need) => sum + (need.volunteersNeeded - (need.volunteersAssigned || 0)), 0).toString(),
     },
   ];
 
@@ -377,27 +261,37 @@ export default function VolunteerNeedsPage() {
     setSelectedNeed(null);
   };
 
-  const handleSubmitResponse = (responseData: ApplicationFormData) => {
-    // This would create an application in Firebase
-    const applicationData = {
-      needId: selectedNeed!.id,
-      organizationId: selectedNeed!.organizationId,
-      volunteerId: "current_volunteer_id", // From auth
-      volunteerName: responseData.name,
-      volunteerContact: responseData.contact,
-      appliedDate: new Date().toISOString(),
-      status: "Pending",
-      availability: responseData.availability,
-      skills: responseData.skills.split(',').map(s => s.trim()),
-      notes: responseData.notes,
-      needTitle: selectedNeed!.title,
-      organizationName: selectedNeed!.organization
-    };
+  const handleSubmitResponse = async (responseData: ApplicationFormData) => {
+    if (!selectedNeed) return;
 
-    console.log('Application submitted:', applicationData);
-    // Here you would typically send the application to your backend
-    alert(`Application submitted to ${selectedNeed!.organization}! They will contact you soon.`);
-    handleCloseResponse();
+    try {
+      // Call the self-assign endpoint
+      const response = await apiService.selfAssign({
+        orgId: selectedNeed.organizationId,
+        needId: selectedNeed.id,
+      });
+
+      if (response.success) {
+        // Update local state to reflect the assignment
+        setNeeds(prev => prev.map(need => 
+          need.id === selectedNeed.id 
+            ? { 
+                ...need, 
+                volunteersAssigned: (need.volunteersAssigned || 0) + 1,
+                status: (need.volunteersAssigned || 0) + 1 >= need.volunteersNeeded ? "Filled" : need.status
+              }
+            : need
+        ));
+
+        alert(`Successfully assigned to ${selectedNeed.title}!`);
+        handleCloseResponse();
+      } else {
+        alert("Failed to assign to this need. Please try again.");
+      }
+    } catch (error) {
+      console.error("Failed to assign:", error);
+      alert("Failed to assign to this need. Please try again.");
+    }
   };
 
   const handleContactOrganization = (need: Need) => {
@@ -406,8 +300,16 @@ export default function VolunteerNeedsPage() {
     alert(`Contact ${need.contactPerson} at ${need.contactPhone} or ${need.contactEmail}`);
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="px-2 md:px-4 space-y-4 pb-6 min-h-screen flex items-center justify-center">
+        <div className="text-white">Loading volunteer opportunities...</div>
+      </div>
+    );
+  }
+
   return (
-    // REMOVED overflow-hidden from main container - this was causing the issue
     <div className="px-2 md:px-4 space-y-4 pb-6 min-h-screen">
       {/* Header with Search */}
       <div className="flex justify-between items-center pt-2">
@@ -450,25 +352,40 @@ export default function VolunteerNeedsPage() {
         </div>
       </div>
 
-      {/* Stats Row - Centered and Compact */}
-      <div className="flex justify-center">
-        <div className="grid grid-cols-3 gap-4 max-w-2xl">
-          {statsMetrics.map((metric, index) => (
-            <Card key={index} className="border-0 w-40" style={cardGradientStyle}>
-              <CardHeader className="flex flex-col items-center space-y-0 pb-2 border-b-0">
-                <CardTitle className="text-sm font-medium text-white text-center leading-tight">
-                  {metric.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <div className="text-2xl font-bold text-white">
-                  {metric.value}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+          <p className="text-red-400 text-sm">{error}</p>
+          <Button
+            onClick={fetchNeeds}
+            className="mt-2 bg-red-600 hover:bg-red-500 text-white text-xs h-8"
+          >
+            Retry
+          </Button>
         </div>
-      </div>
+      )}
+
+      {/* Stats Row - Centered and Compact */}
+      {needs.length > 0 && (
+        <div className="flex justify-center">
+          <div className="grid grid-cols-3 gap-4 max-w-2xl">
+            {statsMetrics.map((metric, index) => (
+              <Card key={index} className="border-0 w-40" style={cardGradientStyle}>
+                <CardHeader className="flex flex-col items-center space-y-0 pb-2 border-b-0">
+                  <CardTitle className="text-sm font-medium text-white text-center leading-tight">
+                    {metric.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <div className="text-2xl font-bold text-white">
+                    {metric.value}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Needs List - Grid layout with square cards */}
       <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
@@ -483,123 +400,140 @@ export default function VolunteerNeedsPage() {
         
         <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
           <div className="overflow-auto flex-1 p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredNeeds.map((need) => (
-                <Card 
-                  key={need.id} 
-                  className="border border-neutral-700 bg-neutral-800/20 hover:bg-neutral-800/40 transition-all duration-200 flex flex-col min-h-96"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <CardTitle className="text-sm font-medium text-white flex-1">
-                        {need.title}
-                      </CardTitle>
-                      <div className="flex items-center space-x-1">
-                        {getUrgencyIcon(need.urgency)}
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(need.urgency)}`}>
-                          {need.urgency}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-blue-400 text-xs mt-1">{need.organization}</p>
-                  </CardHeader>
-
-                  <CardContent className="pt-0 flex-1 flex flex-col">
-                    <div className="text-sm text-neutral-300 mb-3 line-clamp-3 flex-1">
-                      {need.description}
-                    </div>
-                    
-                    {/* Additional Info */}
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-2 text-xs text-neutral-400">
-                        <MapPin size={12} />
-                        <span className="truncate">{need.location}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-neutral-400">
-                        <Users size={12} />
-                        <span>
-                          {need.volunteersAssigned}/{need.volunteersNeeded} volunteers • {need.estimatedDuration}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-neutral-400">
-                        <Clock size={12} />
-                        <span>Posted: {need.datePosted}</span>
-                      </div>
-                    </div>
-
-                    {/* Skills Required */}
-                    <div className="mb-3">
-                      <p className="text-xs text-neutral-400 mb-1">Skills Required:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {need.skillsRequired.map((skill, index) => (
-                          <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">
-                            {skill}
+            {needs.length === 0 && !loading ? (
+              <div className="col-span-full flex flex-col items-center justify-center text-center py-12">
+                <div className="text-neutral-600 mb-3">
+                  <Search size={32} />
+                </div>
+                <p className="text-sm text-neutral-400 font-medium mb-1">
+                  No volunteer opportunities available
+                </p>
+                <p className="text-xs text-neutral-500">
+                  Check back later for new opportunities
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredNeeds.map((need) => (
+                  <Card 
+                    key={need.id} 
+                    className="border border-neutral-700 bg-neutral-800/20 hover:bg-neutral-800/40 transition-all duration-200 flex flex-col min-h-96"
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <CardTitle className="text-sm font-medium text-white flex-1">
+                          {need.title}
+                        </CardTitle>
+                        <div className="flex items-center space-x-1">
+                          {getUrgencyIcon(need.urgency)}
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(need.urgency)}`}>
+                            {need.urgency}
                           </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Requirements */}
-                    {need.requirements && need.requirements.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-xs text-neutral-400 mb-1">Requirements:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {need.requirements.map((req, index) => (
-                            <span key={index} className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
-                              {req}
-                            </span>
-                          ))}
                         </div>
                       </div>
-                    )}
+                      <p className="text-blue-400 text-xs mt-1">{need.organization}</p>
+                    </CardHeader>
 
-                    {/* Contact Info */}
-                    <div className="mb-3 p-2 bg-gray-800/30 rounded">
-                      <p className="text-xs text-neutral-400 mb-1">Contact:</p>
-                      <p className="text-white text-xs">{need.contactPerson}</p>
-                      <div className="flex items-center gap-1 text-xs text-neutral-400">
-                        <Phone size={10} />
-                        <span>{need.contactPhone}</span>
+                    <CardContent className="pt-0 flex-1 flex flex-col">
+                      <div className="text-sm text-neutral-300 mb-3 line-clamp-3 flex-1">
+                        {need.description}
                       </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 mt-auto">
-                      <Button 
-                        onClick={() => handleRespondClick(need)}
-                        className="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs h-8"
-                      >
-                        Apply to Help
-                      </Button>
-                      <Button 
-                        onClick={() => handleContactOrganization(need)}
-                        variant="outline"
-                        className="text-xs h-8 border-gray-600 hover:bg-gray-700"
-                        title="Contact Organization"
-                      >
-                        <Phone size={12} />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      
+                      {/* Additional Info */}
+                      <div className="space-y-2 mb-3">
+                        <div className="flex items-center gap-2 text-xs text-neutral-400">
+                          <MapPin size={12} />
+                          <span className="truncate">{need.location}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-neutral-400">
+                          <Users size={12} />
+                          <span>
+                            {need.volunteersAssigned || 0}/{need.volunteersNeeded} volunteers • {need.estimatedDuration}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-xs text-neutral-400">
+                          <Clock size={12} />
+                          <span>Posted: {new Date(need.datePosted).toLocaleDateString()}</span>
+                        </div>
+                      </div>
 
-              {filteredNeeds.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center text-center py-12">
-                  <div className="text-neutral-600 mb-3">
-                    <Search size={32} />
-                  </div>
-                  <p className="text-sm text-neutral-400 font-medium mb-1">
-                    No opportunities found
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    Try adjusting your search or filter criteria
-                  </p>
+                      {/* Skills Required */}
+                      {need.skillsRequired && need.skillsRequired.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-neutral-400 mb-1">Skills Required:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {need.skillsRequired.map((skill, index) => (
+                              <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Requirements */}
+                      {need.requirements && need.requirements.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-xs text-neutral-400 mb-1">Requirements:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {need.requirements.map((req, index) => (
+                              <span key={index} className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs">
+                                {req}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Contact Info */}
+                      <div className="mb-3 p-2 bg-gray-800/30 rounded">
+                        <p className="text-xs text-neutral-400 mb-1">Contact:</p>
+                        <p className="text-white text-xs">{need.contactPerson}</p>
+                        <div className="flex items-center gap-1 text-xs text-neutral-400">
+                          <Phone size={10} />
+                          <span>{need.contactPhone}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 mt-auto">
+                        <Button 
+                          onClick={() => handleRespondClick(need)}
+                          disabled={need.status === "Filled" || need.status === "Closed"}
+                          className="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs h-8 disabled:bg-gray-600 disabled:cursor-not-allowed"
+                        >
+                          {need.status === "Filled" || need.status === "Closed" ? "Filled" : "Apply to Help"}
+                        </Button>
+                        <Button 
+                          onClick={() => handleContactOrganization(need)}
+                          variant="outline"
+                          className="text-xs h-8 border-gray-600 hover:bg-gray-700"
+                          title="Contact Organization"
+                        >
+                          <Phone size={12} />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {filteredNeeds.length === 0 && needs.length > 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center text-center py-12">
+                <div className="text-neutral-600 mb-3">
+                  <Search size={32} />
                 </div>
-              )}
-            </div>
+                <p className="text-sm text-neutral-400 font-medium mb-1">
+                  No opportunities found
+                </p>
+                <p className="text-xs text-neutral-500">
+                  Try adjusting your search or filter criteria
+                </p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

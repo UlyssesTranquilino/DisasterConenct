@@ -18,9 +18,13 @@ export default function VolunteerRegisterPage() {
     role: "medical",
     experience: "",
     location: "",
+    password: "",
+    confirmPassword: "",
   })
 
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Scrollbar fix - disable scrolling when component mounts
   useEffect(() => {
@@ -33,12 +37,66 @@ export default function VolunteerRegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    setError(null); // Clear error when user starts typing
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Volunteer Registration Submitted:", formData)
-    setSubmitted(true)
+    
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Prepare profile data for volunteer registration
+      const profileData = {
+        phone: formData.phone,
+        experience: formData.experience,
+        preferredLocation: formData.location,
+        role: formData.role,
+      };
+
+      // Call the registration API
+      // Note: You'll need to adjust this based on your actual registration flow
+      // The current apiService.register expects role to be "volunteer" for volunteer registration
+      console.log("Volunteer Registration Submitted:", {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: "volunteer", // Force role to volunteer for volunteer registration
+        profileData,
+      });
+
+      // Example API call (uncomment when ready):
+      // const response = await apiService.register(
+      //   formData.email,
+      //   formData.password,
+      //   formData.name,
+      //   "volunteer", // Role is fixed as "volunteer" for volunteer registration
+      //   profileData
+      // );
+
+      // For now, simulate successful registration
+      setTimeout(() => {
+        setSubmitted(true);
+        setLoading(false);
+      }, 1000);
+
+    } catch (error: any) {
+      console.error("Registration failed:", error);
+      setError(error.message || "Registration failed. Please try again.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -81,10 +139,17 @@ export default function VolunteerRegisterPage() {
           <CardContent className="p-6">
             {!submitted ? (
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+                    <p className="text-red-400">{error}</p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Name */}
                   <div className="space-y-3">
-                    <label className="block text-lg font-medium text-white">Full Name</label>
+                    <label className="block text-lg font-medium text-white">Full Name *</label>
                     <Input
                       name="name"
                       placeholder="Enter your full name"
@@ -92,12 +157,13 @@ export default function VolunteerRegisterPage() {
                       onChange={handleChange}
                       className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
                       required
+                      disabled={loading}
                     />
                   </div>
 
                   {/* Email */}
                   <div className="space-y-3">
-                    <label className="block text-lg font-medium text-white">Email Address</label>
+                    <label className="block text-lg font-medium text-white">Email Address *</label>
                     <Input
                       type="email"
                       name="email"
@@ -106,12 +172,43 @@ export default function VolunteerRegisterPage() {
                       onChange={handleChange}
                       className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
                       required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div className="space-y-3">
+                    <label className="block text-lg font-medium text-white">Password *</label>
+                    <Input
+                      type="password"
+                      name="password"
+                      placeholder="Enter your password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div className="space-y-3">
+                    <label className="block text-lg font-medium text-white">Confirm Password *</label>
+                    <Input
+                      type="password"
+                      name="confirmPassword"
+                      placeholder="Confirm your password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
+                      required
+                      disabled={loading}
                     />
                   </div>
 
                   {/* Phone */}
                   <div className="space-y-3">
-                    <label className="block text-lg font-medium text-white">Phone Number</label>
+                    <label className="block text-lg font-medium text-white">Phone Number *</label>
                     <Input
                       name="phone"
                       placeholder="Enter your phone number"
@@ -119,18 +216,21 @@ export default function VolunteerRegisterPage() {
                       onChange={handleChange}
                       className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
                       required
+                      disabled={loading}
                     />
                   </div>
 
                   {/* Role / Field */}
                   <div className="space-y-3">
-                    <label className="block text-lg font-medium text-white">Field of Volunteering</label>
+                    <label className="block text-lg font-medium text-white">Field of Volunteering *</label>
                     <div className="relative">
                       <select
                         name="role"
                         value={formData.role}
                         onChange={handleChange}
                         className="appearance-none bg-gray-900 border border-gray-700 rounded-lg px-4 py-4 text-lg text-white focus:outline-none focus:border-blue-500 w-full pr-12 h-14"
+                        required
+                        disabled={loading}
                       >
                         <option value="medical" className="bg-gray-800 text-white text-lg">Medical Support</option>
                         <option value="food" className="bg-gray-800 text-white text-lg">Food & Supply Distribution</option>
@@ -152,6 +252,7 @@ export default function VolunteerRegisterPage() {
                       value={formData.experience}
                       onChange={handleChange}
                       className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
+                      disabled={loading}
                     />
                   </div>
 
@@ -164,16 +265,22 @@ export default function VolunteerRegisterPage() {
                       value={formData.location}
                       onChange={handleChange}
                       className="bg-gray-900 border-gray-700 text-white placeholder-gray-400 h-14 text-lg px-4"
+                      disabled={loading}
                     />
                   </div>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-500 text-white mt-6 py-5 text-xl font-semibold h-16 rounded-lg"
+                  className="w-full bg-blue-600 hover:bg-blue-500 text-white mt-6 py-5 text-xl font-semibold h-16 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loading}
                 >
-                  Register as Volunteer
+                  {loading ? "Registering..." : "Register as Volunteer"}
                 </Button>
+
+                <p className="text-gray-400 text-center text-sm mt-4">
+                  Already have an account? <a href="/login" className="text-blue-400 hover:text-blue-300">Login here</a>
+                </p>
               </form>
             ) : (
               <div className="text-center py-8 space-y-6">
@@ -190,12 +297,20 @@ export default function VolunteerRegisterPage() {
                   with deployment details, training information, and next steps to get you started.
                 </p>
 
-                <Button
-                  onClick={() => setSubmitted(false)}
-                  className="bg-blue-600 hover:bg-blue-500 text-white py-5 px-12 text-xl h-16 rounded-lg"
-                >
-                  Register Another Volunteer
-                </Button>
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => window.location.href = '/dashboard'}
+                    className="bg-blue-600 hover:bg-blue-500 text-white py-5 px-12 text-xl h-16 rounded-lg"
+                  >
+                    Go to Dashboard
+                  </Button>
+                  <Button
+                    onClick={() => setSubmitted(false)}
+                    className="bg-gray-600 hover:bg-gray-500 text-white py-5 px-12 text-xl h-16 rounded-lg"
+                  >
+                    Register Another Volunteer
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>

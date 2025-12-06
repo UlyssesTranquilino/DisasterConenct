@@ -3,39 +3,11 @@ import { MapPin, Search, Bell, ChevronDown, Clock, CheckCircle, AlertTriangle, U
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import VolunteerMap from "../../components/VolunteerMap";
+import { apiService, type Assignment, type Need } from "../../lib/api"; 
 
-// Define types inline
-interface Assignment {
-  id: number;
-  title: string;
-  organization: string;
-  description: string;
-  assignedDate: string;
-  dueDate: string;
-  status: "Pending" | "In Progress" | "Completed" | "Cancelled";
-  priority: "Low" | "Medium" | "High" | "Critical";
-  location: string;
-  coordinates: { lat: number; lng: number };
-  requiredSkills: string[];
-  estimatedHours: number;
-  organizationContact: string;
-  supplies?: string[];
-}
-
-interface Mission {
-  id: number;
-  title: string;
-  organization: string;
-  startDate: string;
-  endDate: string;
-  hoursCompleted: number;
-  status: "Completed" | "Ongoing" | "Cancelled";
-  skillsUsed: string[];
-  feedback?: string;
-}
-
+// Define types inline for map compatibility
 interface MapLocation {
-  id: number;
+  id: string;
   name: string;
   location: string;
   position: [number, number];
@@ -50,157 +22,54 @@ interface MapLocation {
   type?: 'evacuation' | 'urgent' | 'volunteer' | 'searched';
 }
 
+interface Mission {
+  id: string;
+  title: string;
+  organization: string;
+  startDate: string;
+  endDate: string;
+  hoursCompleted: number;
+  status: "Completed" | "Ongoing" | "Cancelled";
+  skillsUsed: string[];
+  feedback?: string;
+}
+
 // Gradient background style for cards
 const cardGradientStyle = {
   background: "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
   backdropFilter: "blur(10px)",
 };
 
-// Mock metrics for volunteer dashboard - corrected for volunteer perspective
+// Mock metrics for volunteer dashboard - will be updated with real data
 const mockVolunteerMetrics = [
   {
     title: "Active Assignments",
-    value: "3",
-    change: "+1",
+    value: "0",
+    change: "+0",
     icon: "Clock",
     color: "text-blue-400"
   },
   {
     title: "Completed Missions",
-    value: "12",
-    change: "+2",
+    value: "0",
+    change: "+0",
     icon: "CheckCircle",
     color: "text-green-400"
   },
   {
     title: "Available Hours",
-    value: "20",
+    value: "0",
     change: null,
     icon: "Clock",
     color: "text-yellow-400"
   },
   {
     title: "Urgent Needs Nearby",
-    value: "5",
+    value: "0",
     change: null,
     icon: "AlertTriangle",
     color: "text-red-400"
   },
-];
-
-// Mock assignments data based on corrected schema
-const mockAssignments: Assignment[] = [
-  {
-    id: 1,
-    title: "Medical Assistance at QC Center",
-    organization: "Red Cross Philippines",
-    description: "Provide basic medical assistance and first aid to evacuees at Quezon City Memorial Center. Volunteers with medical background preferred.",
-    assignedDate: "2024-01-10",
-    dueDate: "2024-01-15",
-    status: "In Progress",
-    priority: "High",
-    location: "Quezon City Memorial Center",
-    coordinates: { lat: 14.6506, lng: 121.0500 },
-    requiredSkills: ["First Aid", "CPR", "Emergency Response", "Medical Background"],
-    estimatedHours: 8,
-    organizationContact: "+63 912 345 6789",
-    supplies: ["Medical Kits", "First Aid", "Emergency Supplies"]
-  },
-  {
-    id: 2,
-    title: "Food Distribution Support",
-    organization: "DSWD Relief Operations",
-    description: "Help distribute food packs and manage supply logistics at Rizal Park evacuation area. Physical fitness required for lifting and moving supplies.",
-    assignedDate: "2024-01-11",
-    dueDate: "2024-01-16",
-    status: "Pending",
-    priority: "Medium",
-    location: "Rizal Park, Manila",
-    coordinates: { lat: 14.5832, lng: 120.9790 },
-    requiredSkills: ["Logistics", "Team Management", "Physical Fitness"],
-    estimatedHours: 6,
-    organizationContact: "+63 917 123 4567",
-    supplies: ["Food Packs", "Water", "Emergency Kits"]
-  },
-  {
-    id: 3,
-    title: "Emergency Shelter Setup",
-    organization: "Local Government Unit",
-    description: "Assist in setting up temporary shelters and emergency facilities for displaced families. Construction experience helpful but not required.",
-    assignedDate: "2024-01-12",
-    dueDate: "2024-01-14",
-    status: "Completed",
-    priority: "High",
-    location: "Marikina Sports Center",
-    coordinates: { lat: 14.6415, lng: 121.1007 },
-    requiredSkills: ["Construction", "Logistics", "Teamwork"],
-    estimatedHours: 4,
-    organizationContact: "+63 918 765 4321",
-    supplies: ["Tents", "Blankets", "Basic Amenities"]
-  },
-  {
-    id: 4,
-    title: "Community Outreach Program",
-    organization: "Local Government Unit",
-    description: "Conduct community outreach and needs assessment in affected barangays.",
-    assignedDate: "2024-01-13",
-    dueDate: "2024-01-18",
-    status: "Pending",
-    priority: "Medium",
-    location: "Taguig City",
-    coordinates: { lat: 14.5176, lng: 121.0509 },
-    requiredSkills: ["Communication", "Community Engagement"],
-    estimatedHours: 5,
-    organizationContact: "+63 919 999 8888",
-    supplies: ["Survey Forms", "Information Materials"]
-  }
-];
-
-const mockMissions: Mission[] = [
-  {
-    id: 1,
-    title: "Typhoon Relief Operation",
-    organization: "Red Cross Philippines",
-    startDate: "2024-01-05",
-    endDate: "2024-01-08",
-    hoursCompleted: 24,
-    status: "Completed",
-    skillsUsed: ["First Aid", "Crisis Management"],
-    feedback: "Excellent work in providing medical support to affected families."
-  },
-  {
-    id: 2,
-    title: "Flood Rescue Support",
-    organization: "Coast Guard",
-    startDate: "2024-01-02",
-    endDate: "2024-01-04",
-    hoursCompleted: 18,
-    status: "Completed",
-    skillsUsed: ["Water Rescue", "First Aid"],
-    feedback: "Valuable assistance in water rescue operations."
-  },
-  {
-    id: 3,
-    title: "Earthquake Response Mission",
-    organization: "NDRRMC",
-    startDate: "2023-12-28",
-    endDate: "2023-12-31",
-    hoursCompleted: 32,
-    status: "Completed",
-    skillsUsed: ["Search & Rescue", "First Aid", "Logistics"],
-    feedback: "Outstanding performance in search and rescue operations."
-  },
-  {
-    id: 4,
-    title: "Medical Mission in Remote Areas",
-    organization: "Doctors Without Borders",
-    startDate: "2023-12-20",
-    endDate: "2023-12-25",
-    hoursCompleted: 40,
-    status: "Completed",
-    skillsUsed: ["Medical Assistance", "Patient Care"],
-    feedback: "Exceptional medical support provided to remote communities."
-  }
 ];
 
 // Convert assignments to MapLocation format for VolunteerMap
@@ -246,6 +115,8 @@ const getStatusColor = (status: string) => {
       return "bg-blue-500/20 text-blue-400";
     case "Pending":
       return "bg-yellow-500/20 text-yellow-400";
+    case "Cancelled":
+      return "bg-red-500/20 text-red-400";
     default:
       return "bg-gray-500/20 text-gray-400";
   }
@@ -254,6 +125,7 @@ const getStatusColor = (status: string) => {
 const getPriorityColor = (priority: string) => {
   switch (priority) {
     case "High":
+    case "Critical":
       return "bg-red-500/20 text-red-400";
     case "Medium":
       return "bg-yellow-500/20 text-yellow-400";
@@ -265,13 +137,57 @@ const getPriorityColor = (priority: string) => {
 };
 
 export default function VolunteerDashboard() {
-  const [assignments] = useState<Assignment[]>(mockAssignments);
-  const [missions] = useState<Mission[]>(mockMissions);
-  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(mockAssignments[0]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [needs, setNeeds] = useState<Need[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [activeTab, setActiveTab] = useState<'assignments' | 'missions'>('assignments');
   const [search, setSearch] = useState("");
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch data from API
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch assignments
+      const assignmentsResponse = await apiService.getAssignments();
+      if (assignmentsResponse.success && assignmentsResponse.data) {
+        setAssignments(assignmentsResponse.data);
+        if (assignmentsResponse.data.length > 0) {
+          setSelectedAssignment(assignmentsResponse.data[0]);
+        }
+      }
+
+      // Fetch needs for urgent count (we'll just get count from this)
+      const needsResponse = await apiService.getNeeds();
+      if (needsResponse.success && needsResponse.data) {
+        setNeeds(needsResponse.data);
+      }
+
+      // For now, we'll use mock missions until backend supports it
+      // TODO: Replace with real API call when available
+      setMissions([]); // Clear mock data
+
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      setError("Failed to load dashboard data");
+      // Fallback to empty arrays
+      setAssignments([]);
+      setNeeds([]);
+      setMissions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Convert assignments to map locations
   const mapLocations = convertAssignmentsToMapLocations(assignments);
@@ -337,7 +253,7 @@ export default function VolunteerDashboard() {
     }
   };
 
-  // Calculate metrics from actual data
+  // Calculate metrics from real data
   const calculatedMetrics = [
     {
       ...mockVolunteerMetrics[0],
@@ -345,7 +261,7 @@ export default function VolunteerDashboard() {
     },
     {
       ...mockVolunteerMetrics[1],
-      value: missions.filter(m => m.status === 'Completed').length.toString()
+      value: assignments.filter(a => a.status === 'Completed').length.toString()
     },
     {
       ...mockVolunteerMetrics[2],
@@ -353,7 +269,7 @@ export default function VolunteerDashboard() {
     },
     {
       ...mockVolunteerMetrics[3],
-      value: "5" // This would come from nearby needs query
+      value: needs.filter(n => n.urgency === "High").length.toString()
     }
   ];
 
@@ -371,17 +287,28 @@ export default function VolunteerDashboard() {
     mission.organization.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleUpdateStatus = (assignmentId: number, newStatus: Assignment['status']) => {
-    console.log(`Updating assignment ${assignmentId} to ${newStatus}`);
-    // This would update the assignment in Firebase
-    alert(`Assignment status updated to ${newStatus}`);
-    
-    // Update the selected assignment if it's the one being modified
-    if (selectedAssignment && selectedAssignment.id === assignmentId) {
-      setSelectedAssignment({
-        ...selectedAssignment,
-        status: newStatus
-      });
+  const handleUpdateStatus = async (assignmentId: string, newStatus: Assignment['status']) => {
+    try {
+      // Update via API if endpoint exists
+      // await apiService.updateAssignmentStatus(assignmentId, newStatus);
+      
+      // Update local state
+      setAssignments(prev => prev.map(assignment =>
+        assignment.id === assignmentId ? { ...assignment, status: newStatus } : assignment
+      ));
+      
+      // Update selected assignment if it's the one being modified
+      if (selectedAssignment && selectedAssignment.id === assignmentId) {
+        setSelectedAssignment({
+          ...selectedAssignment,
+          status: newStatus
+        });
+      }
+      
+      alert(`Assignment status updated to ${newStatus}`);
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("Failed to update assignment status");
     }
   };
 
@@ -398,16 +325,37 @@ export default function VolunteerDashboard() {
     }
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="px-3 md:px-4 space-y-3 pb-3 overflow-hidden h-screen flex items-center justify-center">
+        <div className="text-white">Loading dashboard...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-3 md:px-4 space-y-3 pb-3 overflow-hidden h-screen">
       {/* Header - Simplified without search */}
       <div className="flex justify-between items-center pt-2">
         <div>
           <h1 className="text-base font-semibold text-white">Volunteer Dashboard</h1>
-          <p className="text-xs text-gray-400">Welcome back, John!</p>
+          <p className="text-xs text-gray-400">Welcome back!</p>
         </div>
-        {/* Removed search and bell icon from header */}
       </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+          <p className="text-red-400 text-sm">{error}</p>
+          <Button
+            onClick={fetchDashboardData}
+            className="mt-2 bg-red-600 hover:bg-red-500 text-white text-xs h-8"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* 1. Top Row Metric Cards - Shorter */}
       <div className="flex justify-center">
@@ -455,11 +403,12 @@ export default function VolunteerDashboard() {
               </div>
             </CardHeader>
             <CardContent className="flex-1 p-0 min-h-0">
-              <div className="h-full rounded-lg overflow-hidden">
+              <div style={{ height: '400px' }}> {/* Fixed height for map */}
                 <VolunteerMap 
                   centers={mapLocations}
                   onLocationSelect={handleMapLocationSelect}
                   userLocation={userLocation}
+                  selectedLocationId={selectedAssignment?.id}
                 />
               </div>
             </CardContent>
@@ -515,98 +464,110 @@ export default function VolunteerDashboard() {
               <div className="h-[325px] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
                 {activeTab === 'assignments' ? (
                   <div className="space-y-2">
-                    {filteredAssignments.map((assignment) => (
-                      <div
-                        key={assignment.id}
-                        className={`p-2 bg-gray-800/50 rounded border cursor-pointer transition-all ${
-                          selectedAssignment?.id === assignment.id 
-                            ? 'border-blue-500 bg-blue-500/10' 
-                            : 'border-gray-700 hover:border-blue-500'
-                        }`}
-                        onClick={() => handleAssignmentSelect(assignment)}
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="text-white font-medium text-xs flex-1 mr-2 line-clamp-1">
-                            {assignment.title}
-                          </h4>
-                          <div className="flex space-x-1">
-                            <span className={`px-1.5 py-0.5 rounded text-xs ${getPriorityColor(assignment.priority)}`}>
-                              {assignment.priority}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <p className="text-blue-400 text-xs mb-1">{assignment.organization}</p>
-                        
-                        <div className="flex justify-between items-center text-xs text-gray-400">
-                          <div className="flex items-center space-x-1">
-                            <MapPin size={10} />
-                            <span className="truncate max-w-[80px]">{assignment.location}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Clock size={10} />
-                            <span>Due: {assignment.dueDate}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {assignment.requiredSkills.slice(0, 2).map((skill: string, index: number) => (
-                            <span key={index} className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-
-                        {assignment.status !== 'Completed' && (
-                          <div className="flex gap-1 mt-2">
-                            <Button
-                              size="sm"
-                              className="text-xs h-6 bg-green-600 hover:bg-green-500"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleUpdateStatus(assignment.id, 'Completed');
-                              }}
-                            >
-                              Complete
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="text-xs h-6 bg-blue-600 hover:bg-blue-500"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                getDirections(assignment);
-                              }}
-                            >
-                              <Navigation size={12} className="mr-1" />
-                              Directions
-                            </Button>
-                          </div>
-                        )}
+                    {filteredAssignments.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-xs text-neutral-400">No assignments found</p>
                       </div>
-                    ))}
+                    ) : (
+                      filteredAssignments.map((assignment) => (
+                        <div
+                          key={assignment.id}
+                          className={`p-2 bg-gray-800/50 rounded border cursor-pointer transition-all ${
+                            selectedAssignment?.id === assignment.id 
+                              ? 'border-blue-500 bg-blue-500/10' 
+                              : 'border-gray-700 hover:border-blue-500'
+                          }`}
+                          onClick={() => handleAssignmentSelect(assignment)}
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <h4 className="text-white font-medium text-xs flex-1 mr-2 line-clamp-1">
+                              {assignment.title}
+                            </h4>
+                            <div className="flex space-x-1">
+                              <span className={`px-1.5 py-0.5 rounded text-xs ${getPriorityColor(assignment.priority)}`}>
+                                {assignment.priority}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <p className="text-blue-400 text-xs mb-1">{assignment.organization}</p>
+                          
+                          <div className="flex justify-between items-center text-xs text-gray-400">
+                            <div className="flex items-center space-x-1">
+                              <MapPin size={10} />
+                              <span className="truncate max-w-[80px]">{assignment.location}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Clock size={10} />
+                              <span>Due: {assignment.dueDate}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {assignment.requiredSkills?.slice(0, 2).map((skill: string, index: number) => (
+                              <span key={index} className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+
+                          {assignment.status !== 'Completed' && (
+                            <div className="flex gap-1 mt-2">
+                              <Button
+                                size="sm"
+                                className="text-xs h-6 bg-green-600 hover:bg-green-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateStatus(assignment.id, 'Completed');
+                                }}
+                              >
+                                Complete
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="text-xs h-6 bg-blue-600 hover:bg-blue-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  getDirections(assignment);
+                                }}
+                              >
+                                <Navigation size={12} className="mr-1" />
+                                Directions
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {filteredMissions.map((mission) => (
-                      <div
-                        key={mission.id}
-                        className="p-2 bg-gray-800/50 rounded border border-gray-700"
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="text-white font-medium text-xs line-clamp-1">
-                            {mission.title}
-                          </h4>
-                          <span className={`px-1.5 py-0.5 rounded text-xs ${getStatusColor(mission.status)}`}>
-                            {mission.status}
-                          </span>
-                        </div>
-                        <p className="text-blue-400 text-xs mb-1">{mission.organization}</p>
-                        <div className="flex justify-between items-center text-xs text-gray-400">
-                          <span>{mission.startDate}</span>
-                          <span>{mission.hoursCompleted}h</span>
-                        </div>
+                    {filteredMissions.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-xs text-neutral-400">No missions found</p>
                       </div>
-                    ))}
+                    ) : (
+                      filteredMissions.map((mission) => (
+                        <div
+                          key={mission.id}
+                          className="p-2 bg-gray-800/50 rounded border border-gray-700"
+                        >
+                          <div className="flex justify-between items-start mb-1">
+                            <h4 className="text-white font-medium text-xs line-clamp-1">
+                              {mission.title}
+                            </h4>
+                            <span className={`px-1.5 py-0.5 rounded text-xs ${getStatusColor(mission.status)}`}>
+                              {mission.status}
+                            </span>
+                          </div>
+                          <p className="text-blue-400 text-xs mb-1">{mission.organization}</p>
+                          <div className="flex justify-between items-center text-xs text-gray-400">
+                            <span>{mission.startDate}</span>
+                            <span>{mission.hoursCompleted}h</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -689,7 +650,7 @@ export default function VolunteerDashboard() {
                     <div className="flex-1 min-h-0 flex flex-col">
                       <span className="text-neutral-300 text-xs font-medium flex-shrink-0">Required Skills</span>
                       <div className="flex flex-wrap gap-1 mt-1 overflow-y-auto flex-1">
-                        {selectedAssignment.requiredSkills.map((skill: string, index: number) => (
+                        {selectedAssignment.requiredSkills?.map((skill: string, index: number) => (
                           <span key={index} className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs flex-shrink-0">
                             {skill}
                           </span>
