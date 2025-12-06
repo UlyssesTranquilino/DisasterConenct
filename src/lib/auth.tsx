@@ -231,8 +231,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (
     email: string,
     password: string,
-    displayName: string,
-    roles: UserRole[],
+    name: string,
+    role: string,
     profileData: any = {}
   ) => {
     try {
@@ -242,8 +242,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await apiService.register(
         email,
         password,
-        displayName,
-        roles,
+        name,
+        role,
         profileData
       );
 
@@ -251,10 +251,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { token, user } = response.data;
         const normalizedUser: CurrentUser = {
           ...user,
-          roles: user.roles?.map(normalizeRole) || roles,
+          roles: user.roles?.map(normalizeRole) || [role as UserRole],
           activeRole: user.activeRole
             ? normalizeRole(user.activeRole)
-            : roles[0] || "citizen",
+            : (role as UserRole) || "citizen",
         };
 
         apiService.setToken(token);
@@ -372,17 +372,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeGoogleProfile = async (
     userInfo: any,
-    roles: UserRole[],
+    role: string,
     profileData: any
   ) => {
     try {
       setError(null);
       setIsLoading(true);
 
-      // Pass array of roles now instead of single role
+      // Pass single role string
       const response = await apiService.completeGoogleProfile(
         userInfo.idToken,
-        roles,
+        role,
         profileData
       );
 
@@ -391,10 +391,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const normalizedUser: CurrentUser = {
           ...backendUser,
-          roles: backendUser.roles?.map(normalizeRole) || roles,
+          roles: backendUser.roles?.map(normalizeRole) || [role as UserRole],
           activeRole: backendUser.activeRole
             ? normalizeRole(backendUser.activeRole)
-            : roles[0] || null,
+            : (role as UserRole) || null,
         };
 
         apiService.setToken(response.data.token);

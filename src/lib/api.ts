@@ -181,8 +181,8 @@ class ApiService {
   async register(
     email: string,
     password: string,
-    displayName: string,
-    roles: UserRole[],
+    name: string,
+    role: string,
     profileData: any = {}
   ): Promise<AuthResponse> {
     return this.request<AuthResponse>("/auth/register", {
@@ -190,8 +190,8 @@ class ApiService {
       body: JSON.stringify({
         email,
         password,
-        displayName,
-        roles,
+        name,
+        role,
         profileData,
       }),
     });
@@ -218,15 +218,15 @@ class ApiService {
 
   async completeGoogleProfile(
     idToken: string,
-    roles: UserRole[],
+    role: string,
     profileData?: any
   ): Promise<AuthResponse> {
-    // Same endpoint as googleLogin; backend still expects `token`
+    // Same endpoint as googleLogin; backend expects `token` and `role`
     return this.request<AuthResponse>("/auth/google", {
       method: "POST",
       body: JSON.stringify({
         token: idToken,
-        roles, // Send as array so backend can optionally use it later
+        role, // Send as single role string
         profileData,
       }),
     });

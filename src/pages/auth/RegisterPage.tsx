@@ -91,14 +91,12 @@ export default function RegisterPage() {
       }
 
       // Use completeGoogleProfile for Google users, register for regular users
-      const rolesArray: UserRole[] = [role];
-      
       if (googleUserInfo) {
-        await completeGoogleProfile(googleUserInfo, rolesArray, profileData);
+        await completeGoogleProfile(googleUserInfo, role, profileData);
         // Clear sessionStorage after successful registration
         sessionStorage.removeItem("googleUserInfo");
       } else {
-        await register(email, password, name, rolesArray, profileData);
+        await register(email, password, name, role, profileData);
         setSuccessMessage("Registration successful! Redirecting to login...");
       }
     } catch (error) {
