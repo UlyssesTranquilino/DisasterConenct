@@ -3,7 +3,7 @@ import { AuthProvider, useAuth } from "./lib/auth";
 import { ThemeProvider } from "./lib/theme";
 import { OrganizationProvider } from "./contexts/OrganizationContext";
 import { AppLayout } from "./layouts/AppLayout";
-
+import { Toaster } from "sonner";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
 import RoleSelectionPage from "./pages/auth/RoleSelectionPage";
@@ -56,10 +56,10 @@ export default function App() {
     if (!currentUser.activeRole) {
       return <Navigate to="/login" replace />;
     }
-    
+
     const userRole = currentUser.activeRole.toLowerCase();
-    const allowedRoles = roles.map(r => r.toLowerCase());
-    
+    const allowedRoles = roles.map((r) => r.toLowerCase());
+
     if (!allowedRoles.includes(userRole)) {
       return <Navigate to="/login" replace />;
     }
@@ -94,8 +94,10 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <OrganizationProvider>
+          <Toaster richColors theme="dark" position="top-right" />
           <Routes>
             {/* PUBLIC */}
+
             <Route path="/" element={<LandingPage />} />
 
             <Route

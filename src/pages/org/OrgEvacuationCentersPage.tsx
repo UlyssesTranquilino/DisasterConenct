@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import {
   Card,
   CardHeader,
@@ -130,7 +131,7 @@ const MapPicker: React.FC<MapPickerProps> = ({
       <LocationPicker />
       <Marker position={position} icon={createLucideMarker("#3b82f6")}>
         <Popup>
-          <div className="text-xs">
+          <div className="text-xs text-white">
             {centerName}
             <br />
             {centerAddress}
@@ -235,6 +236,7 @@ const EditCenterModal = ({
   isLoading?: boolean;
 }) => {
   const [form, setForm] = useState(center);
+  const [isOpen, setIsOpen] = useState(false);
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,11 +258,12 @@ const EditCenterModal = ({
 
   const handleSave = () => {
     onSave(form);
+    setIsOpen(false);
   };
 
   return (
     <>
-      <Dialog>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="h-7 text-xs">
             <Edit2 size={12} className="mr-1" /> Edit
@@ -727,9 +730,17 @@ export default function OrgEvacuationCentersPage() {
       setError(null);
       await evacuationCenterService.createEvacuationCenter(data);
       await fetchCenters(); // Refresh the list
+
+      toast.success("Evacuation center created", {
+        description: data.name,
+      });
     } catch (err) {
       console.error("Error creating center:", err);
       setError(err instanceof Error ? err.message : "Failed to create center");
+      toast.error("Failed to create center", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
       throw err;
     } finally {
       setSaving(false);
@@ -740,12 +751,28 @@ export default function OrgEvacuationCentersPage() {
     try {
       setSaving(true);
       setError(null);
-      const { id } = updatedCenter;
-      // Backend does not yet expose an update route; update locally for now
-      setCenters((prev) => prev.map((c) => (c.id === id ? updatedCenter : c)));
+
+      const { id, ...updateData } = updatedCenter;
+
+      const response = await evacuationCenterService.updateEvacuationCenter(
+        id,
+        updateData
+      );
+
+      const newCenter = response.center ?? updatedCenter;
+
+      setCenters((prev) => prev.map((c) => (c.id === id ? newCenter : c)));
+
+      toast.success("Evacuation center updated", {
+        description: newCenter.name,
+      });
     } catch (err) {
       console.error("Error updating center:", err);
       setError(err instanceof Error ? err.message : "Failed to update center");
+      toast.error("Failed to update center", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
       await fetchCenters();
       throw err;
     } finally {
@@ -760,11 +787,21 @@ export default function OrgEvacuationCentersPage() {
 
     try {
       setError(null);
-      // Backend does not yet expose a delete route; remove from local state
+
+      await evacuationCenterService.deleteEvacuationCenter(centerId);
+
       setCenters((prev) => prev.filter((c) => c.id !== centerId));
+
+      toast.success("Evacuation center deleted", {
+        description: "The center has been removed.",
+      });
     } catch (err) {
       console.error("Error deleting center:", err);
       setError(err instanceof Error ? err.message : "Failed to delete center");
+      toast.error("Failed to delete center", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
     }
   };
 
@@ -780,9 +817,61 @@ export default function OrgEvacuationCentersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-        <span className="ml-2 text-white">Loading evacuation centers...</span>
+      <div className="px-2 md:px-4 space-y-4 text-white">
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px] w-40 animate-pulse">
+              <Search size={14} className="text-gray-500 mr-2" />
+              <div className="h-4 flex-1 bg-neutral-800 rounded" />
+            </div>
+            <div className="h-9 w-28 bg-blue-900/70 rounded-md animate-pulse" />
+          </div>
+        </div>
+
+        {/* Table skeleton */}
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader>
+            <div className="h-4 w-56 bg-neutral-800/80 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-neutral-800/80 pb-2"
+                >
+                  <div className="space-y-1 flex-1">
+                    <div className="h-3 w-40 bg-neutral-800/80 rounded animate-pulse" />
+                    <div className="h-3 w-64 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <div className="h-7 w-16 bg-neutral-800/80 rounded animate-pulse" />
+                    <div className="h-7 w-16 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Map skeleton */}
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader className="pb-2 flex justify-between items-center">
+            <div className="h-4 w-48 bg-neutral-800/80 rounded animate-pulse" />
+            <div className="flex items-center gap-3">
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={idx} className="flex items-center gap-1">
+                  <span className="h-2 w-2 bg-neutral-700 rounded-full" />
+                  <span className="h-3 w-16 bg-neutral-800/80 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[500px] w-full rounded-xl bg-neutral-900/80 animate-pulse" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
