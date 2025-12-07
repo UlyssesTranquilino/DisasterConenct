@@ -27,9 +27,6 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { useOrganization } from "../../contexts/OrganizationContext";
 import {
   evacuationCenterService,
@@ -37,12 +34,15 @@ import {
   type CreateEvacuationCenterData,
 } from "../../services/evacuationCenterService";
 
-// Fix for Leaflet default icon (ESM-friendly, no require)
+// Fix for Leaflet default icon using CDN URLs
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
 const cardGradientStyle = {
@@ -116,12 +116,14 @@ const MapPicker: React.FC<MapPickerProps> = ({
       zoom={13}
       className="h-64 rounded-xl mt-2"
       ref={mapRef}
-      whenCreated={(mapInstance) => {
-        mapRef.current = mapInstance;
-        // Small delay to ensure map is fully rendered
-        setTimeout(() => {
-          mapInstance.invalidateSize();
-        }, 100);
+      whenReady={() => {
+        const mapInstance = mapRef.current;
+        if (mapInstance) {
+          // Small delay to ensure map is fully rendered
+          setTimeout(() => {
+            mapInstance.invalidateSize();
+          }, 100);
+        }
       }}
     >
       <TileLayer
@@ -645,8 +647,8 @@ const EvacuationCentersMap = ({ centers }: { centers: EvacuationCenter[] }) => {
       zoom={12}
       className="h-[500px] rounded-xl"
       ref={mapRef}
-      whenCreated={(mapInstance) => {
-        mapRef.current = mapInstance;
+      whenReady={() => {
+        // Map is ready, mapRef.current should be set by ref
       }}
     >
       <TileLayer

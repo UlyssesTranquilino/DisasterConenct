@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useOrganization } from "../../contexts/OrganizationContext";
+import { toast } from "sonner";
 import {
   organizationService,
   Resource,
@@ -21,7 +22,7 @@ import {
 } from "../../components/components/ui/dialog";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Plus, Pencil, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Pencil, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -31,8 +32,23 @@ import {
   ResponsiveContainer,
 } from "recharts";
 // Helper function to format date
-const formatDate = (date?: Date) => {
-  return date ? new Date(date).toLocaleDateString() : "N/A";
+const formatDate = (date?: any) => {
+  if (!date) return "N/A";
+
+  // Handle Firestore Timestamp object
+  if (date && typeof date === "object" && "_seconds" in date) {
+    return new Date(date._seconds * 1000).toLocaleDateString();
+  }
+
+  // Handle regular date string or Date object
+  try {
+    const parsedDate = new Date(date);
+    return isNaN(parsedDate.getTime())
+      ? "N/A"
+      : parsedDate.toLocaleDateString();
+  } catch {
+    return "N/A";
+  }
 };
 
 const cardGradientStyle = {
@@ -40,6 +56,20 @@ const cardGradientStyle = {
     "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
   backdropFilter: "blur(10px)",
 };
+
+// Color palette for different resources
+const resourceColors = [
+  "#3b82f6", // blue
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#8b5cf6", // violet
+  "#ec4899", // pink
+  "#14b8a6", // teal
+  "#f97316", // orange
+  "#6366f1", // indigo
+  "#84cc16", // lime
+];
 
 export const OrgResourcesPage: React.FC = () => {
   const { currentOrgId } = useOrganization();
@@ -55,15 +85,15 @@ export const OrgResourcesPage: React.FC = () => {
   });
 
   // Fetch resources from the backend
+  // Fetch resources from the backend
   const fetchResources = async () => {
-    if (!currentOrgId) return;
-
     setLoading(true);
     setError(null);
 
     try {
-      const data = await organizationService.getResources(currentOrgId);
-      setResources(data);
+      const res = await organizationService.getResources();
+      // service returns { success, data }
+      setResources(res.data);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to fetch resources"
@@ -76,7 +106,7 @@ export const OrgResourcesPage: React.FC = () => {
 
   useEffect(() => {
     fetchResources();
-  }, [currentOrgId]);
+  }, []);
 
   const handleOpenAdd = () => {
     setEditing(null);
@@ -95,8 +125,6 @@ export const OrgResourcesPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!currentOrgId) return;
-
     try {
       const resourceData = {
         name: formData.name,
@@ -104,48 +132,122 @@ export const OrgResourcesPage: React.FC = () => {
         unit: formData.unit,
       };
 
+      if (
+        !resourceData.name ||
+        !resourceData.unit ||
+        isNaN(resourceData.quantity)
+      ) {
+        toast.error("Invalid resource data", {
+          description: "Please provide name, quantity, and unit.",
+        });
+        return;
+      }
+
       if (editing && editing.id) {
-        // Update existing resource
-        await organizationService.updateResource(
-          currentOrgId,
-          editing.id,
-          resourceData
-        );
+        // Update existing resource: PUT /organization/resources/:id
+        await organizationService.updateResource(editing.id, resourceData);
+        toast.success("Resource updated", {
+          description: resourceData.name,
+        });
       } else {
-        // Create new resource
-        await organizationService.createResource(currentOrgId, resourceData);
+        // Create new resource: POST /organization/resources
+        await organizationService.createResource(resourceData);
+        toast.success("Resource added", {
+          description: resourceData.name,
+        });
       }
 
       setDialogOpen(false);
       await fetchResources(); // Refresh the list
     } catch (err) {
       console.error("Error saving resource:", err);
-      // You might want to show an error toast here
+      toast.error("Failed to save resource", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
     }
   };
 
   const handleDelete = async (resourceId: string) => {
-    if (
-      !currentOrgId ||
-      !confirm("Are you sure you want to delete this resource?")
-    ) {
+    if (!confirm("Are you sure you want to delete this resource?")) {
       return;
     }
 
     try {
-      await organizationService.deleteResource(currentOrgId, resourceId);
+      await organizationService.deleteResource(resourceId);
       await fetchResources(); // Refresh the list
+
+      toast.success("Resource deleted", {
+        description: "The resource has been removed.",
+      });
     } catch (err) {
       console.error("Error deleting resource:", err);
-      // You might want to show an error toast here
+      toast.error("Failed to delete resource", {
+        description:
+          err instanceof Error ? err.message : "Something went wrong.",
+      });
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading resources...</span>
+      <div className="space-y-6 px-2 md:px-4 text-white">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-32 bg-neutral-800/80 rounded animate-pulse" />
+          <div className="h-9 w-32 bg-blue-900/70 rounded-md animate-pulse" />
+        </div>
+
+        {/* Summary cards skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <Card key={idx} className="border-0" style={cardGradientStyle}>
+              <CardHeader className="pb-2">
+                <div className="h-4 w-32 bg-neutral-800/80 rounded animate-pulse" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-6 w-24 bg-neutral-800/80 rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-neutral-900/80 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table skeleton */}
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader>
+            <div className="h-4 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-neutral-800/80 pb-2"
+                >
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 w-40 bg-neutral-800/80 rounded animate-pulse" />
+                    <div className="h-3 w-24 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <div className="h-7 w-16 bg-neutral-800/80 rounded animate-pulse" />
+                    <div className="h-7 w-16 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Chart skeleton */}
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader>
+            <div className="h-4 w-48 bg-neutral-800/80 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full bg-neutral-900/80 rounded-xl animate-pulse" />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -162,10 +264,12 @@ export const OrgResourcesPage: React.FC = () => {
     );
   }
 
-  // Data for the chart
-  const chartData = resources.map((resource) => ({
+  // Data for the chart with colors
+  const chartData = resources.map((resource, index) => ({
     name: resource.name,
     quantity: resource.quantity,
+    unit: resource.unit,
+    fill: resourceColors[index % resourceColors.length],
   }));
 
   // Calculate total resources
@@ -207,7 +311,7 @@ export const OrgResourcesPage: React.FC = () => {
                 {r.quantity} {r.unit}
               </div>
               <p className="text-xs text-neutral-400">
-                Updated {formatDate(r.updatedAt as unknown as Date)}
+                Updated {formatDate(r.updatedAt)}
               </p>
             </CardContent>
           </Card>
@@ -241,16 +345,24 @@ export const OrgResourcesPage: React.FC = () => {
                   <td className="py-2 px-3">{r.name}</td>
                   <td className="py-2 px-3">{r.quantity}</td>
                   <td className="py-2 px-3">{r.unit}</td>
-                  <td className="py-2 px-3">
-                    {formatDate(r.updatedAt as unknown as Date)}
-                  </td>
-                  <td className="py-2 px-3 text-right">
+                  <td className="py-2 px-3">{formatDate(r.updatedAt)}</td>
+                  <td className="py-2 px-3 text-right space-x-2">
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => handleOpenEdit(r)}
+                      className="h-7 text-xs"
                     >
                       <Pencil size={14} />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs text-red-400 border-red-800 hover:bg-red-900/50"
+                      onClick={() => handleDelete(r.id!)}
+                    >
+                      <Trash2 size={12} className="mr-1" /> Delete
                     </Button>
                   </td>
                 </tr>

@@ -92,7 +92,7 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <OrganizationProvider>
-          <Toaster richColors theme="dark" position="top-right" />
+          <Toaster richColors theme="dark" position="top-center" />
           <Routes>
             {/* PUBLIC */}
 

@@ -1,8 +1,13 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/button";
-import { ThemeToggle } from "../components/ThemeToggle";
-import { ShieldAlert, Building2, HelpingHand, Clock, MapPin } from "lucide-react";
+import {
+  ShieldAlert,
+  Building2,
+  HelpingHand,
+  Clock,
+  MapPin,
+} from "lucide-react";
 
 /**
  * Clean, modern, dark/light-tech landing page
@@ -47,7 +52,9 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-neutral-200/60 dark:border-neutral-800/60 bg-white/80 dark:bg-neutral-900/60 backdrop-blur supports-[backdrop-filter]:bg-white/60 supports-[backdrop-filter]:dark:bg-neutral-900/60">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="text-xl font-extrabold tracking-tight">DisasterConnect</div>
+            <div className="text-xl font-extrabold tracking-tight">
+              DisasterConnect
+            </div>
             <span className="hidden sm:inline-block text-sm text-neutral-500 dark:text-neutral-400">
               Tech-powered community response
             </span>
@@ -69,12 +76,13 @@ export default function LandingPage() {
             <Link to="/register" className="hover:underline">
               Register
             </Link>
-            <ThemeToggle />
           </nav>
 
           <div className="md:hidden flex items-center gap-3">
-            <ThemeToggle />
-            <Link to="/login" className="text-sm px-3 py-2 rounded-md bg-blue-900 text-white hover:bg-blue-950">
+            <Link
+              to="/login"
+              className="text-sm px-3 py-2 rounded-md bg-blue-900 text-white hover:bg-blue-950"
+            >
               Login
             </Link>
           </div>
@@ -91,7 +99,8 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-neutral-600 dark:text-neutral-300 max-w-prose text-base md:text-lg">
-              Real-time alerts, coordinated volunteer response, and transparent resource management — built for resilience in the Philippines.
+              Real-time alerts, coordinated volunteer response, and transparent
+              resource management — built for resilience in the Philippines.
             </p>
 
             <div className="flex flex-wrap gap-3 mt-4">
@@ -140,10 +149,15 @@ export default function LandingPage() {
                 {/* Right: Gradient panel with highlight */}
                 <div className="flex items-center justify-center p-6 bg-gradient-to-tr from-[#0EA5E9]/70 to-[#7C3AED]/60 dark:from-[#0369A1]/60 dark:to-[#4C1D95]/60">
                   <div className="text-center">
-                    <div className="text-sm uppercase tracking-wide text-white/90 mb-2">DisasterConnect</div>
-                    <h3 className="text-white font-bold text-xl md:text-2xl">Connect • Respond • Recover</h3>
+                    <div className="text-sm uppercase tracking-wide text-white/90 mb-2">
+                      DisasterConnect
+                    </div>
+                    <h3 className="text-white font-bold text-xl md:text-2xl">
+                      Connect • Respond • Recover
+                    </h3>
                     <p className="text-white/90 mt-2 text-sm max-w-[16rem] mx-auto">
-                      A modern command center in your pocket — shared situational awareness for faster help.
+                      A modern command center in your pocket — shared
+                      situational awareness for faster help.
                     </p>
                     <div className="mt-4 flex justify-center">
                       <Link to="/register">
@@ -165,7 +179,9 @@ export default function LandingPage() {
 
       {/* FEATURES (3 simple cards) */}
       <section id="features" className="container mx-auto px-4 py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-semibold text-center mb-8">What we do</h2>
+        <h2 className="text-2xl md:text-3xl font-semibold text-center mb-8">
+          What we do
+        </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           <article className="bg-white dark:bg-neutral-800 rounded-xl p-6 shadow hover:shadow-lg transition-shadow duration-200">
@@ -176,7 +192,8 @@ export default function LandingPage() {
               <div>
                 <h3 className="font-semibold text-lg">For Citizens</h3>
                 <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
-                  Request help, view safe zones, and get timely guidance when disaster strikes.
+                  Request help, view safe zones, and get timely guidance when
+                  disaster strikes.
                 </p>
               </div>
             </div>
@@ -190,7 +207,8 @@ export default function LandingPage() {
               <div>
                 <h3 className="font-semibold text-lg">For Organizations</h3>
                 <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
-                  Manage evacuation centers, coordinate logistics, and publish official updates.
+                  Manage evacuation centers, coordinate logistics, and publish
+                  official updates.
                 </p>
               </div>
             </div>
@@ -202,9 +220,12 @@ export default function LandingPage() {
                 <HelpingHand size={20} />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">For Volunteers & Donors</h3>
+                <h3 className="font-semibold text-lg">
+                  For Volunteers & Donors
+                </h3>
                 <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">
-                  Discover curated opportunities and connect with needs in real time.
+                  Discover curated opportunities and connect with needs in real
+                  time.
                 </p>
               </div>
             </div>
@@ -220,9 +241,13 @@ export default function LandingPage() {
               <Clock size={18} />
             </div>
             <div>
-              <div className="text-sm text-neutral-500 dark:text-neutral-300">Step 1</div>
+              <div className="text-sm text-neutral-500 dark:text-neutral-300">
+                Step 1
+              </div>
               <div className="font-semibold">Alert & Locate</div>
-              <div className="text-sm text-neutral-500 mt-1">Get verified alerts and precise location sharing.</div>
+              <div className="text-sm text-neutral-500 mt-1">
+                Get verified alerts and precise location sharing.
+              </div>
             </div>
           </div>
 
@@ -231,9 +256,13 @@ export default function LandingPage() {
               <MapPin size={18} />
             </div>
             <div>
-              <div className="text-sm text-neutral-500 dark:text-neutral-300">Step 2</div>
+              <div className="text-sm text-neutral-500 dark:text-neutral-300">
+                Step 2
+              </div>
               <div className="font-semibold">Coordinate</div>
-              <div className="text-sm text-neutral-500 mt-1">Volunteers and organizations coordinate resources quickly.</div>
+              <div className="text-sm text-neutral-500 mt-1">
+                Volunteers and organizations coordinate resources quickly.
+              </div>
             </div>
           </div>
 
@@ -242,9 +271,13 @@ export default function LandingPage() {
               <HelpingHand size={18} />
             </div>
             <div>
-              <div className="text-sm text-neutral-500 dark:text-neutral-300">Step 3</div>
+              <div className="text-sm text-neutral-500 dark:text-neutral-300">
+                Step 3
+              </div>
               <div className="font-semibold">Recover</div>
-              <div className="text-sm text-neutral-500 mt-1">Track progress and ensure fair distribution of aid.</div>
+              <div className="text-sm text-neutral-500 mt-1">
+                Track progress and ensure fair distribution of aid.
+              </div>
             </div>
           </div>
         </div>
@@ -252,7 +285,9 @@ export default function LandingPage() {
 
       {/* LATEST UPDATES (reduced and concise) */}
       <section id="updates" className="container mx-auto px-4 py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-semibold text-center mb-8">Latest Updates</h2>
+        <h2 className="text-2xl md:text-3xl font-semibold text-center mb-8">
+          Latest Updates
+        </h2>
 
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           {news.map((n, i) => (
@@ -261,11 +296,17 @@ export default function LandingPage() {
               className="rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-200 bg-white dark:bg-neutral-800"
             >
               <div className="h-40 w-full">
-                <img src={n.img} alt={n.title} className="w-full h-full object-cover" />
+                <img
+                  src={n.img}
+                  alt={n.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-1">{n.title}</h3>
-                <p className="text-sm text-neutral-600 dark:text-neutral-300">{n.desc}</p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300">
+                  {n.desc}
+                </p>
               </div>
             </article>
           ))}
@@ -276,15 +317,21 @@ export default function LandingPage() {
       <section id="contact" className="container mx-auto px-4 py-10">
         <div className="max-w-2xl mx-auto text-center">
           <h3 className="text-lg font-semibold mb-2">Get in touch</h3>
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">disasterconnectph@gmail.com</p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            disasterconnectph@gmail.com
+          </p>
         </div>
       </section>
 
       {/* FOOTER */}
       <footer className="border-t border-neutral-200 dark:border-neutral-800 py-6">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="text-sm text-neutral-600 dark:text-neutral-400">© DisasterConnect 2025</div>
-          <div className="text-sm text-neutral-600 dark:text-neutral-400">Empowering communities through technology</div>
+          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+            © DisasterConnect 2025
+          </div>
+          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+            Empowering communities through technology
+          </div>
         </div>
       </footer>
     </div>
