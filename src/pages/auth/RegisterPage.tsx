@@ -17,7 +17,9 @@ export default function RegisterPage() {
       : null);
   const preSelectedRole = location.state?.selectedRole;
 
-  const [role, setRole] = useState<UserRole>(preSelectedRole || "Citizen");
+  const [role, setRole] = useState<UserRole>(
+    (preSelectedRole?.toLowerCase() as UserRole) || "citizen"
+  );
   const [name, setName] = useState(googleUserInfo?.name || "");
   const [email, setEmail] = useState(googleUserInfo?.email || "");
   const [password, setPassword] = useState("");
@@ -58,7 +60,7 @@ export default function RegisterPage() {
       }
     }
 
-    if (role === "Citizen" && !agreeTerms) {
+    if (role === "citizen" && !agreeTerms) {
       alert("You must agree to the Terms of Service and Privacy Policy.");
       return;
     }
@@ -69,17 +71,17 @@ export default function RegisterPage() {
       // Prepare profile data based on role
       let profileData = {};
 
-      if (role === "Citizen") {
+      if (role === "citizen") {
         profileData = {
           location: userLocation,
         };
-      } else if (role === "Volunteer") {
+      } else if (role === "volunteer") {
         profileData = {
           skills,
           availability,
           // Note: File upload would need separate handling
         };
-      } else if (role === "Organization") {
+      } else if (role === "organization") {
         profileData = {
           orgName,
           orgType,
@@ -102,7 +104,7 @@ export default function RegisterPage() {
     }
   };
 
-  const roles: UserRole[] = ["Citizen", "Volunteer", "Organization"];
+  const roles: UserRole[] = ["citizen", "volunteer", "organization"];
 
   return (
     <div className="min-h-screen flex overflow-hidden">
@@ -262,7 +264,7 @@ export default function RegisterPage() {
             </div>
 
             {/* CIVILIAN FORM */}
-            {role === "Citizen" && (
+            {role === "citizen" && (
               <>
                 <hr className="my-8 border-gray-300" />
                 <h2 className="text-xl font-semibold text-blue-900 mb-4">
@@ -313,7 +315,7 @@ export default function RegisterPage() {
             )}
 
             {/* VOLUNTEER FORM */}
-            {role === "Volunteer" && (
+            {role === "volunteer" && (
               <>
                 <hr className="my-8 border-gray-300" />
                 <h2 className="text-xl font-semibold text-blue-900 mb-4">
@@ -407,7 +409,7 @@ export default function RegisterPage() {
             )}
 
             {/* ORGANIZATION FORM */}
-            {role === "Organization" && (
+            {role === "organization" && (
               <>
                 <hr className="my-8 border-gray-300" />
                 <h2 className="text-xl font-semibold text-blue-900 mb-4">

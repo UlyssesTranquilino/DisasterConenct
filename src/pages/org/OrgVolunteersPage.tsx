@@ -1,25 +1,24 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  organizationService,
+  Volunteer,
+  VolunteerStatus,
+} from "../../services/organizationService";
+import { Button } from "../../components/ui/button";
+import { Badge } from "../../components/components/ui/badge";
+import { User, Phone, MapPin, Loader2, Search, Pencil } from "lucide-react";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
 } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import {
-  Dialog,
-  DialogHeader,
-  DialogTitle,
-  DialogContent,
-  DialogFooter,
-} from "../../components/components/ui/dialog";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Plus, Pencil } from "lucide-react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { cn } from "../../lib/utils";
+
+const statusColors: Record<VolunteerStatus, string> = {
+  Active: "bg-green-100 text-green-800",
+  "On Duty": "bg-blue-100 text-blue-800",
+  Standby: "bg-yellow-100 text-yellow-800",
+};
 
 const cardGradientStyle = {
   background:
@@ -27,315 +26,301 @@ const cardGradientStyle = {
   backdropFilter: "blur(10px)",
 };
 
-type Volunteer = {
-  id: number;
-  name: string;
-  role: string;
-  contact: string;
-  location: string;
-  status: string;
-};
+export default function OrgVolunteersPage() {
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-// --- Custom Lucide Marker ---
-const createLucideMarker = (color: string) =>
-  L.divIcon({
-    html: `
-      <div style="
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        transform: translate(-50%, -100%);
-      ">
-        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"
-             viewBox="0 0 24 24" fill="none" stroke="${color}"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-             class="lucide lucide-map-pin drop-shadow-md">
-          <path d="M12 21s8-4.5 8-10a8 8 0 1 0-16 0c0 5.5 8 10 8 10z"/>
-          <circle cx="12" cy="11" r="3"/>
-        </svg>
-      </div>
-    `,
-    className: "",
-    iconSize: [28, 28],
-    iconAnchor: [16, 32],
-    popupAnchor: [-16, -50],
-  });
-
-export const OrgVolunteersPage = () => {
-  const [volunteers, setVolunteers] = useState<Volunteer[]>([
-    {
-      id: 1,
-      name: "Team Alpha",
-      role: "Medical Support",
-      contact: "0917-123-4567",
-      location: "Manila",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Rescue Unit 3",
-      role: "Rescue",
-      contact: "0917-888-9999",
-      location: "Cavite",
-      status: "On Duty",
-    },
-    {
-      id: 3,
-      name: "Relief Team North",
-      role: "Logistics",
-      contact: "0922-555-3333",
-      location: "Quezon City",
-      status: "Standby",
-    },
-  ]);
-
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Volunteer | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    role: "",
-    contact: "",
-    location: "",
-    status: "",
-  });
-
-  const handleOpenAdd = () => {
-    setEditing(null);
-    setFormData({ name: "", role: "", contact: "", location: "", status: "" });
-    setDialogOpen(true);
-  };
-
-  const handleOpenEdit = (v: Volunteer) => {
-    setEditing(v);
-    setFormData({
-      name: v.name,
-      role: v.role,
-      contact: v.contact,
-      location: v.location,
-      status: v.status,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSave = () => {
-    if (editing) {
-      setVolunteers((prev) =>
-        prev.map((v) => (v.id === editing.id ? { ...v, ...formData } : v))
+  const fetchVolunteers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await organizationService.getOrgVolunteers();
+      setVolunteers(res.data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch volunteers"
       );
-    } else {
-      setVolunteers((prev) => [...prev, { id: prev.length + 1, ...formData }]);
+      console.error("Error fetching volunteers:", err);
+    } finally {
+      setLoading(false);
     }
-    setDialogOpen(false);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Volunteers</h1>
-        <Button
-          size="sm"
-          onClick={handleOpenAdd}
-          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500"
-        >
-          <Plus size={14} /> Add Volunteer
-        </Button>
-      </div>
+  useEffect(() => {
+    fetchVolunteers();
+  }, []);
 
-      {/* --- Top Small Cards --- */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  const handleStatusChange = (
+    volunteerId: string,
+    newStatus: VolunteerStatus
+  ) => {
+    setVolunteers((prev) =>
+      prev.map((v) => (v.id === volunteerId ? { ...v, status: newStatus } : v))
+    );
+  };
+
+  const filteredVolunteers = volunteers.filter(
+    (volunteer) =>
+      volunteer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      volunteer.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      volunteer.location.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="px-2 md:px-4 space-y-4 text-white">
+        {/* Header skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px] w-40 animate-pulse">
+              <Search size={14} className="text-gray-500 mr-2" />
+              <div className="h-4 flex-1 bg-neutral-800 rounded" />
+            </div>
+          </div>
+        </div>
+
+        {/* Summary cards skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <Card key={idx} className="border-0" style={cardGradientStyle}>
+              <CardHeader className="pb-2">
+                <div className="h-4 w-32 bg-neutral-800/80 rounded animate-pulse" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-6 w-24 bg-neutral-800/80 rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-neutral-900/80 rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Table skeleton */}
         <Card className="border-0" style={cardGradientStyle}>
           <CardHeader>
-            <CardTitle className="text-sm text-white">
+            <div className="h-4 w-40 bg-neutral-800/80 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-neutral-800/80 pb-2"
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="h-10 w-10 rounded-full bg-neutral-800 animate-pulse" />
+                    <div className="space-y-1">
+                      <div className="h-3 w-32 bg-neutral-800/80 rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-neutral-900/80 rounded animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <div className="h-6 w-20 bg-neutral-800/80 rounded-full animate-pulse" />
+                    <div className="h-7 w-24 bg-neutral-900/80 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-2 md:px-4 space-y-6 text-white">
+      {/* --- Header --- */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-lg font-semibold">Volunteers</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
+            <Search size={14} className="text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Search volunteers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
+            />
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg">
+          <strong>Error: </strong>
+          {error}
+          <Button
+            variant="outline"
+            size="sm"
+            className="ml-4 border-red-600 text-red-200"
+            onClick={fetchVolunteers}
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* --- Summary Cards --- */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
               Total Volunteers
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl text-white font-bold">{volunteers.length}</p>
+            <div className="text-2xl font-bold text-white">
+              {volunteers.length}
+            </div>
+            <p className="text-xs text-neutral-400">
+              Registered in your organization
+            </p>
           </CardContent>
         </Card>
+
         <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Active</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              Active Volunteers
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl text-green-400 font-bold">
+            <div className="text-2xl font-bold text-white">
               {volunteers.filter((v) => v.status === "Active").length}
-            </p>
+            </div>
+            <p className="text-xs text-neutral-400">Currently active</p>
           </CardContent>
         </Card>
+
         <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">On Duty</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              On Duty
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl text-blue-400 font-bold">
+            <div className="text-2xl font-bold text-white">
               {volunteers.filter((v) => v.status === "On Duty").length}
-            </p>
+            </div>
+            <p className="text-xs text-neutral-400">Currently assigned</p>
           </CardContent>
         </Card>
+
         <Card className="border-0" style={cardGradientStyle}>
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Standby</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-white">
+              Available
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl text-yellow-400 font-bold">
+            <div className="text-2xl font-bold text-white">
               {volunteers.filter((v) => v.status === "Standby").length}
-            </p>
+            </div>
+            <p className="text-xs text-neutral-400">Ready for assignment</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* --- Volunteers Table --- */}
+      {/* --- Main Table --- */}
       <Card className="border-0" style={cardGradientStyle}>
         <CardHeader>
           <CardTitle className="text-white text-sm font-medium">
-            Volunteer Directory
+            Volunteers List ({filteredVolunteers.length} volunteers)
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm text-left text-neutral-300">
-            <thead className="text-xs uppercase text-neutral-400 border-b border-neutral-700">
-              <tr>
-                <th className="py-2 px-3">Name</th>
-                <th className="py-2 px-3">Role</th>
-                <th className="py-2 px-3">Contact</th>
-                <th className="py-2 px-3">Location</th>
-                <th className="py-2 px-3">Status</th>
-                <th className="py-2 px-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {volunteers.map((v) => (
-                <tr
-                  key={v.id}
-                  className="border-b border-neutral-800 hover:bg-neutral-900/40"
-                >
-                  <td className="py-2 px-3">{v.name}</td>
-                  <td className="py-2 px-3">{v.role}</td>
-                  <td className="py-2 px-3">{v.contact}</td>
-                  <td className="py-2 px-3">{v.location}</td>
-                  <td
-                    className={cn(
-                      "py-2 px-3 font-semibold",
-                      v.status === "Active"
-                        ? "text-green-400"
-                        : v.status === "On Duty"
-                        ? "text-blue-400"
-                        : "text-yellow-400"
-                    )}
-                  >
-                    {v.status}
-                  </td>
-                  <td className="py-2 px-3 text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleOpenEdit(v)}
+          {filteredVolunteers.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              {searchTerm
+                ? "No volunteers match your search."
+                : "No volunteers found."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-left text-gray-300">
+                <thead className="text-xs uppercase bg-neutral-900/70 text-neutral-400">
+                  <tr>
+                    <th className="px-4 py-2">Volunteer</th>
+                    <th className="px-4 py-2">Role</th>
+                    <th className="px-4 py-2">Location</th>
+                    <th className="px-4 py-2">Status</th>
+                    <th className="px-4 py-2 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredVolunteers.map((volunteer) => (
+                    <tr
+                      key={volunteer.id}
+                      className="border-b border-neutral-800 hover:bg-neutral-800/50 transition"
                     >
-                      <Pencil size={14} />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-neutral-800 flex items-center justify-center">
+                            <User className="h-5 w-5 text-neutral-400" />
+                          </div>
+                          <div>
+                            <div className="text-white font-medium">
+                              {volunteer.name}
+                            </div>
+                            <div className="text-xs text-neutral-400 flex items-center">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {volunteer.contact}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">{volunteer.role}</td>
+                      <td className="px-4 py-2">
+                        <div className="flex items-center">
+                          <MapPin className="w-3 h-3 mr-1 text-neutral-400" />
+                          {volunteer.location}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <Badge className={statusColors[volunteer.status]}>
+                          {volunteer.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2 text-right space-x-2">
+                        <select
+                          value={volunteer.status}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              volunteer.id!,
+                              e.target.value as VolunteerStatus
+                            )
+                          }
+                          className="bg-neutral-800 border border-neutral-700 text-white text-xs px-2 py-1 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          {Object.keys(statusColors).map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() =>
+                            console.log("Edit volunteer:", volunteer.id)
+                          }
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* --- Volunteer Map --- */}
-      <Card className="border-0 h-[450px]" style={cardGradientStyle}>
-        <CardHeader>
-          <CardTitle className="text-white text-sm font-medium">
-            Volunteer Locations
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="h-full">
-          <MapContainer
-            center={[14.5995, 120.9842]}
-            zoom={11}
-            className="h-full w-full rounded-lg overflow-hidden"
-          >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-            />
-            {volunteers.map((v, i) => (
-              <Marker
-                key={i}
-                position={[
-                  14.59 + Math.random() * 0.04,
-                  120.97 + Math.random() * 0.04,
-                ]}
-                icon={createLucideMarker(
-                  v.status === "Active"
-                    ? "#22c55e"
-                    : v.status === "On Duty"
-                    ? "#3b82f6"
-                    : "#f59e0b"
-                )}
-              >
-                <Popup>
-                  <div className="text-white w-[180px]">
-                    <h3 className="font-semibold text-blue-400 text-sm mb-1">
-                      {v.name}
-                    </h3>
-                    <p className="text-xs text-neutral-400">{v.role}</p>
-                    <p className="text-xs text-neutral-500 mt-1">{v.contact}</p>
-                    <p className="text-xs text-neutral-500">{v.location}</p>
-                    <p className="text-xs mt-1">
-                      Status:{" "}
-                      <span className="font-semibold text-green-400">
-                        {v.status}
-                      </span>
-                    </p>
-                  </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </CardContent>
-      </Card>
-
-      {/* --- Dialog for Add/Edit Volunteer --- */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="bg-[#0b0f26] border border-neutral-800 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              {editing ? "Edit Volunteer" : "Add Volunteer"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {["name", "role", "contact", "location", "status"].map((key) => (
-              <div key={key} className="grid gap-2">
-                <Label htmlFor={key}>
-                  {key[0].toUpperCase() + key.slice(1)}
-                </Label>
-                <Input
-                  id={key}
-                  value={(formData as any)[key]}
-                  onChange={(e) =>
-                    setFormData({ ...formData, [key]: e.target.value })
-                  }
-                  placeholder={`Enter ${key}`}
-                  className="bg-neutral-900 border-neutral-700 text-white"
-                />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              className="bg-blue-600 hover:bg-blue-500"
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
-};
+}

@@ -10,12 +10,18 @@ import { apiService, type User } from "./api";
 import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 
-export type UserRole = "Citizen" | "Organization" | "Volunteer";
+// In your frontend types
+export type UserRole = "citizen" | "organization" | "volunteer";
+
 export type CurrentUser = {
   id: string;
   email: string;
-  name: string;
-  role: UserRole;
+  displayName: string;
+  roles: UserRole[]; // all roles of the user
+  activeRole: UserRole | null; // currently selected role
+  organizations?: string[]; // org IDs for organization role
+  profilePicture?: string;
+  isVerified?: boolean;
 };
 
 type AuthContextValue = {
@@ -27,12 +33,12 @@ type AuthContextValue = {
     email: string,
     password: string,
     name: string,
-    role: UserRole,
+    roles: UserRole[],
     profileData?: any
   ) => Promise<void>;
   completeGoogleProfile: (
     userInfo: any,
-    role: UserRole,
+    roles: UserRole[],
     profileData: any
   ) => Promise<void>;
   logout: () => void;
@@ -41,95 +47,32 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Storage configuration
-const STORAGE_CONFIG = {
-  VERSION: "1.0",
-  KEYS: {
-    AUTH: "disasterconnect_auth",
-    VERSION: "disasterconnect_version",
-  },
-} as const;
+// Helper functions for localStorage
+const AUTH_STORAGE_KEY = "disasterconnect_auth";
 
-type StoredUser = {
-  version: string;
-  user: CurrentUser;
-  timestamp: number;
-};
-
-const isCurrentUser = (data: any): data is CurrentUser => {
-  return (
-    data &&
-    typeof data === "object" &&
-    typeof data.id === "string" &&
-    typeof data.email === "string" &&
-    typeof data.name === "string" &&
-    ["Citizen", "Organization", "Volunteer"].includes(data.role)
-  );
-};
-
-const saveUserToStorage = (user: CurrentUser): void => {
+const saveUserToStorage = (user: CurrentUser) => {
   try {
-    const data: StoredUser = {
-      version: STORAGE_CONFIG.VERSION,
-      user,
-      timestamp: Date.now(),
-    };
-
-    localStorage.setItem(STORAGE_CONFIG.KEYS.AUTH, JSON.stringify(data));
-    localStorage.setItem(STORAGE_CONFIG.KEYS.VERSION, STORAGE_CONFIG.VERSION);
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
   } catch (error) {
     console.error("Failed to save user to localStorage:", error);
-    // Consider implementing a fallback storage mechanism here
   }
 };
 
 const getUserFromStorage = (): CurrentUser | null => {
   try {
-    const storedData = localStorage.getItem(STORAGE_CONFIG.KEYS.AUTH);
-    if (!storedData) return null;
-
-    const parsedData = JSON.parse(storedData) as Partial<StoredUser>;
-
-    // Handle version migrations here if needed
-    if (parsedData.version !== STORAGE_CONFIG.VERSION) {
-      console.warn(
-        `Storage version mismatch: ${parsedData.version} != ${STORAGE_CONFIG.VERSION}`
-      );
-      // Future: Add migration logic here when needed
-    }
-
-    // Validate the user data structure
-    if (isCurrentUser(parsedData.user)) {
-      return parsedData.user;
-    }
-
-    console.error("Invalid user data structure in storage");
-    return null;
+    const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
   } catch (error) {
-    console.error("Failed to get user from storage:", error);
-    // Clear corrupted data
-    removeUserFromStorage();
+    console.error("Failed to get user from localStorage:", error);
     return null;
   }
 };
 
-const removeUserFromStorage = (): void => {
+const removeUserFromStorage = () => {
   try {
-    localStorage.removeItem(STORAGE_CONFIG.KEYS.AUTH);
-    // Don't remove version as it might be used by other parts of the app
+    localStorage.removeItem(AUTH_STORAGE_KEY);
   } catch (error) {
-    console.error("Failed to remove user from storage:", error);
-    // In case of storage full error, clear everything
-    if (error instanceof DOMException && error.name === "QuotaExceededError") {
-      try {
-        localStorage.clear();
-      } catch (clearError) {
-        console.error(
-          "Failed to clear storage after quota exceeded:",
-          clearError
-        );
-      }
-    }
+    console.error("Failed to remove user from localStorage:", error);
   }
 };
 
@@ -139,101 +82,143 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    let isMounted = true;
+  const normalizeRole = (role: string): UserRole => {
+    const normalized = role.toLowerCase();
+    // Ensure it's a valid UserRole
+    if (
+      normalized === "citizen" ||
+      normalized === "organization" ||
+      normalized === "volunteer"
+    ) {
+      return normalized as UserRole;
+    }
+    return "citizen"; // default fallback
+  };
 
+  // Load user from localStorage
+  useEffect(() => {
     const loadUser = async () => {
       try {
         const storedUser = getUserFromStorage();
-
-        if (storedUser && apiService.isAuthenticated()) {
-          try {
-            // Verify the session is still valid
-            const profile = await apiService.getProfile();
-            if (isMounted) {
-              setCurrentUser(profile.data.user as CurrentUser);
-            }
-          } catch (apiError) {
-            console.error("Session validation failed:", apiError);
-            if (isMounted) {
-              apiService.removeToken();
-              removeUserFromStorage();
-            }
-          }
-        } else if (storedUser) {
-          // We have a stored user but no valid token
-          console.log("No valid session, requiring re-authentication");
-          if (isMounted) {
-            removeUserFromStorage();
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load user:", error);
-        if (isMounted) {
-          apiService.removeToken();
-          removeUserFromStorage();
-        }
-      } finally {
-        if (isMounted) {
+        if (!storedUser) {
           setIsLoading(false);
+          return;
         }
+
+        // Normalize all roles
+        const normalizedUser: CurrentUser = {
+          ...storedUser,
+          roles: storedUser.roles?.map(normalizeRole) || [],
+          activeRole: storedUser.activeRole
+            ? normalizeRole(storedUser.activeRole)
+            : null,
+        };
+
+        setCurrentUser(normalizedUser);
+
+        const token = localStorage.getItem("auth_token");
+        if (token) apiService.setToken(token);
+
+        // Fetch latest profile
+        try {
+          const profile = await apiService.getProfile();
+          const profileUser = profile.data.user;
+          setCurrentUser({
+            ...profileUser,
+            roles: profileUser.roles?.map(normalizeRole) || [],
+            activeRole: profileUser.activeRole
+              ? normalizeRole(profileUser.activeRole)
+              : null,
+          });
+        } catch (err) {
+          console.warn("Profile fetch failed, using cached user", err);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    // Add storage event listener to sync across tabs
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_CONFIG.KEYS.AUTH) {
-        if (!e.newValue) {
-          // User logged out in another tab
-          setCurrentUser(null);
-        } else {
-          // User changed in another tab
-          const user = getUserFromStorage();
-          if (user) {
-            setCurrentUser(user);
-          }
-        }
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
     loadUser();
-
-    return () => {
-      isMounted = false;
-      window.removeEventListener("storage", handleStorageChange);
-    };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    if (isLoading) return; // Prevent multiple login attempts
+  // Normalize user data from different sources (API, localStorage, etc.)
+  const normalizeUser = (user: any): CurrentUser => {
+    const roles = Array.isArray(user.roles)
+      ? user.roles.map(normalizeRole)
+      : [normalizeRole(user.role || "citizen")];
 
+    const activeRole = user.activeRole
+      ? normalizeRole(user.activeRole)
+      : roles[0] || "citizen";
+
+    return {
+      id: user.id || user.uid,
+      email: user.email,
+      displayName: user.displayName || user.name || user.email.split("@")[0],
+      roles,
+      activeRole,
+      organizations: user.organizations || [],
+      isVerified: user.isVerified || user.emailVerified || false,
+      profilePicture: user.profilePicture || user.photoURL,
+      ...(user.phoneNumber && { phoneNumber: user.phoneNumber }),
+      ...(user.location && { location: user.location }),
+    };
+  };
+
+  // Helper function to determine redirect path based on user role
+  const getRedirectPath = (user: CurrentUser): string => {
+    if (!user.activeRole) return "/select-role";
+
+    switch (user.activeRole.toLowerCase()) {
+      case "organization":
+        return "/org/dashboard";
+      case "volunteer":
+        return "/volunteer/dashboard";
+      case "citizen":
+      default:
+        return "/citizen/dashboard";
+    }
+  };
+
+  // Helper function to get dashboard path from role
+  const getDashboardPath = (role: UserRole | null): string => {
+    if (!role) return "/select-role";
+
+    switch (role.toLowerCase()) {
+      case "organization":
+        return "/org/dashboard";
+      case "volunteer":
+        return "/volunteer/dashboard";
+      case "citizen":
+      default:
+        return "/citizen/dashboard";
+    }
+  };
+
+  const login = async (email: string, password: string) => {
     try {
       setError(null);
       setIsLoading(true);
 
       const response = await apiService.login(email, password);
-      const user = response.data.user as CurrentUser;
 
-      // Normalize user role to match expected format
-      const normalizedUser = {
-        ...user,
-        role: (user.role.charAt(0).toUpperCase() +
-          user.role.slice(1).toLowerCase()) as UserRole,
-      };
+      if (response.success) {
+        const { token, user } = response.data;
+        const normalizedUser = normalizeUser(user);
 
-      // Validate the user data before saving
-      if (!isCurrentUser(normalizedUser)) {
-        throw new Error("Invalid user data received from server");
+        apiService.setToken(token);
+        setCurrentUser(normalizedUser);
+        saveUserToStorage(normalizedUser);
+
+        const redirectPath = getRedirectPath(normalizedUser);
+        navigate(redirectPath);
+      } else {
+        throw new Error(response.error || "Login failed");
       }
-
-      apiService.setToken(response.data.token);
-      setCurrentUser(normalizedUser);
-      saveUserToStorage(normalizedUser);
-
-      navigate("/citizen/dashboard");
     } catch (error) {
+      console.error("Login error:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Login failed";
       setError(errorMessage);
@@ -247,8 +232,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     name: string,
-    role: UserRole,
-    profileData?: any
+    role: string,
+    profileData: any = {}
   ) => {
     try {
       setError(null);
@@ -258,14 +243,128 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         name,
-        role.toLowerCase()
+        role,
+        profileData
       );
-      navigate("/login");
+
+      if (response.success) {
+        const { token, user } = response.data;
+        const normalizedUser: CurrentUser = {
+          ...user,
+          roles: user.roles?.map(normalizeRole) || [role as UserRole],
+          activeRole: user.activeRole
+            ? normalizeRole(user.activeRole)
+            : (role as UserRole) || "citizen",
+        };
+
+        apiService.setToken(token);
+        setCurrentUser(normalizedUser);
+        saveUserToStorage(normalizedUser);
+
+        navigate(getDashboardPath(normalizedUser.activeRole));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const switchRole = async (role: UserRole) => {
+    if (!currentUser) return;
+    try {
+      const updatedUser = { ...currentUser, activeRole: role };
+      setCurrentUser(updatedUser);
+      saveUserToStorage(updatedUser);
+      navigate(getDashboardPath(role));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      setError(null);
+      setIsLoading(true);
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      const idToken = await user.getIdToken();
+
+      const googleUserInfo = {
+        idToken,
+        email: user.email || "",
+        name: user.displayName || "Google User",
+        uid: user.uid,
+      };
+
+      try {
+        const response = await apiService.googleLogin(idToken);
+
+        // If backend says this is a new user, send them to role selection
+        const isNewUser = (response as any)?.data?.isNewUser;
+        if (isNewUser) {
+          setError(null);
+          sessionStorage.setItem(
+            "googleUserInfo",
+            JSON.stringify(googleUserInfo)
+          );
+          navigate("/select-role");
+          return;
+        }
+
+        // Existing user: normalize and log them in directly
+        const backendUser = response.data.user;
+
+        const normalizedUser: CurrentUser = {
+          ...backendUser,
+          roles: backendUser.roles?.map(normalizeRole) || [],
+          activeRole: backendUser.activeRole
+            ? normalizeRole(backendUser.activeRole)
+            : backendUser.roles?.[0] || null,
+        };
+
+        apiService.setToken(response.data.token);
+        setCurrentUser(normalizedUser);
+        saveUserToStorage(normalizedUser);
+
+        // Redirect based on activeRole
+        navigate(getDashboardPath(normalizedUser.activeRole));
+      } catch (backendError: any) {
+        // User not registered yet, complete profile
+        const errorMessage = backendError.message?.toLowerCase() || "";
+        if (
+          errorMessage.includes("not found") ||
+          errorMessage.includes("user does not exist") ||
+          errorMessage.includes("complete registration") ||
+          errorMessage.includes("please complete registration")
+        ) {
+          // Clear any error state before redirecting
+          setError(null);
+          sessionStorage.setItem(
+            "googleUserInfo",
+            JSON.stringify(googleUserInfo)
+          );
+          navigate("/select-role");
+          return;
+        } else {
+          // Re-throw other errors to be handled by outer catch
+          throw backendError;
+        }
+      }
     } catch (error) {
+      console.error("Google login failed:", error);
+      // Only set error if we're not redirecting to role selection
       const errorMessage =
-        error instanceof Error ? error.message : "Registration failed";
-      setError(errorMessage);
-      throw error;
+        error instanceof Error ? error.message.toLowerCase() : "";
+      if (
+        !errorMessage.includes("not found") &&
+        !errorMessage.includes("user does not exist") &&
+        !errorMessage.includes("complete registration")
+      ) {
+        setError("Google login failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -273,40 +372,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeGoogleProfile = async (
     userInfo: any,
-    role: UserRole,
+    role: string,
     profileData: any
   ) => {
     try {
       setError(null);
       setIsLoading(true);
 
-      // Send the ID token with role and profile data to backend
-      const response = await apiService.googleLogin(
+      // Pass single role string
+      const response = await apiService.completeGoogleProfile(
         userInfo.idToken,
-        role.toLowerCase(),
+        role,
         profileData
       );
-      const user = response.data.user as CurrentUser;
 
-      // Capitalize the role to match frontend expectations
-      const normalizedUser = {
-        ...user,
-        role: (user.role.charAt(0).toUpperCase() +
-          user.role.slice(1).toLowerCase()) as UserRole,
-      };
+      if (response.success) {
+        const backendUser = response.data.user;
 
-      // Store token and user data
-      apiService.setToken(response.data.token);
-      setCurrentUser(normalizedUser);
-      saveUserToStorage(normalizedUser);
+        const normalizedUser: CurrentUser = {
+          ...backendUser,
+          roles: backendUser.roles?.map(normalizeRole) || [role as UserRole],
+          activeRole: backendUser.activeRole
+            ? normalizeRole(backendUser.activeRole)
+            : (role as UserRole) || null,
+        };
 
-      // Navigate based on role
-      if (normalizedUser.role === "Citizen") {
-        navigate("/citizen/dashboard");
-      } else if (normalizedUser.role === "Organization") {
-        navigate("/org/dashboard");
-      } else if (normalizedUser.role === "Volunteer") {
-        navigate("/volunteer/dashboard");
+        apiService.setToken(response.data.token);
+        setCurrentUser(normalizedUser);
+        saveUserToStorage(normalizedUser);
+
+        // Redirect based on activeRole
+        navigate(getDashboardPath(normalizedUser.activeRole));
       }
     } catch (error) {
       const errorMessage =
@@ -326,74 +422,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     navigate("/login");
   };
 
-  // 👇 NEW: Google Login Method
-  const loginWithGoogle = async () => {
-    try {
-      setError(null);
-      setIsLoading(true);
-
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-      const idToken = await user.getIdToken();
-
-      // Store Google user info temporarily for role selection
-      const googleUserInfo = {
-        idToken,
-        email: user.email || "",
-        name: user.displayName || "Google User",
-        uid: user.uid,
-      };
-
-      // Try to login with backend (check if user exists)
-      try {
-        const response = await apiService.googleLogin(idToken);
-        const backendUser = response.data.user as CurrentUser;
-
-        // User exists - log them in
-        const normalizedUser = {
-          ...backendUser,
-          role: (backendUser.role.charAt(0).toUpperCase() +
-            backendUser.role.slice(1).toLowerCase()) as UserRole,
-        };
-
-        apiService.setToken(response.data.token);
-        setCurrentUser(normalizedUser);
-        saveUserToStorage(normalizedUser);
-
-        // Navigate based on role
-        if (normalizedUser.role === "Citizen") {
-          navigate("/citizen/dashboard");
-        } else if (normalizedUser.role === "Organization") {
-          navigate("/org/dashboard");
-        } else if (normalizedUser.role === "Volunteer") {
-          navigate("/volunteer/dashboard");
-        }
-      } catch (backendError: any) {
-        // User doesn't exist in backend - redirect to role selection
-        if (
-          backendError.message?.includes("not found") ||
-          backendError.message?.includes("User not registered") ||
-          backendError.message?.includes("User does not exist")
-        ) {
-          // Store Google user info in sessionStorage for role selection page
-          sessionStorage.setItem(
-            "googleUserInfo",
-            JSON.stringify(googleUserInfo)
-          );
-          navigate("/select-role");
-          return; // Exit early to prevent error from being thrown
-        } else {
-          throw backendError;
-        }
-      }
-    } catch (error) {
-      console.error("Google login failed:", error);
-      setError("Google login failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const value = useMemo(
     () => ({
       currentUser,
@@ -403,6 +431,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       completeGoogleProfile,
       logout,
+      switchRole,
       error,
     }),
     [currentUser, isLoading, error]
