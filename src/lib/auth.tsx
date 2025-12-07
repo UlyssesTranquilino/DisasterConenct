@@ -139,7 +139,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load user from localStorage on mount
+  const normalizeRole = (role: string): UserRole => {
+    const normalized = role.toLowerCase();
+    // Ensure it's a valid UserRole
+    if (
+      normalized === "citizen" ||
+      normalized === "organization" ||
+      normalized === "volunteer"
+    ) {
+      return normalized as UserRole;
+    }
+    return "citizen"; // default fallback
+  };
+
+  // Load user from localStorage
   useEffect(() => {
     let isMounted = true;
 
@@ -336,7 +349,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = result.user;
       const idToken = await user.getIdToken();
 
-      // Store Google user info temporarily for role selection
       const googleUserInfo = {
         idToken,
         email: user.email || "",

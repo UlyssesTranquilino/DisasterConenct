@@ -23,13 +23,11 @@ interface SidebarProps {
 export function PortalSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
   const { currentUser, logout } = useAuth();
 
-  console.log('PortalSidebar - currentUser:', currentUser);
-
   const navItemsByRole: Record<
     string,
     Array<{ to: string; label: string; icon: JSX.Element }>
   > = {
-    Citizen: [
+    citizen: [
       {
         to: "/citizen/dashboard",
         label: "Dashboard",
@@ -42,7 +40,7 @@ export function PortalSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
       },
       { to: "/citizen/centers", label: "Centers", icon: <MapPin size={20} /> },
     ],
-    Organization: [
+    organization: [
       {
         to: "/org/dashboard",
         label: "Dashboard",
@@ -62,7 +60,7 @@ export function PortalSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
       },
       { to: "/org/reports", label: "Reports", icon: <BarChart3 size={20} /> },
     ],
-    Volunteer: [
+    volunteer: [
       {
         to: "/volunteer/dashboard",
         label: "Dashboard",
@@ -81,11 +79,9 @@ export function PortalSidebar({ isCollapsed, setIsCollapsed }: SidebarProps) {
     ],
   };
 
-  // Ensure we have a valid role and fallback to empty array
-  const role = currentUser?.role || '';
+  // Get the active role (normalized to lowercase) and fallback to empty array
+  const role = currentUser?.activeRole?.toLowerCase() || "";
   const items = navItemsByRole[role] || [];
-  
-  console.log('PortalSidebar - items:', items, 'role:', role);
 
   return (
     <aside
