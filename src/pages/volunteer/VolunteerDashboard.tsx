@@ -1,13 +1,76 @@
 import { useState, useEffect } from "react";
-import { MapPin, Search, Clock, CheckCircle, AlertTriangle, Users, Navigation, Plus, Target, Star, X, Send, RefreshCw, Wifi, WifiOff, Building2, Network, Link, Globe, ExternalLink, UserPlus, Handshake, ChevronRight } from "lucide-react";
+import { 
+  MapPin, Search, Clock, CheckCircle, AlertTriangle, Users, Navigation, 
+  Plus, Star, X, RefreshCw, Wifi, WifiOff, Building2, 
+  Network, Link, ExternalLink, UserPlus, Handshake, ChevronRight 
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/components/ui/textarea";
+import { Textarea } from "../../components/ui/textarea"; // Ensure this path is correct
 import VolunteerMap from "../../components/VolunteerMap";
-import { apiService, type Assignment, type Need, type Organization } from "../../lib/api"; 
+import { apiService } from "../../lib/api"; 
 import { useAuth } from "../../lib/auth";
-import { useSimpleToast } from "../../components/components/ui/SimpleToast";
+import { ToastManager } from "../../components/components/ui/ToastNotification"; 
+
+// --- Local Type Definitions (To support the immutable api.ts) ---
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+  type?: string;
+  status?: 'Active' | 'Inactive' | 'Pending';
+  joinedDate?: string;
+  tasksAssigned?: number;
+  tasksCompleted?: number;
+  contactPerson?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  logoUrl?: string;
+}
+
+export interface Assignment {
+  id: string;
+  title: string;
+  organization: string;
+  organizationId?: string;
+  description: string;
+  assignedDate?: string;
+  dueDate: string;
+  status: "Pending" | "In Progress" | "Completed" | "Cancelled";
+  priority: "Low" | "Medium" | "High" | "Critical";
+  location: string;
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+  requiredSkills?: string[];
+  estimatedHours?: number;
+  organizationContact?: string;
+  supplies?: string[];
+  volunteersNeeded?: number;
+  volunteersAssigned?: number;
+}
+
+export interface Need {
+  id: string;
+  title: string;
+  organization: string;
+  urgency: "Low" | "Medium" | "High";
+  [key: string]: any;
+}
 
 // Define types inline for map compatibility
 interface MapLocation {
@@ -191,7 +254,7 @@ function AddAssignmentModal({ isOpen, onClose, onSubmit }: {
   );
 }
 
-// Organization Linking Modal Component - FIXED address issue
+// Organization Linking Modal Component
 function OrganizationLinkingModal({ 
   isOpen, 
   onClose, 
@@ -381,7 +444,7 @@ const convertAssignmentsToMapLocations = (assignments: Assignment[]): MapLocatio
     position: [assignment.coordinates.lat, assignment.coordinates.lng] as [number, number],
     capacity: 100,
     supplies: assignment.supplies || [],
-    contact: assignment.organizationContact,
+    contact: assignment.organizationContact || "N/A",
     occupancy: assignment.status === 'Completed' ? 100 : assignment.status === 'In Progress' ? 50 : 25,
     coordinates: assignment.coordinates,
     type: 'volunteer' as const
@@ -466,10 +529,11 @@ export default function VolunteerDashboard() {
   const [showAddAssignment, setShowAddAssignment] = useState(false);
   const [showLinkOrganizations, setShowLinkOrganizations] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [retryCount, setRetryCount] = useState(0);
   
-  // Initialize toast
-  const { success, error: toastError, info, ToastContainer } = useSimpleToast();
+  // Initialize Toast Manager (New Implementation)
+  const { toast, ToastContainer } = ToastManager();
 
   // Sample data
   const sampleAssignments: Assignment[] = [
@@ -572,6 +636,7 @@ export default function VolunteerDashboard() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDashboardData = async () => {
@@ -581,55 +646,56 @@ export default function VolunteerDashboard() {
       setRetryCount(prev => prev + 1);
       
       if (!isOnline) {
-        toastError('Offline Mode', 'You are offline. Please check your internet connection.');
-        throw new Error("You are offline. Please check your internet connection.");
+        toast.warning('Offline Mode', 'You are offline. Please check your internet connection.');
       }
       
       let fetchedAssignments: Assignment[] = [];
       let fetchedNeeds: Need[] = [];
       let fetchedAvailableOrganizations: Organization[] = [];
       
-      try {
-        // Fetch assignments
-        const assignmentsResponse = await apiService.getAssignments();
-        if (assignmentsResponse.success && assignmentsResponse.data) {
-          fetchedAssignments = assignmentsResponse.data;
-        }
-        
-        // Fetch needs
-        const needsResponse = await apiService.getNeeds();
-        if (needsResponse.success && needsResponse.data) {
-          fetchedNeeds = needsResponse.data;
+      if (isOnline) {
+        try {
+          // Use generic apiRequest
+          const assignmentsResponse = await apiService.apiRequest<ApiResponse<Assignment[]>>('/volunteer/assignments');
+          if (assignmentsResponse.success && assignmentsResponse.data) {
+            fetchedAssignments = assignmentsResponse.data;
+          }
           
-          // Extract unique organizations from needs
-          const orgsFromNeeds = fetchedNeeds
-            .filter((need, index, self) => 
-              need.organization && 
-              self.findIndex(n => n.organization === need.organization) === index
-            )
-            .map((need, index) => ({
-              id: `org_need_${index}`,
-              name: need.organization || "Unknown Organization",
-              email: "contact@organization.ph",
-              phone: "+63 2 000 0000",
-              description: `Organization posting volunteer needs: "${need.title}"`,
-              type: "NGO",
-              status: 'Active' as const,
-              joinedDate: new Date().toISOString().split('T')[0],
-              tasksAssigned: fetchedNeeds.filter(n => n.organization === need.organization).length,
-              tasksCompleted: 0,
-              contactPerson: "Contact Person",
-              contactEmail: "contact@organization.ph",
-              contactPhone: "+63 917 000 0000",
-              website: `https://${(need.organization || '').replace(/\s+/g, '').toLowerCase()}.org`,
-              logoUrl: ""
-            }));
+          // Use generic apiRequest for needs
+          const needsResponse = await apiService.apiRequest<ApiResponse<Need[]>>('/volunteer/needs');
+          if (needsResponse.success && needsResponse.data) {
+            fetchedNeeds = needsResponse.data;
+            
+            // Extract unique organizations from needs
+            const orgsFromNeeds = fetchedNeeds
+              .filter((need, index, self) => 
+                need.organization && 
+                self.findIndex(n => n.organization === need.organization) === index
+              )
+              .map((need, index) => ({
+                id: `org_need_${index}`,
+                name: need.organization || "Unknown Organization",
+                email: "contact@organization.ph",
+                phone: "+63 2 000 0000",
+                description: `Organization posting volunteer needs: "${need.title}"`,
+                type: "NGO",
+                status: 'Active' as const,
+                joinedDate: new Date().toISOString().split('T')[0],
+                tasksAssigned: fetchedNeeds.filter(n => n.organization === need.organization).length,
+                tasksCompleted: 0,
+                contactPerson: "Contact Person",
+                contactEmail: "contact@organization.ph",
+                contactPhone: "+63 917 000 0000",
+                website: `https://${(need.organization || '').replace(/\s+/g, '').toLowerCase()}.org`,
+                logoUrl: ""
+              }));
+            
+            fetchedAvailableOrganizations.push(...orgsFromNeeds);
+          }
           
-          fetchedAvailableOrganizations.push(...orgsFromNeeds);
+        } catch (apiError) {
+          console.error("API call failed, falling back to sample data:", apiError);
         }
-        
-      } catch (apiError) {
-        console.error("API call failed:", apiError);
       }
       
       // Set assignments
@@ -674,7 +740,7 @@ export default function VolunteerDashboard() {
       }
       
       setError(error.message || "Using sample data.");
-      toastError('Connection Error', 'Using sample data for demonstration.');
+      toast.error('Connection Error', 'Using sample data for demonstration.');
       updateOrganizationStats();
       
     } finally {
@@ -684,20 +750,20 @@ export default function VolunteerDashboard() {
 
   const updateOrganizationStats = () => {
     const approvedLinks = organizationLinks.filter(link => link.status === 'approved');
-    const activeAssignments = assignments.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled');
+    const activeAssignmentsList = assignments.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled');
     const completedTasks = assignments.filter(a => a.status === 'Completed').length;
     
     const lastOrg = approvedLinks.length > 0 
       ? (approvedLinks[approvedLinks.length - 1].organizationName || "N/A")
       : "N/A";
     
-    const nextTask = activeAssignments.length > 0 
-      ? new Date(activeAssignments[0].dueDate).toLocaleDateString() 
+    const nextTask = activeAssignmentsList.length > 0 
+      ? new Date(activeAssignmentsList[0].dueDate).toLocaleDateString() 
       : null;
     
     setOrganizationStats({
       totalLinked: approvedLinks.length,
-      activeCollaborations: activeAssignments.length,
+      activeCollaborations: activeAssignmentsList.length,
       completedTasks: completedTasks,
       averageResponseTime: approvedLinks.length > 0 ? "24h" : "N/A",
       lastOrganization: lastOrg,
@@ -712,28 +778,13 @@ export default function VolunteerDashboard() {
     updateOrganizationStats();
   };
 
-  // Handle linking request - FIXED: Check what properties exist on currentUser
+  // Handle linking request
   const handleLinkRequest = async (orgId: string, orgName: string) => {
     try {
-      // Debug: Check what properties currentUser has
-      console.log('Current User object:', currentUser);
-      
-      // Get user ID - try different possible properties
+      // Get user ID safely
       let userId = 'unknown-user-id';
-      
-      if (currentUser) {
-        // Try common user ID properties
-        if ((currentUser as any).uid) {
-          userId = (currentUser as any).uid;
-        } else if ((currentUser as any).id) {
-          userId = (currentUser as any).id;
-        } else if (currentUser.email) {
-          userId = currentUser.email;
-        } else if ((currentUser as any).userId) {
-          userId = (currentUser as any).userId;
-        } else if ((currentUser as any).userID) {
-          userId = (currentUser as any).userID;
-        }
+      if (currentUser && currentUser.id) {
+          userId = currentUser.id;
       }
       
       const newLink: OrganizationLink = {
@@ -748,27 +799,27 @@ export default function VolunteerDashboard() {
       const updatedLinks = [...organizationLinks, newLink];
       saveOrganizationLinks(updatedLinks);
       
-      // Simulate approval after 2 seconds (in real app, this would come from the organization)
+      // Simulate approval after 2 seconds
       setTimeout(() => {
-        const approvedLinks = organizationLinks.map(link =>
+        const approvedLinks = updatedLinks.map(link =>
           link.id === newLink.id 
             ? { ...link, status: 'approved' as const, approvedAt: new Date().toISOString() }
             : link
         );
         saveOrganizationLinks(approvedLinks);
-        success(
+        toast.success(
           'Connection Approved!',
           `Your connection with ${orgName} has been approved! You'll now receive direct assignments from them.`
         );
       }, 2000);
       
-      success(
+      toast.success(
         'Link Request Sent!',
         `Your request to connect with ${orgName} has been submitted. Awaiting approval...`
       );
       
     } catch (error) {
-      toastError('Request Failed', 'Failed to send connection request. Please try again.');
+      toast.error('Request Failed', 'Failed to send connection request. Please try again.');
     }
   };
 
@@ -786,7 +837,7 @@ export default function VolunteerDashboard() {
   // Get user's current location
   const getUserLocation = () => {
     if (!navigator.geolocation) {
-      toastError('Location Error', 'Geolocation is not supported by your browser');
+      toast.error('Location Error', 'Geolocation is not supported by your browser');
       return;
     }
 
@@ -797,12 +848,13 @@ export default function VolunteerDashboard() {
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, lng: longitude });
         setIsGettingLocation(false);
-        info('Location Found', `Your location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        // Use specialized toast method
+        toast.locationFound(latitude, longitude);
       },
       (error) => {
         console.error("Error getting location:", error);
         setIsGettingLocation(false);
-        toastError('Location Error', 'Unable to get your location. Please try again.');
+        toast.error('Location Error', 'Unable to get your location. Please try again.');
       },
       {
         enableHighAccuracy: true,
@@ -815,7 +867,7 @@ export default function VolunteerDashboard() {
   // Get directions function
   const getDirections = (assignment: Assignment) => {
     if (!userLocation) {
-      toastError('Location Required', 'Please allow location access to get directions');
+      toast.error('Location Required', 'Please allow location access to get directions');
       getUserLocation();
       return;
     }
@@ -824,14 +876,15 @@ export default function VolunteerDashboard() {
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     
     if (isMobile) {
-      const url = `https://maps.google.com/maps?daddr=${lat},${lng}&travelmode=driving`;
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
       window.open(url, '_blank');
     } else {
       const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${lat},${lng}`;
       window.open(url, '_blank');
     }
     
-    info('Directions Started', `Opening directions to: ${assignment.title}`);
+    // Use specialized toast method
+    toast.directionsStarted(assignment.title);
   };
 
   // Handle adding new assignment
@@ -846,14 +899,12 @@ export default function VolunteerDashboard() {
     setAssignments(prev => [assignmentWithId, ...prev]);
     setSelectedAssignment(assignmentWithId);
     
-    // Toast notification
-    success('Assignment Created!', `"${newAssignment.title}" has been created successfully.`);
+    // Use specialized toast method
+    toast.assignmentCreated(newAssignment.title!, newAssignment.organization || "Self-assigned");
   };
 
   // Calculate metrics
   const activeAssignments = assignments.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled');
-  const completedAssignments = assignments.filter(a => a.status === 'Completed');
-  const highPriorityAssignments = assignments.filter(a => a.priority === 'High' || a.priority === 'Critical');
   const urgentNeeds = needs.filter(n => n.urgency === "High");
   const pendingLinks = organizationLinks.filter(link => link.status === 'pending').length;
 
@@ -901,11 +952,11 @@ export default function VolunteerDashboard() {
       updateOrganizationStats();
       
       // Toast notification
-      success('Status Updated', `Assignment status updated to ${newStatus}`);
+      toast.success('Status Updated', `Assignment status updated to ${newStatus}`);
       
     } catch (error) {
       console.error("Failed to update status:", error);
-      toastError('Update Failed', 'Failed to update assignment status');
+      toast.error('Update Failed', 'Failed to update assignment status');
     }
   };
 
