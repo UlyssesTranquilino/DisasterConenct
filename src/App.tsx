@@ -25,17 +25,15 @@ import { OrgResourcesPage } from "./pages/org/OrgResourcesPage";
 import VolunteerDashboard from "./pages/volunteer/VolunteerDashboard";
 import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
 import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
-import 'leaflet/dist/leaflet.css';
-import OrgEvacuationCentersPage from "./pages/org/OrgEvacuationCentersPage";
-import { OrgReportsPage } from "./pages/org/OrgReportsPage";
-import { OrgVolunteersPage } from "./pages/org/OrgVolunteersPage";
-import { OrgResourcesPage } from "./pages/org/OrgResourcesPage";
 
+import 'leaflet/dist/leaflet.css';
+
+// ----------------- ROLE ROUTE -----------------
 function RoleRoute({
   roles,
   children,
 }: {
-  roles: Array<"Citizen" | "Organization" | "Volunteer">;
+  roles: Array<"citizen" | "organization" | "volunteer">;
   children: JSX.Element;
 }) {
   const { currentUser, isLoading } = useAuth();
@@ -50,11 +48,21 @@ function RoleRoute({
   }
 
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (!roles.includes(currentUser.role))
+  if (!currentUser.activeRole) {
     return <Navigate to="/login" replace />;
+  }
+
+  const userRole = currentUser.activeRole.toLowerCase();
+  const allowedRoles = roles.map((r) => r.toLowerCase());
+
+  if (!allowedRoles.includes(userRole)) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 }
 
+// ----------------- PUBLIC ROUTE -----------------
 function PublicRoute({ children }: { children: JSX.Element }) {
   const { currentUser, isLoading } = useAuth();
 
@@ -67,12 +75,12 @@ function PublicRoute({ children }: { children: JSX.Element }) {
   }
 
   // If user is logged in, redirect to their dashboard
-  if (currentUser) {
-    if (currentUser.role === "Citizen")
+  if (currentUser && currentUser.activeRole) {
+    if (currentUser.activeRole.toLowerCase() === "citizen")
       return <Navigate to="/citizen/dashboard" replace />;
-    if (currentUser.role === "Organization")
+    if (currentUser.activeRole.toLowerCase() === "organization")
       return <Navigate to="/org/dashboard" replace />;
-    if (currentUser.role === "Volunteer")
+    if (currentUser.activeRole.toLowerCase() === "volunteer")
       return <Navigate to="/volunteer/dashboard" replace />;
   }
 
@@ -80,64 +88,6 @@ function PublicRoute({ children }: { children: JSX.Element }) {
 }
 
 export default function App() {
-  // ----------------- ROLE ROUTE -----------------
-  const RoleRoute = ({
-    roles,
-    children,
-  }: {
-    roles: Array<"citizen" | "organization" | "volunteer">;
-    children: JSX.Element;
-  }) => {
-    const { currentUser, isLoading } = useAuth();
-
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center min-h-screen bg-[#0A0F1C] text-white">
-          <div className="text-lg">Loading...</div>
-        </div>
-      );
-    }
-
-    if (!currentUser) return <Navigate to="/login" replace />;
-
-    // Check if user's activeRole is in the allowed roles (case-insensitive)
-    if (!currentUser.activeRole) {
-      return <Navigate to="/login" replace />;
-    }
-
-    const userRole = currentUser.activeRole.toLowerCase();
-    const allowedRoles = roles.map((r) => r.toLowerCase());
-
-    if (!allowedRoles.includes(userRole)) {
-      return <Navigate to="/login" replace />;
-    }
-
-    return children;
-  };
-
-  // ----------------- PUBLIC ROUTE -----------------
-  const PublicRoute = ({ children }: { children: JSX.Element }) => {
-    const { currentUser, isLoading } = useAuth();
-
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center min-h-screen bg-[#0A0F1C] text-white">
-          <div className="text-lg">Loading...</div>
-        </div>
-      );
-    }
-
-    if (currentUser && currentUser.activeRole) {
-      if (currentUser.activeRole === "citizen")
-        return <Navigate to="/citizen/dashboard" replace />;
-      if (currentUser.activeRole === "organization")
-        return <Navigate to="/org/dashboard" replace />;
-      if (currentUser.activeRole === "volunteer")
-        return <Navigate to="/volunteer/dashboard" replace />;
-    }
-
-    return children;
-  };
   return (
     <AuthProvider>
       <ThemeProvider>
@@ -176,7 +126,7 @@ export default function App() {
             />
 
             {/* APP LAYOUT */}
-            <Route element={<OrganizationLayout />}>
+            <Route element={<AppLayout />}>
               {/* CITIZEN */}
               <Route
                 path="/citizen/dashboard"

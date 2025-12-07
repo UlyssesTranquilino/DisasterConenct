@@ -7,41 +7,45 @@ import { MapPin, Navigation } from "lucide-react";
 
 // Fix for default marker icons in Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "/marker-icon-2x.png",
-  iconUrl: "/marker-icon.png",
-  shadowUrl: "/marker-shadow.png",
-});
+
+// Gradient background style for cards
+const cardGradientStyle = {
+  background: "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
+  backdropFilter: "blur(10px)",
+};
+
+// Custom Lucide Marker Icon
+const createLucideMarker = (color: string) =>
+  L.divIcon({
+    html: `
+      <div style="display:flex;justify-content:center;align-items:center;transform:translate(-50%,-100%)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" 
+             viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" 
+             class="lucide lucide-map-pin drop-shadow-md">
+          <path d="M12 21s8-4.5 8-10a8 8 0 1 0-16 0c0 5.5 8 10 8 10z"/>
+          <circle cx="12" cy="11" r="3"/>
+        </svg>
+      </div>
+    `,
+    className: "",
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -55],
+  });
 
 // Custom icons
 const createCustomIcon = (type: string, isSelected: boolean = false) => {
-  const size = isSelected ? 40 : 32;
-  const iconUrl = getIconUrl(type);
-  
-  return new L.Icon({
-    iconUrl,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size],
-    popupAnchor: [0, -size],
-    className: `custom-marker ${isSelected ? 'selected-marker' : ''}`
-  });
-};
+  const colors: Record<string, string> = {
+    'evacuation': '#ef4444',  // red
+    'urgent': '#f59e0b',     // amber
+    'volunteer': '#3b82f6',  // blue
+    'searched': '#10b981',   // emerald
+    'default': '#6b7280'     // gray
+  };
 
-const getIconUrl = (type: string) => {
-  const baseUrl = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images";
-  
-  switch (type) {
-    case 'evacuation':
-      return `${baseUrl}/marker-icon-red.png`;
-    case 'urgent':
-      return `${baseUrl}/marker-icon-orange.png`;
-    case 'volunteer':
-      return `${baseUrl}/marker-icon-blue.png`;
-    case 'searched':
-      return `${baseUrl}/marker-icon-green.png`;
-    default:
-      return `${baseUrl}/marker-icon.png`;
-  }
+  const color = colors[type as keyof typeof colors] || colors['default'];
+  return createLucideMarker(color);
 };
 
 // Define proper interfaces
@@ -105,21 +109,21 @@ const LocationMarker = ({
         click: onSelect,
       }}
     >
-      <Popup>
-        <div className="p-2 min-w-[200px]">
-          <h3 className="font-bold text-sm text-gray-800 mb-1">{location.name}</h3>
+      <Popup className="custom-popup">
+        <div className="p-2 min-w-[200px] bg-neutral-800 text-white rounded">
+          <h3 className="font-bold text-sm text-white mb-1">{location.name}</h3>
           
           <div className="mb-2">
-            <p className="text-xs text-gray-600 mb-1">{location.location}</p>
+            <p className="text-xs text-gray-300 mb-1">{location.location}</p>
             
             {location.description && (
-              <p className="text-xs text-gray-700 mb-2">{location.description.substring(0, 100)}...</p>
+              <p className="text-xs text-gray-300 mb-2">{location.description.substring(0, 100)}...</p>
             )}
             
             {location.volunteersNeeded !== undefined && (
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium text-gray-700">Volunteers:</span>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs font-medium text-gray-300">Volunteers:</span>
+                <span className="text-xs text-gray-200">
                   {location.volunteersAssigned || 0}/{location.volunteersNeeded}
                 </span>
               </div>
@@ -128,10 +132,10 @@ const LocationMarker = ({
             {location.urgency && (
               <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mb-2"
                 style={{
-                  backgroundColor: location.urgency === 'High' ? '#fee2e2' : 
-                                 location.urgency === 'Medium' ? '#fef3c7' : '#d1fae5',
-                  color: location.urgency === 'High' ? '#dc2626' : 
-                         location.urgency === 'Medium' ? '#d97706' : '#059669'
+                  backgroundColor: location.urgency === 'High' ? '#7f1d1d' : 
+                                 location.urgency === 'Medium' ? '#78350f' : '#064e3b',
+                  color: location.urgency === 'High' ? '#fecaca' : 
+                         location.urgency === 'Medium' ? '#fcd34d' : '#6ee7b7'
                 }}
               >
                 {location.urgency} Priority
@@ -141,18 +145,18 @@ const LocationMarker = ({
           
           {location.supplies && location.supplies.length > 0 && (
             <div className="mb-2">
-              <p className="text-xs font-medium text-gray-700 mb-1">Supplies:</p>
+              <p className="text-xs font-medium text-gray-300 mb-1">Supplies:</p>
               <div className="flex flex-wrap gap-1">
                 {location.supplies.slice(0, 3).map((supply, idx) => (
                   <span 
                     key={idx}
-                    className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs"
+                    className="px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded text-xs border border-blue-800/50"
                   >
                     {supply}
                   </span>
                 ))}
                 {location.supplies.length > 3 && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-400">
                     +{location.supplies.length - 3} more
                   </span>
                 )}
@@ -161,8 +165,8 @@ const LocationMarker = ({
           )}
           
           {location.contact && (
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <p className="text-xs text-gray-600">Contact: {location.contact}</p>
+            <div className="mt-2 pt-2 border-t border-gray-700">
+              <p className="text-xs text-gray-400">Contact: {location.contact}</p>
             </div>
           )}
         </div>
@@ -173,19 +177,14 @@ const LocationMarker = ({
 
 // User location marker
 const UserLocationMarker = ({ position }: { position: [number, number] }) => {
-  const userIcon = new L.Icon({
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-green.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
+  const userIcon = createLucideMarker('#10b981'); // Green color for user location
 
   return (
     <Marker position={position} icon={userIcon}>
-      <Popup>
-        <div className="p-2">
-          <h3 className="font-bold text-sm text-gray-800 mb-1">Your Location</h3>
-          <p className="text-xs text-gray-600">You are here</p>
+      <Popup className="custom-popup">
+        <div className="p-2 bg-neutral-800 text-white rounded">
+          <h3 className="font-bold text-sm text-white mb-1">Your Location</h3>
+          <p className="text-xs text-gray-300">You are here</p>
         </div>
       </Popup>
     </Marker>
@@ -361,9 +360,9 @@ const VolunteerMap: React.FC<VolunteerMapProps> = ({
 
       {/* Location Info Panel */}
       {selectedLocation && (
-        <div className="absolute top-4 right-4 z-[1000] bg-white p-4 rounded-lg shadow-lg max-w-sm">
+        <div className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur-sm p-4 rounded-lg shadow-lg max-w-sm">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-bold text-gray-800 text-sm">{selectedLocation.name}</h3>
+            <h3 className="font-bold text-sm text-gray-800">{selectedLocation.name}</h3>
             {selectedLocation.urgency && (
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                 selectedLocation.urgency === 'High' ? 'bg-red-100 text-red-800' :
@@ -454,16 +453,16 @@ const VolunteerMap: React.FC<VolunteerMapProps> = ({
 
       {/* Map Container */}
       <MapContainer
-        ref={mapRef}
         center={getMapCenter()}
         zoom={getZoomLevel()}
-        className="h-full w-full"
-        scrollWheelZoom={true}
+        style={{ height: '100%', width: '100%', borderRadius: '0.5rem' }}
+        zoomControl={false}
+        ref={mapRef}
+        className="z-0"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
         />
 
         {/* Render location markers */}
