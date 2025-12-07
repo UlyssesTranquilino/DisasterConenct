@@ -15,6 +15,8 @@ const getApiBaseUrl = (): string => {
   return "https://disasterconnect-api.vercel.app/api";
 };
 
+const API_BASE_URL = getApiBaseUrl();
+
 console.log("API Base URL:", API_BASE_URL);
 
 export type UserRole = "citizen" | "organization" | "volunteer";
