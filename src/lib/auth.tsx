@@ -17,10 +17,9 @@ export type CurrentUser = {
   id: string;
   email: string;
   displayName: string;
-  roles: UserRole[]; // all roles of the user
-  activeRole: UserRole | null; // currently selected role
-  organizations?: string[]; // org IDs for organization role
-  profilePicture?: string;
+  roles: UserRole[]; 
+  activeRole: UserRole | null; 
+  organizations?: string[]; 
   isVerified?: boolean;
 };
 
