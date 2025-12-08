@@ -1,174 +1,140 @@
-import { useState } from "react";
-import { mockNeeds } from "../../mock/data";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
-import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Search, Bell, ChevronDown, MapPin, Users, Clock, X } from "lucide-react";
+import { 
+  Search, ChevronDown, MapPin, Users, Clock, X, 
+  AlertCircle, CheckCircle, Heart, Plus, Upload, 
+  User, LogIn, Building2, Link, Handshake, ChevronRight, 
+  Network, CheckCircle2, Clock as ClockIcon, AlertTriangle
+} from "lucide-react";
+// Use the API service you already have
+import { apiService } from "../../lib/api";
+import { useSimpleToast } from "../../components/components/ui/SimpleToast";
+import { useAuth } from "../../lib/auth";
+import { ToastManager } from "../../components/components/ui/ToastNotification"; // Import the Toast Manager
 
-// Gradient background style for cards (same as dashboard)
-const cardGradientStyle = {
-  background: "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
-  backdropFilter: "blur(10px)",
-};
-
-// Define proper TypeScript interfaces
-interface Need {
-  id: number;
-  type: string;
+// Define types locally since they're not in your API service
+type Need = {
+  id: string;
+  title: string;
+  organization: string;
+  organizationId: string;
   description: string;
   location: string;
-  priority: "High" | "Medium" | "Low";
+  coordinates: { lat: number; lng: number };
+  skillsRequired: string[];
   volunteersNeeded: number;
-  urgency: string;
+  volunteersAssigned: number;
+  urgency: "High" | "Medium" | "Low";
+  datePosted: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  status: "Open" | "Filled" | "Closed";
+  estimatedDuration: string;
+  requirements?: string[];
+};
+
+type Organization = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  description: string;
+  type: string;
+  status: string;
+  joinedDate: string;
+  tasksAssigned: number;
+  tasksCompleted: number;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  website?: string;
+  logoUrl?: string;
+};
+
+type SuggestionStatus = "pending" | "approved" | "rejected" | "open" | "filled";
+
+interface CommunitySuggestion {
+  id: string;
+  title: string;
+  description: string;
+  organization: string;
+  organizationId: string;
+  location: string;
+  coordinates: { lat: number; lng: number };
+  skillsRequired: string[];
+  volunteersNeeded: number;
+  volunteersAssigned: number;
+  urgency: "High" | "Medium" | "Low";
+  datePosted: string;
+  contactPerson: string;
+  contactPhone: string;
+  contactEmail: string;
+  status: SuggestionStatus;
+  estimatedDuration: string;
+  requirements: string[];
+  suggestedBy: string;
+  suggestedAt: string;
+  isCommunitySuggestion: boolean;
 }
 
-interface FormData {
-  name: string;
-  contact: string;
+interface ApplicationFormData {
   availability: string;
   skills: string;
   notes: string;
 }
 
-interface ResponsePopupProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: FormData) => void;
-  need: Need | null;
+// Organization Link Interface
+interface OrganizationLink {
+  id: string;
+  volunteerId: string;
+  organizationId: string;
+  organizationName: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: string;
+  approvedAt?: string;
 }
 
-// Complete mock data - don't rely on imported mockNeeds
-const extendedMockNeeds: Need[] = [
-  {
-    id: 1,
-    type: "medical",
-    description: "Urgent medical assistance required at evacuation center",
-    location: "Quezon City Memorial Center",
-    priority: "High",
-    volunteersNeeded: 5,
-    urgency: "Immediate"
-  },
-  {
-    id: 2,
-    type: "food",
-    description: "Food distribution and meal preparation for 200 people",
-    location: "Rizal Park Evacuation",
-    priority: "Medium",
-    volunteersNeeded: 8,
-    urgency: "Today"
-  },
-  {
-    id: 3,
-    type: "logistics",
-    description: "Coordination of supply deliveries to affected areas",
-    location: "Manila Operations Center",
-    priority: "High",
-    volunteersNeeded: 3,
-    urgency: "Immediate"
-  },
-  {
-    id: 4,
-    type: "medical",
-    description: "Emergency first aid supplies for evacuation center",
-    location: "Manila General Hospital",
-    priority: "High",
-    volunteersNeeded: 3,
-    urgency: "Immediate"
-  },
-  {
-    id: 5,
-    type: "food",
-    description: "Hot meal distribution in affected areas",
-    location: "Quezon City Memorial",
-    priority: "Medium",
-    volunteersNeeded: 5,
-    urgency: "Today"
-  },
-  {
-    id: 6,
-    type: "logistics",
-    description: "Supply chain coordination and distribution",
-    location: "Central Command Center",
-    priority: "High",
-    volunteersNeeded: 4,
-    urgency: "Immediate"
-  },
-  {
-    id: 7,
-    type: "medical",
-    description: "Mental health support for displaced families",
-    location: "San Juan Evacuation",
-    priority: "Medium",
-    volunteersNeeded: 2,
-    urgency: "This Week"
-  },
-  {
-    id: 8,
-    type: "food",
-    description: "Water purification and distribution",
-    location: "Marikina River Area",
-    priority: "High",
-    volunteersNeeded: 6,
-    urgency: "Immediate"
-  },
-  {
-    id: 9,
-    type: "logistics",
-    description: "Transport coordination for relief goods",
-    location: "Pasig Central",
-    priority: "Medium",
-    volunteersNeeded: 3,
-    urgency: "Today"
-  },
-  {
-    id: 10,
-    type: "medical",
-    description: "Mobile clinic setup in remote areas",
-    location: "Rizal Province",
-    priority: "High",
-    volunteersNeeded: 4,
-    urgency: "Immediate"
-  },
-  {
-    id: 11,
-    type: "food",
-    description: "Food packaging for emergency kits",
-    location: "Makati Relief Center",
-    priority: "Low",
-    volunteersNeeded: 8,
-    urgency: "This Week"
-  },
-  {
-    id: 12,
-    type: "logistics",
-    description: "Warehouse organization and inventory",
-    location: "Taguig Storage Facility",
-    priority: "Medium",
-    volunteersNeeded: 5,
-    urgency: "Today"
+// Gradient background style
+const cardGradientStyle = {
+  background: "linear-gradient(to bottom, rgba(6,11,40,0.7) 0%, rgba(10,14,35,0.7) 100%)",
+  backdropFilter: "blur(10px)",
+};
+
+const getUrgencyColor = (urgency: string) => {
+  switch (urgency) {
+    case "High": return "bg-red-500/20 text-red-400 border-red-500/30";
+    case "Medium": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    case "Low": return "bg-green-500/20 text-green-400 border-green-500/30";
+    default: return "bg-gray-500/20 text-gray-400 border-gray-500/30";
   }
-];
+};
+
+const getUrgencyIcon = (urgency: string) => {
+  switch (urgency) {
+    case "High": return <AlertCircle size={14} className="text-red-400" />;
+    case "Medium": return <ClockIcon size={14} className="text-yellow-400" />;
+    case "Low": return <ClockIcon size={14} className="text-green-400" />;
+    default: return <ClockIcon size={14} className="text-gray-400" />;
+  }
+};
 
 // Response Popup Component
-function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) {
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    contact: "",
-    availability: "",
-    skills: "",
-    notes: ""
+function ResponsePopup({ isOpen, onClose, onSubmit, need }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: ApplicationFormData) => void;
+  need: any;
+}) {
+  const [formData, setFormData] = useState<ApplicationFormData>({
+    availability: "", skills: "", notes: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
-  };
-
-  const handleChange = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
   };
 
   if (!isOpen || !need) return null;
@@ -177,99 +143,72 @@ function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) 
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg w-full max-w-md border border-gray-700">
         <div className="flex justify-between items-center p-4 border-b border-gray-700">
-          <h3 className="text-lg font-semibold text-white">Respond to Need</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
+          <h3 className="text-lg font-semibold text-white">Apply to Volunteer</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Need Details */}
           <div className="bg-gray-700/30 rounded-lg p-3">
-            <h4 className="text-white font-medium text-sm mb-2">Need Details:</h4>
-            <p className="text-gray-300 text-sm capitalize">{need.type} - {need.description}</p>
+            <h4 className="text-white font-medium text-sm mb-2">Opportunity Details:</h4>
+            <p className="text-white text-sm font-medium">{need.title}</p>
+            <p className="text-blue-400 text-xs mt-1">{need.organization}</p>
+            <p className="text-gray-300 text-xs mt-1">{need.description}</p>
             <p className="text-gray-400 text-xs mt-1">📍 {need.location}</p>
+            {need.isCommunitySuggestion && (
+              <p className="text-green-400 text-xs mt-1">Community Suggestion</p>
+            )}
           </div>
 
-          {/* Response Form */}
           <div className="space-y-3">
             <div>
-              <label className="text-white text-sm font-medium mb-1 block">Full Name</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="Enter your full name"
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-white text-sm font-medium mb-1 block">Contact Information</label>
-              <Input
-                value={formData.contact}
-                onChange={(e) => handleChange('contact', e.target.value)}
-                placeholder="Phone number or email"
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="text-white text-sm font-medium mb-1 block">Availability</label>
+              <label className="text-white text-sm font-medium mb-1 block">When are you available?*</label>
               <select
                 value={formData.availability}
-                onChange={(e) => handleChange('availability', e.target.value)}
+                onChange={(e) => setFormData(prev => ({ ...prev, availability: e.target.value }))}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
                 required
               >
-                <option value="" className="bg-gray-800">Select availability</option>
-                <option value="immediate" className="bg-gray-800">Immediate</option>
-                <option value="today" className="bg-gray-800">Today</option>
-                <option value="this_week" className="bg-gray-800">This Week</option>
-                <option value="next_week" className="bg-gray-800">Next Week</option>
+                <option value="">Select availability</option>
+                <option value="immediately">Immediately</option>
+                <option value="today">Today</option>
+                <option value="this_week">This Week</option>
+                <option value="next_week">Next Week</option>
+                <option value="flexible">Flexible Schedule</option>
               </select>
             </div>
 
             <div>
-              <label className="text-white text-sm font-medium mb-1 block">Relevant Skills</label>
-              <Input
+              <label className="text-white text-sm font-medium mb-1 block">Relevant skills or experience*</label>
+              <textarea
                 value={formData.skills}
-                onChange={(e) => handleChange('skills', e.target.value)}
-                placeholder="e.g., First Aid, Logistics, Cooking"
-                className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+                onChange={(e) => setFormData(prev => ({ ...prev, skills: e.target.value }))}
+                placeholder="What skills do you have that are relevant to this opportunity?"
+                rows={3}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
                 required
               />
             </div>
 
             <div>
-              <label className="text-white text-sm font-medium mb-1 block">Additional Notes</label>
+              <label className="text-white text-sm font-medium mb-1 block">Additional notes (optional)</label>
               <textarea
                 value={formData.notes}
-                onChange={(e) => handleChange('notes', e.target.value)}
-                placeholder="Any additional information or questions..."
-                rows={3}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Any other information you'd like to share..."
+                rows={2}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
               />
             </div>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button
-              type="button"
-              onClick={onClose}
-              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white"
-            >
+            <Button type="button" onClick={onClose} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white">
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
-            >
-              Submit Response
+            <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-500 text-white">
+              Submit Application
             </Button>
           </div>
         </form>
@@ -278,79 +217,660 @@ function ResponsePopup({ isOpen, onClose, onSubmit, need }: ResponsePopupProps) 
   );
 }
 
-interface StatsMetric {
-  title: string;
-  value: string;
+// Suggest Opportunity Popup
+function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, currentUser }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuggestionSubmitted: () => void;
+  currentUser: any;
+}) {
+  const [formData, setFormData] = useState({
+    title: '', description: '', organization: '', location: '',
+    skills: '', urgency: 'Medium' as "High" | "Medium" | "Low",
+    volunteersNeeded: 1, contactInfo: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const { success, error: toastError, ToastContainer } = useSimpleToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    try {
+      const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
+      const suggestion = {
+        title: formData.title,
+        description: formData.description,
+        organization: formData.organization,
+        organizationId: `community_${Date.now()}`,
+        location: formData.location,
+        coordinates: { lat: 0, lng: 0 },
+        skillsRequired: skillsArray,
+        volunteersNeeded: formData.volunteersNeeded,
+        volunteersAssigned: 0,
+        urgency: formData.urgency,
+        datePosted: new Date().toISOString(),
+        contactPerson: "Community Suggestion",
+        contactPhone: formData.contactInfo,
+        contactEmail: formData.contactInfo.includes('@') ? formData.contactInfo : '',
+        status: "pending",
+        estimatedDuration: "To be determined",
+        requirements: [],
+        suggestedBy: currentUser?.displayName || "Anonymous User",
+        suggestedAt: new Date().toISOString(),
+        isCommunitySuggestion: true
+      };
+      
+      if (!currentUser) {
+        toastError('Authentication Required', 'Please login to submit suggestions.');
+        setSubmitting(false);
+        return;
+      }
+      
+      try {
+        // Try to submit via API using the generic request method
+        const response = await (apiService as any).request('/suggestions', {
+          method: 'POST',
+          body: JSON.stringify(suggestion)
+        });
+        
+        if (response.success) {
+          success('Suggestion Submitted!', 'Your suggestion has been submitted for review!');
+          setFormData({ 
+            title: '', description: '', organization: '', location: '', 
+            skills: '', urgency: 'Medium', volunteersNeeded: 1, contactInfo: '' 
+          });
+          onSuggestionSubmitted();
+          onClose();
+        } else {
+          throw new Error('API failed');
+        }
+      } catch (apiError) {
+        // Fallback to localStorage
+        saveSuggestionLocally(suggestion);
+      }
+      
+    } catch (error) {
+      console.error('Error:', error);
+      toastError('Submission Error', 'Failed to submit suggestion.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const saveSuggestionLocally = (suggestion: any) => {
+    const savedSuggestions = JSON.parse(localStorage.getItem('communitySuggestions') || '[]');
+    const newSuggestion = { ...suggestion, id: `local_${Date.now()}` };
+    savedSuggestions.push(newSuggestion);
+    localStorage.setItem('communitySuggestions', JSON.stringify(savedSuggestions));
+    
+    success('Suggestion Saved Locally', 'Your suggestion has been saved locally!');
+    setFormData({ 
+      title: '', description: '', organization: '', location: '', 
+      skills: '', urgency: 'Medium', volunteersNeeded: 1, contactInfo: '' 
+    });
+    onSuggestionSubmitted();
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg w-full max-w-md border border-gray-700 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-4 border-b border-gray-700 sticky top-0 bg-gray-800">
+          <h3 className="text-lg font-semibold text-white">Suggest New Opportunity</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors" disabled={submitting}>
+            <X size={20} />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          <div className="space-y-3">
+            <div>
+              <label className="text-white text-sm font-medium mb-1 block">Opportunity Title*</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                placeholder="e.g., Food Distribution Support"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                required
+                disabled={submitting}
+              />
+            </div>
+
+            <div>
+              <label className="text-white text-sm font-medium mb-1 block">Description*</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Describe what volunteers will do..."
+                rows={3}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
+                required
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-white text-sm font-medium mb-1 block">Organization*</label>
+                <input
+                  type="text"
+                  value={formData.organization}
+                  onChange={(e) => setFormData({...formData, organization: e.target.value})}
+                  placeholder="Organization name"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  required
+                  disabled={submitting}
+                />
+              </div>
+
+              <div>
+                <label className="text-white text-sm font-medium mb-1 block">Urgency*</label>
+                <select
+                  value={formData.urgency}
+                  onChange={(e) => setFormData({...formData, urgency: e.target.value as "High" | "Medium" | "Low"})}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  required
+                  disabled={submitting}
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-white text-sm font-medium mb-1 block">Location*</label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({...formData, location: e.target.value})}
+                placeholder="Address or area"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                required
+                disabled={submitting}
+              />
+            </div>
+
+            <div>
+              <label className="text-white text-sm font-medium mb-1 block">Skills Needed (comma-separated)</label>
+              <input
+                type="text"
+                value={formData.skills}
+                onChange={(e) => setFormData({...formData, skills: e.target.value})}
+                placeholder="e.g., First Aid, Construction, Bilingual"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-white text-sm font-medium mb-1 block">Volunteers Needed*</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.volunteersNeeded}
+                  onChange={(e) => setFormData({...formData, volunteersNeeded: parseInt(e.target.value) || 1})}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                  required
+                  disabled={submitting}
+                />
+              </div>
+
+              <div>
+                <label className="text-white text-sm font-medium mb-1 block">Contact Info*</label>
+                <input
+                  type="text"
+                  value={formData.contactInfo}
+                  onChange={(e) => setFormData({...formData, contactInfo: e.target.value})}
+                  placeholder="Email or phone"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  required
+                  disabled={submitting}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              onClick={onClose}
+              className="flex-1 bg-gray-600 hover:bg-gray-500 text-white"
+              disabled={submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Submitting...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  <Upload size={14} className="mr-1" />
+                  Submit Suggestion
+                </span>
+              )}
+            </Button>
+          </div>
+        </form>
+        <ToastContainer />
+      </div>
+    </div>
+  );
 }
 
 export default function VolunteerNeedsPage() {
+  const { currentUser, isLoading: authLoading, loginWithGoogle } = useAuth();
+  const [needs, setNeeds] = useState<any[]>([]);
+  const [communitySuggestions, setCommunitySuggestions] = useState<any[]>([]);
+  const [linkedOrganizations, setLinkedOrganizations] = useState<any[]>([]);
+  const [organizationLinks, setOrganizationLinks] = useState<OrganizationLink[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [isResponseOpen, setIsResponseOpen] = useState(false);
-  const [selectedNeed, setSelectedNeed] = useState<Need | null>(null);
+  const [selectedNeed, setSelectedNeed] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  
+  const { success, error: toastError, ToastContainer } = useSimpleToast();
+  
+  // Initialize Toast Manager
+  const { toast, ToastContainer: ToastNotificationContainer } = ToastManager();
 
-  const filteredNeeds = extendedMockNeeds.filter((n) => {
+  // Load organization links from localStorage on mount
+  useEffect(() => {
+    const savedLinks = localStorage.getItem('volunteer_org_links');
+    if (savedLinks) {
+      try {
+        setOrganizationLinks(JSON.parse(savedLinks));
+      } catch (error) {
+        console.error("Failed to parse organization links:", error);
+      }
+    }
+  }, []);
+
+  // Save organization links to localStorage
+  const saveOrganizationLinks = (links: OrganizationLink[]) => {
+    localStorage.setItem('volunteer_org_links', JSON.stringify(links));
+    setOrganizationLinks(links);
+  };
+
+  // Handle linking request
+  const handleLinkRequest = async (orgId: string, orgName: string) => {
+    try {
+      // Get user ID safely
+      let userId = 'unknown-user-id';
+      if (currentUser && currentUser.id) {
+          userId = currentUser.id;
+      }
+      
+      const newLink: OrganizationLink = {
+        id: `link_${Date.now()}`,
+        volunteerId: userId,
+        organizationId: orgId,
+        organizationName: orgName,
+        status: 'pending',
+        requestedAt: new Date().toISOString()
+      };
+      
+      const updatedLinks = [...organizationLinks, newLink];
+      saveOrganizationLinks(updatedLinks);
+      
+      // Simulate approval after 2 seconds
+      setTimeout(() => {
+        const approvedLinks = updatedLinks.map(link =>
+          link.id === newLink.id 
+            ? { ...link, status: 'approved' as const, approvedAt: new Date().toISOString() }
+            : link
+        );
+        saveOrganizationLinks(approvedLinks);
+        
+        // Use standard toast method
+        toast.success('Organization Connected!', `You are now connected with ${orgName}. You'll see their opportunities first.`);
+      }, 2000);
+      
+      // Use standard toast method for request sent
+      toast.info('Link Request Sent', `Request sent to ${orgName}. Awaiting approval...`);
+      
+    } catch (error) {
+      toast.error('Request Failed', 'Failed to send connection request. Please try again.');
+    }
+  };
+
+  // Calculate organization stats
+  const organizationStats = {
+    totalLinked: organizationLinks.filter(link => link.status === 'approved').length,
+    pendingLinks: organizationLinks.filter(link => link.status === 'pending').length,
+    activeNeedsFromLinked: needs.filter(need => 
+      organizationLinks.some(link => 
+        link.status === 'approved' && link.organizationName === need.organization
+      )
+    ).length
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 1. Try to fetch needs using apiService's request method directly
+      try {
+        const needsData = await (apiService as any).request('/needs');
+        if (needsData.success && needsData.data) {
+          setNeeds(needsData.data);
+        } else {
+          setNeeds([]);
+        }
+      } catch (needsError) {
+        console.log("Could not fetch needs:", needsError);
+        setNeeds([]);
+      }
+      
+      // 2. Try to fetch organizations
+      try {
+        if (currentUser) {
+          const orgsData = await (apiService as any).request('/volunteer/organizations');
+          if (orgsData.success && orgsData.data) {
+            setLinkedOrganizations(orgsData.data);
+          } else {
+            setLinkedOrganizations([]);
+          }
+        }
+      } catch (orgsError) {
+        console.log("Could not fetch organizations:", orgsError);
+        setLinkedOrganizations([]);
+      }
+      
+      // 3. Load community suggestions from localStorage
+      const savedSuggestions = JSON.parse(localStorage.getItem('communitySuggestions') || '[]');
+      setCommunitySuggestions(savedSuggestions);
+      
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+      setError("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Combine all opportunities
+  const allOpportunities = [
+    ...needs.map((need: any) => ({ ...need, isCommunitySuggestion: false })),
+    ...communitySuggestions.map((suggestion: any) => ({
+      ...suggestion,
+      isCommunitySuggestion: true,
+      status: suggestion.status === "filled" ? "Filled" : "Open"
+    }))
+  ];
+
+  const filteredOpportunities = allOpportunities.filter((n: any) => {
     const q = search.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      n.type.toLowerCase().includes(q) ||
-      n.description.toLowerCase().includes(q) ||
-      n.location.toLowerCase().includes(q);
-    const matchesFilter = filter === "all" || n.type.toLowerCase() === filter.toLowerCase();
+    const matchesSearch = !q || 
+      (n.title && n.title.toLowerCase().includes(q)) || 
+      (n.organization && n.organization.toLowerCase().includes(q));
+    
+    const matchesFilter = filter === "all" || 
+      (filter === "high" && n.urgency === "High") ||
+      (filter === "medium" && n.urgency === "Medium") ||
+      (filter === "low" && n.urgency === "Low") ||
+      (filter === "open" && n.status === "Open") ||
+      (filter === "filled" && (n.status === "Filled" || (n.volunteersAssigned >= n.volunteersNeeded)));
+    
     return matchesSearch && matchesFilter;
   });
 
-  // Mock metrics for stats cards
-  const statsMetrics: StatsMetric[] = [
-    {
-      title: "Total Active Needs",
-      value: extendedMockNeeds.length.toString(),
-    },
-    {
-      title: "Urgent Requests",
-      value: extendedMockNeeds.filter((n) => n.priority === "High").length.toString(),
-    },
-    {
-      title: "Fulfilled This Week",
-      value: "8",
-    },
-  ];
-
-  const handleRespondClick = (need: Need) => {
+  const handleRespondClick = (need: any) => {
+    if (!currentUser) {
+      toast.error('Login Required', 'Please login to apply for volunteer opportunities.');
+      return;
+    }
+    
     setSelectedNeed(need);
     setIsResponseOpen(true);
   };
 
-  const handleCloseResponse = () => {
-    setIsResponseOpen(false);
-    setSelectedNeed(null);
+  const handleSubmitResponse = async (responseData: ApplicationFormData) => {
+    if (!selectedNeed) return;
+
+    try {
+      const isCommunitySuggestion = selectedNeed.isCommunitySuggestion;
+      
+      if (isCommunitySuggestion) {
+        // Handle community suggestion locally
+        const newSuggestions = communitySuggestions.map((s: any) => 
+          s.id === selectedNeed.id 
+            ? { ...s, volunteersAssigned: (s.volunteersAssigned || 0) + 1 }
+            : s
+        );
+        setCommunitySuggestions(newSuggestions);
+        localStorage.setItem('communitySuggestions', JSON.stringify(newSuggestions));
+        
+        // Use standard toast method with custom details
+        toast.success('Interest Recorded!', `Your interest in "${selectedNeed.title}" has been recorded! The organization will contact you if needed.`);
+        
+      } else {
+        // Use apiService for real needs
+        const requestData = {
+          orgId: selectedNeed.organizationId,
+          needId: selectedNeed.id,
+          ...responseData
+        };
+        
+        try {
+          const response = await (apiService as any).request('/volunteer/self-assign', {
+            method: 'POST',
+            body: JSON.stringify(requestData)
+          });
+          
+          if (response.success) {
+            // Update local state
+            setNeeds(prev => prev.map(need => 
+              need.id === selectedNeed.id 
+                ? { 
+                    ...need, 
+                    volunteersAssigned: (need.volunteersAssigned || 0) + 1,
+                    status: (need.volunteersAssigned || 0) + 1 >= need.volunteersNeeded ? "Filled" : need.status
+                  }
+                : need
+            ));
+            
+            // Use standard toast method with custom details
+            toast.success('Application Submitted!', `Successfully applied to "${selectedNeed.title}" with ${selectedNeed.organization}! They will contact you soon.`);
+          } else {
+            throw new Error(response.message || "Failed to submit application");
+          }
+        } catch (apiError) {
+          throw new Error("Failed to connect to server");
+        }
+      }
+      
+      setIsResponseOpen(false);
+      setSelectedNeed(null);
+      
+    } catch (error: any) {
+      console.error("Application error:", error);
+      toast.error('Application Failed', error.message || 'Failed to submit application.');
+      setIsResponseOpen(false);
+      setSelectedNeed(null);
+    }
   };
 
-  const handleSubmitResponse = (responseData: FormData) => {
-    console.log('Response submitted:', {
-      need: selectedNeed,
-      response: responseData
-    });
-    // Here you would typically send the response to your backend
-    alert('Response submitted successfully!');
-    handleCloseResponse();
+  const handleSuggestionSubmitted = () => {
+    const savedSuggestions = JSON.parse(localStorage.getItem('communitySuggestions') || '[]');
+    setCommunitySuggestions(savedSuggestions);
+    
+    // Use standard toast method
+    toast.success('Suggestion Submitted!', 'Your opportunity suggestion has been submitted for review!');
   };
+
+  const handleLoginClick = async () => {
+    try {
+      await loginWithGoogle();
+      // Refresh data after login
+      await fetchAllData();
+      
+      // Use standard toast method
+      toast.success('Login Successful', 'Welcome back! You can now apply for volunteer opportunities.');
+    } catch (error) {
+      console.error("Login failed:", error);
+      toast.error('Login Failed', 'Failed to login. Please try again.');
+    }
+  };
+
+  const handleViewOrganizations = () => {
+    window.location.href = '/volunteer/organizations';
+  };
+
+  // Check if opportunity is from linked organization
+  const isFromLinkedOrganization = (need: any) => {
+    return linkedOrganizations.some(org => 
+      org.name === need.organization || 
+      org.id === need.organizationId
+    ) || organizationLinks.some(link => 
+      link.status === 'approved' && link.organizationName === need.organization
+    );
+  };
+
+  // Get icon component for metrics
+  const getIconComponent = (iconName: string, size: number = 16) => {
+    switch (iconName) {
+      case "ClockIcon":
+        return <ClockIcon size={size} />;
+      case "CheckCircle":
+        return <CheckCircle2 size={size} />;
+      case "AlertTriangle":
+        return <AlertTriangle size={size} />;
+      case "Building2":
+        return <Building2 size={size} />;
+      case "Network":
+        return <Network size={size} />;
+      case "Handshake":
+        return <Handshake size={size} />;
+      default:
+        return <ClockIcon size={size} />;
+    }
+  };
+
+  // Calculate metrics for the needs page
+  const calculatedMetrics = [
+    {
+      title: "Total Opportunities",
+      value: allOpportunities.length.toString(),
+      icon: "Network",
+      color: "text-blue-400"
+    },
+    {
+      title: "Urgent Needs",
+      value: allOpportunities.filter((n: any) => n.urgency === "High").length.toString(),
+      icon: "AlertTriangle",
+      color: "text-red-400"
+    },
+    {
+      title: "Linked Orgs",
+      value: organizationStats.totalLinked.toString(),
+      icon: "Building2",
+      color: "text-purple-400"
+    },
+    {
+      title: "Active from Linked",
+      value: organizationStats.activeNeedsFromLinked.toString(),
+      icon: "Handshake",
+      color: "text-green-400"
+    }
+  ];
+
+  if (authLoading || loading) {
+    return (
+      <div className="px-2 md:px-4 space-y-4 pb-6 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-4"></div>
+          <p className="text-white">Loading volunteer opportunities...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    // REMOVED overflow-hidden from main container - this was causing the issue
     <div className="px-2 md:px-4 space-y-4 pb-6 min-h-screen">
       {/* Header with Search */}
       <div className="flex justify-between items-center pt-2">
         <div>
-          <h1 className="text-lg font-semibold text-white">Active Volunteer Needs</h1>
+          <h1 className="text-lg font-semibold text-white">Available Volunteer Opportunities</h1>
+          <p className="text-sm text-gray-400">Find and apply to help with current needs</p>
+          
+          {/* User Status */}
+          <div className="flex items-center gap-2 mt-1">
+            {currentUser ? (
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-400">
+                <User size={12} />
+                <span>{currentUser.displayName}</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-500/20 text-red-400">
+                <AlertCircle size={12} />
+                <span>Not logged in</span>
+              </div>
+            )}
+          </div>
         </div>
+        
         <div className="flex items-center space-x-3">
+          {/* Login Button (when not logged in) */}
+          {!currentUser && (
+            <Button
+              onClick={handleLoginClick}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-xs h-8"
+            >
+              <LogIn size={14} className="mr-1" />
+              Login to Volunteer
+            </Button>
+          )}
+
+          {/* View Linked Organizations Button */}
+          {currentUser && linkedOrganizations.length > 0 && (
+            <Button
+              onClick={handleViewOrganizations}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs h-8"
+            >
+              <Building2 size={14} className="mr-1" />
+              My Organizations
+            </Button>
+          )}
+
+          {/* Suggest Opportunity Button */}
+          <Button
+            onClick={() => setIsSuggestionOpen(true)}
+            disabled={!currentUser}
+            className={`text-white text-xs h-8 ${!currentUser ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'}`}
+            title={!currentUser ? "Please login to suggest opportunities" : ""}
+          >
+            <Plus size={14} className="mr-1" />
+            Suggest Opportunity
+          </Button>
+
           {/* Search Bar */}
           <div className="flex items-center bg-gray-900 border border-gray-700 rounded-lg px-2 py-[5px]">
             <Search size={14} className="text-gray-400 mr-2" />
             <input
               type="text"
-              placeholder="Search needs..."
+              placeholder="Search opportunities..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="bg-transparent text-sm text-white placeholder-gray-400 focus:outline-none w-32 md:w-48"
@@ -362,36 +882,141 @@ export default function VolunteerNeedsPage() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="appearance-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-[5px] text-sm text-white focus:outline-none focus:border-blue-500 w-40 pr-8"
+              className="appearance-none bg-gray-900 border border-gray-700 rounded-lg px-3 py-[5px] text-sm text-white focus:outline-none focus:border-blue-500 w-48 pr-8"
             >
-              <option value="all" className="bg-gray-800 text-white">All Needs</option>
-              <option value="medical" className="bg-gray-800 text-white">Medical</option>
-              <option value="food" className="bg-gray-800 text-white">Food</option>
-              <option value="logistics" className="bg-gray-800 text-white">Logistics</option>
+              <option value="all" className="bg-gray-800 text-white">All Opportunities</option>
+              <option value="high" className="bg-gray-800 text-white">High Priority</option>
+              <option value="medium" className="bg-gray-800 text-white">Medium Priority</option>
+              <option value="low" className="bg-gray-800 text-white">Low Priority</option>
+              <option value="open" className="bg-gray-800 text-white">Open Positions</option>
+              <option value="filled" className="bg-gray-800 text-white">Filled Positions</option>
             </select>
             <ChevronDown size={14} className="text-gray-400 absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none" />
           </div>
 
-          {/* Bell Button */}
-          <Button variant="ghost" size="sm" className="h-8 hover:bg-gray-600">
-            <Bell size={16} className="text-white" />
+          {/* Refresh Button */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 hover:bg-gray-600"
+            onClick={fetchAllData}
+            title="Refresh opportunities"
+          >
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
           </Button>
         </div>
       </div>
 
-      {/* Stats Row - Centered and Compact */}
+      {/* Organization Connection Status - Similar to Dashboard */}
+      {(organizationStats.totalLinked > 0 || organizationStats.pendingLinks > 0) && (
+        <div className="bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-500/20 p-2 rounded-lg">
+              <Link size={16} className="text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-white font-medium">Organization Connections</h3>
+              <p className="text-purple-300 text-sm mt-1">
+                {organizationStats.totalLinked > 0 && (
+                  <>
+                    Connected to {organizationStats.totalLinked} organization(s). 
+                    {organizationStats.activeNeedsFromLinked > 0 && 
+                      ` • ${organizationStats.activeNeedsFromLinked} opportunities from your connections`}
+                    {organizationStats.pendingLinks > 0 && ` • ${organizationStats.pendingLinks} pending request(s)`}
+                  </>
+                )}
+                {organizationStats.totalLinked === 0 && organizationStats.pendingLinks > 0 && (
+                  <>You have {organizationStats.pendingLinks} pending connection request(s)</>
+                )}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {organizationStats.pendingLinks > 0 && (
+                <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs flex items-center">
+                  <ClockIcon size={10} className="mr-1" />
+                  {organizationStats.pendingLinks} Pending
+                </span>
+              )}
+              {organizationStats.totalLinked > 0 && organizationStats.activeNeedsFromLinked > 0 && (
+                <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs flex items-center">
+                  <Handshake size={10} className="mr-1" />
+                  {organizationStats.activeNeedsFromLinked} Opportunities
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Connect Card (when no organizations linked) */}
+      {organizationStats.totalLinked === 0 && !loading && currentUser && (
+        <Card className="border-0" style={cardGradientStyle}>
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-purple-500/20 p-2 rounded-lg">
+                  <Handshake size={16} className="text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-medium text-sm">Connect with Organizations</h3>
+                  <p className="text-gray-400 text-xs">
+                    Link with organizations to see their opportunities first and receive direct assignments
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => window.location.href = '/volunteer/dashboard'}
+                className="bg-purple-600 hover:bg-purple-500 text-white text-xs h-7 px-3"
+              >
+                <Handshake size={12} className="mr-1" />
+                Connect Organizations
+                <ChevronRight size={12} className="ml-1" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Login Required Banner */}
+      {!currentUser && (
+        <div className="bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-500/20 p-2 rounded-lg">
+              <LogIn size={24} className="text-red-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-white font-medium">Login Required to Volunteer</h3>
+              <p className="text-red-300 text-sm mt-1">
+                Please login with your volunteer account to apply for opportunities or suggest new ones.
+              </p>
+            </div>
+            <Button
+              onClick={handleLoginClick}
+              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white"
+            >
+              <LogIn size={16} className="mr-2" />
+              Login Now
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Metrics Cards - Similar to Dashboard */}
       <div className="flex justify-center">
-        <div className="grid grid-cols-3 gap-4 max-w-2xl">
-          {statsMetrics.map((metric, index) => (
-            <Card key={index} className="border-0 w-40" style={cardGradientStyle}>
-              <CardHeader className="flex flex-col items-center space-y-0 pb-2 border-b-0">
-                <CardTitle className="text-sm font-medium text-white text-center leading-tight">
-                  {metric.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-center">
-                <div className="text-2xl font-bold text-white">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 w-full">
+          {calculatedMetrics.map((metric, index) => (
+            <Card key={index} className="border-0 w-full" style={cardGradientStyle}>
+              <CardContent className="text-center p-2">
+                <div className={`flex justify-center mb-1 ${metric.color}`}>
+                  {getIconComponent(metric.icon, 14)}
+                </div>
+                <div className="text-lg font-bold text-white">
                   {metric.value}
+                </div>
+                <div className="text-xs text-white opacity-80">
+                  {metric.title}
                 </div>
               </CardContent>
             </Card>
@@ -399,91 +1024,166 @@ export default function VolunteerNeedsPage() {
         </div>
       </div>
 
-      {/* Needs List - Grid layout with square cards */}
+      {/* Error State */}
+      {error && (
+        <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={16} className="text-yellow-400" />
+            <div className="flex-1">
+              <p className="text-yellow-400 text-sm">{error}</p>
+            </div>
+            <Button
+              onClick={fetchAllData}
+              className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs h-8"
+            >
+              Retry Connection
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Needs List */}
       <Card className="border-0 flex-1 min-h-0 flex flex-col" style={cardGradientStyle}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 border-b-0">
           <CardTitle className="text-sm font-medium text-white">
-            Active Volunteer Needs
+            Available Volunteer Opportunities
           </CardTitle>
           <div className="text-xs text-neutral-400">
-            {filteredNeeds.length} {filteredNeeds.length === 1 ? 'need' : 'needs'} found
+            {filteredOpportunities.length} {filteredOpportunities.length === 1 ? 'opportunity' : 'opportunities'} found
           </div>
         </CardHeader>
         
         <CardContent className="flex-1 p-0 overflow-hidden flex flex-col">
           <div className="overflow-auto flex-1 p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredNeeds.map((n) => (
-                <Card 
-                  key={n.id} 
-                  className="border border-neutral-700 bg-neutral-800/20 hover:bg-neutral-800/40 transition-all duration-200 flex flex-col h-64"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <CardTitle className="capitalize text-sm font-medium text-white">
-                        {n.type}
-                      </CardTitle>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 ${
-                          n.priority === "High"
-                            ? "bg-red-500/20 text-red-400"
-                            : n.priority === "Medium"
-                            ? "bg-yellow-500/20 text-yellow-400"
-                            : "bg-green-500/20 text-green-400"
-                        }`}
-                      >
-                        {n.priority}
-                      </span>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-0 flex-1 flex flex-col">
-                    <div className="text-sm text-neutral-300 mb-3 line-clamp-3 flex-1">
-                      {n.description}
-                    </div>
-                    
-                    {/* Additional Info */}
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-2 text-xs text-neutral-400">
-                        <MapPin size={12} />
-                        <span className="truncate">{n.location}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-neutral-400">
-                        <Users size={12} />
-                        <span>{n.volunteersNeeded} volunteers needed</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-xs text-neutral-400">
-                        <Clock size={12} />
-                        <span>Urgency: {n.urgency}</span>
-                      </div>
-                    </div>
-                    
-                    <Button 
-                      onClick={() => handleRespondClick(n)}
-                      className="bg-blue-600 hover:bg-blue-500 text-white text-xs h-7 w-full mt-auto"
-                    >
-                      Respond to Need
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredNeeds.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center text-center py-12">
-                  <div className="text-neutral-600 mb-3">
-                    <Search size={32} />
-                  </div>
-                  <p className="text-sm text-neutral-400 font-medium mb-1">
-                    No active needs found
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    Try adjusting your search or filter criteria
-                  </p>
+            {filteredOpportunities.length === 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center text-center py-12">
+                <div className="text-neutral-600 mb-3">
+                  <Search size={48} />
                 </div>
-              )}
-            </div>
+                <p className="text-lg text-white font-medium mb-2">No volunteer opportunities yet</p>
+                <p className="text-sm text-neutral-400 mb-6 max-w-md">
+                  Be the first to suggest a volunteer opportunity! Help build our community response network.
+                </p>
+                <Button
+                  onClick={() => setIsSuggestionOpen(true)}
+                  className="text-sm h-10 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500"
+                  disabled={!currentUser}
+                  title={!currentUser ? "Please login to suggest opportunities" : ""}
+                >
+                  <Plus size={16} className="mr-2" />
+                  Suggest First Opportunity
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredOpportunities.map((opportunity: any) => {
+                  const isLinked = isFromLinkedOrganization(opportunity);
+                  
+                  return (
+                    <Card 
+                      key={opportunity.id} 
+                      className={`border ${opportunity.isCommunitySuggestion ? 'border-purple-500/30 bg-gradient-to-br from-purple-900/10 to-blue-900/10' : 
+                                isLinked ? 'border-green-500/30 bg-gradient-to-br from-green-900/10 to-blue-900/10' : 
+                                'border-blue-500/30 bg-gradient-to-br from-blue-900/10 to-gray-800/20'} hover:bg-gray-800/30 transition-all duration-200 flex flex-col`}
+                    >
+                      {/* Linked Organization Badge */}
+                      {isLinked && (
+                        <div className="absolute top-2 right-2">
+                          <div className="bg-green-500/20 border border-green-500/30 rounded-lg px-2 py-1">
+                            <span className="text-xs text-green-400 font-medium flex items-center gap-1">
+                              <Link size={10} />
+                              Linked
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <CardTitle className="text-sm font-medium text-white flex-1 pr-8">
+                            {opportunity.title}
+                          </CardTitle>
+                          <div className="flex items-center space-x-1">
+                            {getUrgencyIcon(opportunity.urgency)}
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(opportunity.urgency)}`}>
+                              {opportunity.urgency}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-blue-400 text-xs mt-1">{opportunity.organization}</p>
+                        {opportunity.isCommunitySuggestion && (
+                          <p className="text-purple-400 text-xs mt-1">Community Suggestion</p>
+                        )}
+                      </CardHeader>
+
+                      <CardContent className="pt-0">
+                        <div className="text-sm text-neutral-300 mb-3 line-clamp-3">
+                          {opportunity.description}
+                        </div>
+                        
+                        <div className="space-y-2 mb-3">
+                          <div className="flex items-center gap-2 text-xs text-neutral-400">
+                            <MapPin size={12} />
+                            <span className="truncate">{opportunity.location}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 text-xs text-neutral-400">
+                            <Users size={12} />
+                            <span>
+                              {opportunity.volunteersAssigned || 0}/{opportunity.volunteersNeeded} volunteers • {opportunity.estimatedDuration}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Button 
+                          onClick={() => handleRespondClick(opportunity)}
+                          disabled={opportunity.status === "Filled" || opportunity.volunteersAssigned >= opportunity.volunteersNeeded || !currentUser}
+                          className={`w-full text-white text-xs h-8 ${
+                            opportunity.status === "Filled" || opportunity.volunteersAssigned >= opportunity.volunteersNeeded
+                              ? "bg-gray-600 cursor-not-allowed"
+                              : !currentUser
+                              ? "bg-gray-700 cursor-not-allowed"
+                              : opportunity.isCommunitySuggestion
+                              ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500"
+                              : isLinked
+                              ? "bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500"
+                              : "bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500"
+                          }`}
+                          title={!currentUser ? "Please login to apply" : ""}
+                        >
+                          {opportunity.status === "Filled" || opportunity.volunteersAssigned >= opportunity.volunteersNeeded ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <CheckCircle size={10} />
+                              Position Filled
+                            </span>
+                          ) : !currentUser ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <LogIn size={10} />
+                              Login to Apply
+                            </span>
+                          ) : opportunity.isCommunitySuggestion ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <Heart size={10} />
+                              Express Interest
+                            </span>
+                          ) : isLinked ? (
+                            <span className="flex items-center justify-center gap-1">
+                              <CheckCircle size={10} />
+                              Apply to Linked Org
+                            </span>
+                          ) : (
+                            <span className="flex items-center justify-center gap-1">
+                              <CheckCircle size={10} />
+                              Apply to Help
+                            </span>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -491,10 +1191,24 @@ export default function VolunteerNeedsPage() {
       {/* Response Popup */}
       <ResponsePopup
         isOpen={isResponseOpen}
-        onClose={handleCloseResponse}
+        onClose={() => setIsResponseOpen(false)}
         onSubmit={handleSubmitResponse}
         need={selectedNeed}
       />
+
+      {/* Suggest Opportunity Popup */}
+      <SuggestOpportunityPopup
+        isOpen={isSuggestionOpen}
+        onClose={() => setIsSuggestionOpen(false)}
+        onSuggestionSubmitted={handleSuggestionSubmitted}
+        currentUser={currentUser}
+      />
+      
+      {/* Toast Container from ToastManager */}
+      <ToastNotificationContainer />
+      
+      {/* Old Toast Container (for backward compatibility) */}
+      <ToastContainer />
     </div>
   );
 }
