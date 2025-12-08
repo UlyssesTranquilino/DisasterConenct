@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Search, Layers } from 'lucide-react';
+import { MapLocation } from "../lib/MapLocation";
 
 // --- Custom Lucide Marker Icon (same as DisasterMap) ---
 const createLucideMarker = (color: string) =>
@@ -43,33 +44,23 @@ const FlyToLocation = ({ position }: { position: [number, number] | null }) => {
   return null;
 };
 
-interface MapLocation {
-  id: number;
-  name: string;
-  location: string;
-  position: [number, number];
-  capacity: number;
-  supplies: string[];
-  contact: string;
-  occupancy: number;
-  type?: 'evacuation' | 'urgent' | 'volunteer' | 'searched';
-  coordinates: {
-    lat: number;
-    lng: number;
-  };
-}
 
 interface VolunteerMapProps {
   onLocationSelect?: (location: MapLocation) => void;
   centers?: MapLocation[];
+
+  // Add these:
+  userLocation?: { lat: number; lng: number } | null;
+  selectedLocationId?: string;
 }
+
 
 const defaultCenter: [number, number] = [14.5995, 120.9842]; // Manila
 
 // Default centers if none provided
 const defaultEvacuationCenters: MapLocation[] = [
   {
-    id: 1,
+    id: "1",
     name: "Central Evacuation Center",
     location: "Manila, Metro Manila",
     position: [14.61, 120.98],
@@ -81,7 +72,7 @@ const defaultEvacuationCenters: MapLocation[] = [
     coordinates: { lat: 14.61, lng: 120.98 }
   },
   {
-    id: 2,
+    id: "2",
     name: "Northside Shelter - URGENT",
     location: "Quezon City, Metro Manila",
     position: [14.604, 120.99],
@@ -93,7 +84,7 @@ const defaultEvacuationCenters: MapLocation[] = [
     coordinates: { lat: 14.604, lng: 120.99 }
   },
   {
-    id: 3,
+    id: "3",
     name: "Community Hall",
     location: "Makati, Metro Manila",
     position: [14.59, 120.975],
@@ -105,7 +96,7 @@ const defaultEvacuationCenters: MapLocation[] = [
     coordinates: { lat: 14.59, lng: 120.975 }
   },
   {
-    id: 4,
+    id: "4",
     name: "Volunteer Hub Central",
     location: "Pasig, Metro Manila",
     position: [14.595, 120.98],
