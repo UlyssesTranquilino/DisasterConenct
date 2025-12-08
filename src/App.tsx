@@ -11,16 +11,14 @@ import CitizenDashboard from "./pages/citizen/CitizenDashboard";
 import RequestHelpPage from "./pages/citizen/RequestHelpPage";
 import CitizenCentersPage from "./pages/citizen/CitizenCentersPage";
 import OrgDashboard from "./pages/org/OrgDashboard";
-import OrgCentersPage from "./pages/org/OrgCentersPage";
-import OrgAddCenterPage from "./pages/org/OrgAddCenterPage";
+import OrgEvacuationCentersPage from "./pages/org/OrgEvacuationCentersPage";
+import { OrgResourcesPage } from "./pages/org/OrgResourcesPage";
+import {OrgVolunteersPage} from "./pages/org/OrgVolunteersPage";
 import OrgAnnouncementsPage from "./pages/org/OrgAnnouncementsPage";
+import { OrgReportsPage } from "./pages/org/OrgReportsPage";
 import VolunteerDashboard from "./pages/volunteer/VolunteerDashboard";
 import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
 import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
-import OrgEvacuationCentersPage from "./pages/org/OrgEvacuationCentersPage";
-import { OrgReportsPage } from "./pages/org/OrgReportsPage";
-import { OrgVolunteersPage } from "./pages/org/OrgVolunteersPage";
-import { OrgResourcesPage } from "./pages/org/OrgResourcesPage";
 
 const debug = true;
 
@@ -39,7 +37,6 @@ function CitizenDashboardWrapper() {
     }
   }, [currentUser, setCurrentUser]);
 
-  // Show loading until the mock user is ready
   if (!currentUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0A0F1C] text-white">
@@ -51,7 +48,7 @@ function CitizenDashboardWrapper() {
   return <CitizenDashboard />;
 }
 
-
+// Route protection for roles
 function RoleRoute({
   roles,
   children,
@@ -69,13 +66,14 @@ function RoleRoute({
     );
   }
 
-  if (!currentUser) return <Navigate to="/login" replace />;
-  if (!roles.includes(currentUser.role))
+  if (!currentUser || !roles.includes(currentUser.role)) {
     return <Navigate to="/login" replace />;
+  }
 
   return children;
 }
 
+// Public route for login/register
 function PublicRoute({ children }: { children: JSX.Element }) {
   const { currentUser, isLoading } = useAuth();
 
@@ -88,66 +86,36 @@ function PublicRoute({ children }: { children: JSX.Element }) {
   }
 
   if (currentUser) {
-    if (currentUser.role === "Citizen")
-      return <Navigate to="/citizen/dashboard" replace />;
-    if (currentUser.role === "Organization")
-      return <Navigate to="/org/dashboard" replace />;
-    if (currentUser.role === "Volunteer")
-      return <Navigate to="/volunteer/dashboard" replace />;
+    switch (currentUser.role) {
+      case "Citizen":
+        return <Navigate to="/citizen/dashboard" replace />;
+      case "Organization":
+        return <Navigate to="/org/dashboard" replace />;
+      case "Volunteer":
+        return <Navigate to="/volunteer/dashboard" replace />;
+    }
   }
 
   return children;
 }
 
-const DEV:number=4
 export default function App() {
-<<<<<<< Updated upstream
-  //return <CitizenDashboard />;
-  if (DEV==0) { //test specific pages
-    return (
-      <ThemeProvider>
-        <AuthProvider>
-          <CitizenDashboard/>
-        </AuthProvider>
-      </ThemeProvider>
-    );
-  } else if (DEV==1){
-    return (
-    <ThemeProvider>
-        <AuthProvider>
-          <RequestHelpPage/>
-        </AuthProvider>
-      </ThemeProvider>
-    );
-  } else if (DEV==2) { //test specific pages
-    return (
-      <ThemeProvider>
-        <AuthProvider>
-          <CitizenCentersPage />
-        </AuthProvider>
-      </ThemeProvider>
-    );
-  } else {
-    return (
-=======
   if (debug) {
     return (
       <ThemeProvider>
         <AuthProvider>
-        
-            <CitizenDashboardWrapper />
-
+          <CitizenDashboardWrapper />
         </AuthProvider>
       </ThemeProvider>
     );
   }
 
   return (
->>>>>>> Stashed changes
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route
               path="/login"
@@ -174,6 +142,7 @@ export default function App() {
               }
             />
 
+            {/* Authenticated routes inside AppLayout */}
             <Route element={<AppLayout />}>
               {/* Citizen */}
               <Route
@@ -278,11 +247,11 @@ export default function App() {
               />
             </Route>
 
+            {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   );
-  }
 }
