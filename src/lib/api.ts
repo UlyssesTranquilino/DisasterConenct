@@ -1,6 +1,9 @@
 // API service for communicating with the backend
-// const API_BASE_URL = "https://disasterconnect-api.vercel.app/api";
-const API_BASE_URL = "http://localhost:5000";
+// Use environment variable for API URL, fallback to localhost for development
+// const API_BASE_URL =
+//   import.meta.env.DEV
+//     ? "/api"
+//     : "https://disasterconnect-api.vercel.app/api";
 
 const API_BASE_URL = "https://disasterconnect-api.vercel.app/api";
 // const API_BASE_URL = "http://localhost:5000/api";
@@ -46,8 +49,8 @@ export interface ErrorResponse {
 
 class ApiService {
   private baseURL: string;
-  private readonly TOKEN_KEY = "auth_token";
-  private readonly USER_KEY = "user_data";
+  private token: string | null = null;
+  private TOKEN_KEY = "auth_token";
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
@@ -203,114 +206,52 @@ class ApiService {
   }
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>("/api/auth/login", {
+    return this.request<AuthResponse>("/auth/login", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({ email, password }),
     });
-
-    if (response.success) {
-      this.setToken(response.data.token);
-      this.setUser(response.data.user);
-    }
-
-    return response;
   }
 
   async googleLogin(
     idToken: string,
-    role?: string,
+    roles?: UserRole[],
     profileData?: any
   ): Promise<AuthResponse> {
-    const response = await this.request<AuthResponse>("/api/auth/google", {
+    // Backend expects the Google ID token in a field named `token`
+    return this.request<AuthResponse>("/auth/google", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      body: JSON.stringify({ token: idToken, roles, profileData }),
+    });
+  }
+
+  async completeGoogleProfile(
+    idToken: string,
+    role: string,
+    profileData?: any
+  ): Promise<AuthResponse> {
+    // Same endpoint as googleLogin; backend expects `token` and `role`
+    return this.request<AuthResponse>("/auth/google", {
+      method: "POST",
       body: JSON.stringify({
-        idToken,
-        role: role || "citizen",
-        profileData: profileData || {},
+        token: idToken,
+        role, // Send as single role string
+        profileData,
       }),
     });
-
-    if (response.success) {
-      this.setToken(response.data.token);
-      this.setUser(response.data.user);
-    }
-
-    return response;
   }
 
   async getProfile(): Promise<{ success: boolean; data: { user: User } }> {
-    const response = await this.request<{
-      success: boolean;
-      data: { user: User };
-    }>("/api/auth/profile", {
-      method: "GET",
+    return this.request("/auth/profile", { method: "GET" });
+  }
+
+  // Optional: switch active role for the current user
+  async switchRole(
+    role: UserRole
+  ): Promise<{ success: boolean; data: { user: User } }> {
+    return this.request("/auth/switch-role", {
+      method: "POST",
+      body: JSON.stringify({ activeRole: role }),
     });
-
-    if (response.success) {
-      this.setUser(response.data.user);
-    }
-
-    return response;
-  }
-
-  // Token management
-  private setToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-  }
-
-  private getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
-  removeToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-  }
-
-  // User data management
-  private setUser(user: User): void {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-  }
-
-  getUser(): User | null {
-    const userData = localStorage.getItem(this.USER_KEY);
-    return userData ? JSON.parse(userData) : null;
-  }
-
-  // Check if user is authenticated
-  isAuthenticated(): boolean {
-    return !!this.getToken();
-  }
-
-  // Initialize auth state
-  async initializeAuth(): Promise<{
-    isAuthenticated: boolean;
-    user: User | null;
-  }> {
-    const token = this.getToken();
-    if (!token) {
-      return { isAuthenticated: false, user: null };
-    }
-
-    try {
-      // Try to get user profile to verify token
-      const response = await this.getProfile();
-      if (response.success) {
-        this.setUser(response.data.user);
-        return { isAuthenticated: true, user: response.data.user };
-      }
-      return { isAuthenticated: false, user: null };
-    } catch (error) {
-      console.error("Auth initialization error:", error);
-      this.removeToken();
-      return { isAuthenticated: false, user: null };
-    }
   }
 }
 
