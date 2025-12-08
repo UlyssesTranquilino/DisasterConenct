@@ -1,4 +1,5 @@
-import { Route, Routes, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Route, Routes, Navigate, BrowserRouter } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { ThemeProvider } from "./lib/theme";
 import { AppLayout } from "./layouts/AppLayout";
@@ -16,11 +17,40 @@ import OrgAnnouncementsPage from "./pages/org/OrgAnnouncementsPage";
 import VolunteerDashboard from "./pages/volunteer/VolunteerDashboard";
 import VolunteerNeedsPage from "./pages/volunteer/VolunteerNeedsPage";
 import VolunteerRegisterPage from "./pages/volunteer/VolunteerRegisterPage";
-
 import OrgEvacuationCentersPage from "./pages/org/OrgEvacuationCentersPage";
 import { OrgReportsPage } from "./pages/org/OrgReportsPage";
 import { OrgVolunteersPage } from "./pages/org/OrgVolunteersPage";
 import { OrgResourcesPage } from "./pages/org/OrgResourcesPage";
+
+const debug = true;
+
+// Debug wrapper to inject a mock user into AuthContext
+function CitizenDashboardWrapper() {
+  const { currentUser, setCurrentUser } = useAuth();
+
+  useEffect(() => {
+    if (!currentUser) {
+      setCurrentUser?.({
+        id: "debug-id",
+        email: "debug@example.com",
+        name: "Debug Citizen",
+        role: "Citizen",
+      });
+    }
+  }, [currentUser, setCurrentUser]);
+
+  // Show loading until the mock user is ready
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0A0F1C] text-white">
+        <div className="text-lg">Loading debug user...</div>
+      </div>
+    );
+  }
+
+  return <CitizenDashboard />;
+}
+
 
 function RoleRoute({
   roles,
@@ -31,7 +61,6 @@ function RoleRoute({
 }) {
   const { currentUser, isLoading } = useAuth();
 
-  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0A0F1C] text-white">
@@ -43,6 +72,7 @@ function RoleRoute({
   if (!currentUser) return <Navigate to="/login" replace />;
   if (!roles.includes(currentUser.role))
     return <Navigate to="/login" replace />;
+
   return children;
 }
 
@@ -57,7 +87,6 @@ function PublicRoute({ children }: { children: JSX.Element }) {
     );
   }
 
-  // If user is logged in, redirect to their dashboard
   if (currentUser) {
     if (currentUser.role === "Citizen")
       return <Navigate to="/citizen/dashboard" replace />;
@@ -72,6 +101,7 @@ function PublicRoute({ children }: { children: JSX.Element }) {
 
 const DEV:number=4
 export default function App() {
+<<<<<<< Updated upstream
   //return <CitizenDashboard />;
   if (DEV==0) { //test specific pages
     return (
@@ -99,146 +129,158 @@ export default function App() {
     );
   } else {
     return (
+=======
+  if (debug) {
+    return (
+      <ThemeProvider>
+        <AuthProvider>
+        
+            <CitizenDashboardWrapper />
+
+        </AuthProvider>
+      </ThemeProvider>
+    );
+  }
+
+  return (
+>>>>>>> Stashed changes
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <RegisterPage />
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/select-role"
-            element={
-              <PublicRoute>
-                <RoleSelectionPage />
-              </PublicRoute>
-            }
-          />
-
-          <Route element={<AppLayout />}>
-            {/* Citizen */}
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route
-              path="/citizen/dashboard"
+              path="/login"
               element={
-                <RoleRoute roles={["Citizen"]}>
-                  <CitizenDashboard />
-                </RoleRoute>
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
               }
             />
             <Route
-              path="/citizen/request-help"
+              path="/register"
               element={
-                <RoleRoute roles={["Citizen"]}>
-                  <RequestHelpPage />
-                </RoleRoute>
+                <PublicRoute>
+                  <RegisterPage />
+                </PublicRoute>
               }
             />
             <Route
-              path="/citizen/centers"
+              path="/select-role"
               element={
-                <RoleRoute roles={["Citizen"]}>
-                  <CitizenCentersPage />
-                </RoleRoute>
+                <PublicRoute>
+                  <RoleSelectionPage />
+                </PublicRoute>
               }
             />
 
-            {/* Organization */}
-            <Route
-              path="/org/dashboard"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgDashboard />
-                </RoleRoute>
-              }
-            />
+            <Route element={<AppLayout />}>
+              {/* Citizen */}
+              <Route
+                path="/citizen/dashboard"
+                element={
+                  <RoleRoute roles={["Citizen"]}>
+                    <CitizenDashboard />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/citizen/request-help"
+                element={
+                  <RoleRoute roles={["Citizen"]}>
+                    <RequestHelpPage />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/citizen/centers"
+                element={
+                  <RoleRoute roles={["Citizen"]}>
+                    <CitizenCentersPage />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/evacuation-centers"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgEvacuationCentersPage />
-                </RoleRoute>
-              }
-            />
+              {/* Organization */}
+              <Route
+                path="/org/dashboard"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgDashboard />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/org/evacuation-centers"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgEvacuationCentersPage />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/org/resources"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgResourcesPage />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/org/volunteers"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgVolunteersPage />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/org/announcements"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgAnnouncementsPage />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/org/reports"
+                element={
+                  <RoleRoute roles={["Organization"]}>
+                    <OrgReportsPage />
+                  </RoleRoute>
+                }
+              />
 
-            <Route
-              path="/org/resources"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgResourcesPage />
-                </RoleRoute>
-              }
-            />
+              {/* Volunteer */}
+              <Route
+                path="/volunteer/dashboard"
+                element={
+                  <RoleRoute roles={["Volunteer"]}>
+                    <VolunteerDashboard />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/volunteer/needs"
+                element={
+                  <RoleRoute roles={["Volunteer"]}>
+                    <VolunteerNeedsPage />
+                  </RoleRoute>
+                }
+              />
+              <Route
+                path="/volunteer/register"
+                element={
+                  <RoleRoute roles={["Volunteer"]}>
+                    <VolunteerRegisterPage />
+                  </RoleRoute>
+                }
+              />
+            </Route>
 
-            <Route
-              path="/org/volunteers"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgVolunteersPage />
-                </RoleRoute>
-              }
-            />
-
-            <Route
-              path="/org/announcements"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgAnnouncementsPage />
-                </RoleRoute>
-              }
-            />
-
-            <Route
-              path="/org/reports"
-              element={
-                <RoleRoute roles={["Organization"]}>
-                  <OrgReportsPage />
-                </RoleRoute>
-              }
-            />
-
-            {/* Volunteer */}
-            <Route
-              path="/volunteer/dashboard"
-              element={
-                <RoleRoute roles={["Volunteer"]}>
-                  <VolunteerDashboard />
-                </RoleRoute>
-              }
-            />
-            <Route
-              path="/volunteer/needs"
-              element={
-                <RoleRoute roles={["Volunteer"]}>
-                  <VolunteerNeedsPage />
-                </RoleRoute>
-              }
-            />
-            <Route
-              path="/volunteer/register"
-              element={
-                <RoleRoute roles={["Volunteer"]}>
-                  <VolunteerRegisterPage />
-                </RoleRoute>
-              }
-            />
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -43,12 +43,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const login = async (email: string, password: string) => {
-    const result = await loginWithEmail(email, password);
-    if (result.success) {
-      setUser(result.user);
-    }
-    return result;
-  };
+  const result = await loginWithEmail(email, password);
+  if (result.success) {
+    setUser(result.user ?? null);
+  }
+  return result;
+};
 
   const logout = async () => {
     await firebaseSignOut();

@@ -143,7 +143,7 @@ class ApiService {
   }
 
   // Token management
-  private setToken(token: string): void {
+  public setToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
   }
 
@@ -194,6 +194,23 @@ class ApiService {
       this.removeToken();
       return { isAuthenticated: false, user: null };
     }
+  }
+
+  //change user classification
+  async updateUserRole(role: string): Promise<{ success: boolean; data: { user: User } }> {
+    const response = await this.request<{ success: boolean; data: { user: User } }>(
+      "/api/users/update-role",
+      {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      }
+    );
+
+    if (response.success) {
+      this.setUser(response.data.user);
+    }
+
+    return response;
   }
 }
 

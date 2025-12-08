@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/button'
 import { AlertTriangle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
+<<<<<<< Updated upstream
 import DisasterMap from "../../components/DisasterMap";
 import { MapPin, Search, Bell, ChevronDown, Edit } from "lucide-react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
@@ -123,11 +124,48 @@ export default function CitizenDashboard() {
       <div>
         <h1 className="text-2xl font-bold text-white">Citizen Dashboard</h1>
         <p className="text-white">
+=======
+import apiService from "../../lib/api"
+import { useNavigate } from "react-router-dom"
+
+export default function CitizenDashboard() {
+  const { currentUser, isLoading, refreshUser } = useAuth()
+  const navigate = useNavigate()
+
+  const handleBecomeVolunteer = async () => {
+  try {
+    const response = await apiService.updateUserRole("volunteer");
+
+    if (response.success) {
+      // Refresh user in context
+      await refreshUser();
+
+      // Navigate to volunteer dashboard
+      navigate("/volunteer/dashboard");
+    }
+  } catch (err) {
+    console.error("Failed to update role:", err);
+  }
+};
+
+  if (isLoading) {
+    return <div className="p-6">Loading dashboard...</div>
+  }
+
+  const user = currentUser ?? { name: "Guest User" }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Citizen Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-400">
+>>>>>>> Stashed changes
           Welcome back, {user.name}! This is your disaster management portal.
         </p>
       </div>
       
       <div className="grid gap-4 md:grid-cols-2">
+<<<<<<< Updated upstream
         <Card className="border-0" style={cardGradientStyle}>
           <CardHeader className="border-b-0 p-0">
             <CardTitle className="text-2xl font-bold text-white">Current Status</CardTitle>
@@ -140,6 +178,34 @@ export default function CitizenDashboard() {
         <Card className="border-0" style={cardGradientStyle}>
           <CardHeader className="border-b-0 p-0">
             <CardTitle className="text-2xl font-bold text-white">Need Assistance?</CardTitle>
+=======
+
+        {/* Current Status Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Current Status</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              No active requests. Stay safe and monitor announcements.
+            </div>
+
+            {/* Become Volunteer Button */}
+            <Button 
+              variant="outline" 
+              className="mr-2"
+              onClick={handleBecomeVolunteer}
+            >
+              Become a Volunteer
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Request Help card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Need Assistance?</CardTitle>
+>>>>>>> Stashed changes
           </CardHeader>
           <CardContent className="p-0">
           <Link to="/citizen/request-help">
@@ -179,5 +245,3 @@ export default function CitizenDashboard() {
     
   )
 }
-
-
