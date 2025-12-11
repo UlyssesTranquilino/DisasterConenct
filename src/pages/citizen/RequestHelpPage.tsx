@@ -1,11 +1,10 @@
-// src/pages/citizen/RequestHelpPage.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Select } from "../../components/ui/select";
-import { Textarea } from "../../components/components/ui/textarea"; // Assuming you have this or use standard textarea
+// Fixed import path for Textarea (removed double "components")
+import { Textarea } from "../../components/components/ui/textarea"; 
 import { ArrowLeft, Loader2, AlertTriangle } from "lucide-react";
 import { citizenService } from "../../services/citizenService";
 import { toast } from "sonner";
@@ -39,7 +38,10 @@ export default function RequestHelpPage() {
       await citizenService.requestHelp({
         type: formData.type,
         location: formData.location,
-        details: formData.details
+        // FIX: Map 'details' to 'description' for the backend
+        description: formData.details, 
+        // FIX: Explicitly send null for disasterId since it is optional
+        disasterId: null 
       });
 
       toast.success("Help Request Sent!", { 
@@ -52,7 +54,7 @@ export default function RequestHelpPage() {
     } catch (error) {
       console.error(error);
       toast.error("Request Failed", { 
-        description: "Could not send help request. Please try again or contact emergency hotlines directly." 
+        description: "Could not send help request. Please try again." 
       });
     } finally {
       setIsSubmitting(false);

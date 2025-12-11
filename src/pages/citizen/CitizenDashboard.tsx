@@ -7,6 +7,22 @@ import { AlertTriangle, ShieldCheck, Clock, MapPin, Loader2 } from "lucide-react
 import { useAuth } from "../../lib/auth";
 import { citizenService, type HelpRequest } from "../../services/citizenService";
 
+// --- FIX: Helper to format Firestore dates safely ---
+const formatDate = (dateVal: any) => {
+  if (!dateVal) return "Just now";
+
+  // Case 1: Firestore Timestamp (has seconds)
+  const seconds = dateVal.seconds || dateVal._seconds;
+  if (seconds) {
+    return new Date(seconds * 1000).toLocaleString();
+  }
+
+  // Case 2: String or Date object
+  const date = new Date(dateVal);
+  return isNaN(date.getTime()) ? "Just now" : date.toLocaleString();
+};
+// ----------------------------------------------------
+
 export default function CitizenDashboard() {
   const { currentUser } = useAuth();
   const [activeRequest, setActiveRequest] = useState<HelpRequest | null>(null);
@@ -93,7 +109,8 @@ export default function CitizenDashboard() {
                     <span className="text-neutral-200">{activeRequest.location}</span>
                   </div>
                   <div className="text-neutral-400 text-xs pt-2 border-t border-white/10">
-                    Requested on: {new Date(activeRequest.createdAt).toLocaleString()}
+                    {/* ✅ FIX: Use the formatting helper here */}
+                    Requested on: {formatDate(activeRequest.createdAt)}
                   </div>
                 </div>
               </div>

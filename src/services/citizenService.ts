@@ -12,11 +12,19 @@ export interface HelpRequest {
   updatedAt: string;
 }
 
+// --- UPDATED INTERFACE ---
 export interface CreateHelpRequestData {
   type: string;
   location: string;
-  details: string;
+  
+  // New fields required by your updated Frontend/Backend
+  disasterId: string | null; 
+  description?: string;      
+  
+  // Kept for backward compatibility (optional now)
+  details?: string;          
 }
+// -------------------------
 
 export const citizenService = {
   // Submit a new help request

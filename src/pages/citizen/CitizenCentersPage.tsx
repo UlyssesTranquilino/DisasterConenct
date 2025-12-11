@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { MapPin, Phone, User, Loader2, AlertCircle } from "lucide-react";
-// Ensure this path matches where you put the service file
+import { MapPin, Phone, User, Loader2, AlertCircle, Navigation } from "lucide-react"; // Added Navigation icon
 import { evacuationCenterService, type EvacuationCenter } from "../../services/evacuationCenterService";
-// Ensure this path matches your VolunteerMap component location
 import VolunteerMap from "../../components/VolunteerMap";
+import { toast } from "sonner"; // Assuming you use sonner for toasts
 
 export default function CitizenCentersPage() {
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCenterId, setSelectedCenterId] = useState<string | null>(null);
+  
+  // 1. New State for User Location
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
 
   const fetchCenters = async () => {
     setLoading(true);
@@ -27,8 +30,34 @@ export default function CitizenCentersPage() {
     }
   };
 
+  // 2. Fetch User Location Function
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setIsLocating(false);
+        // Optional: toast.success("Location found!");
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        toast.error("Could not access your location. Please check browser permissions.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true } // Request best possible GPS accuracy
+    );
+  };
+
+  // Fetch centers and location on mount
   useEffect(() => {
     fetchCenters();
+    getUserLocation();
   }, []);
 
   // Map backend data to the format VolunteerMap expects
@@ -39,7 +68,7 @@ export default function CitizenCentersPage() {
     position: [c.lat, c.lng] as [number, number],
     capacity: c.capacity,
     occupancy: c.occupied ? Math.round((c.occupied / c.capacity) * 100) : 0,
-    supplies: [], // Empty array as default for supplies
+    supplies: [],
     contact: c.contact || "N/A",
     coordinates: { lat: c.lat, lng: c.lng },
     type: "evacuation" as const,
@@ -77,7 +106,19 @@ export default function CitizenCentersPage() {
     <div className="grid gap-6 lg:grid-cols-[1fr_450px] h-[calc(100vh-100px)]">
       {/* Left Column: List of Centers */}
       <div className="flex flex-col space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-        <h1 className="text-2xl font-bold text-white mb-2">Evacuation Centers</h1>
+        <div className="flex justify-between items-center mb-2">
+            <h1 className="text-2xl font-bold text-white">Evacuation Centers</h1>
+            <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={getUserLocation}
+                disabled={isLocating}
+                className="bg-neutral-800 border-neutral-700 text-blue-400 hover:bg-neutral-700"
+            >
+                {isLocating ? <Loader2 className="h-4 w-4 animate-spin mr-2"/> : <Navigation className="h-4 w-4 mr-2" />}
+                {userLocation ? "Update My Location" : "Find Me"}
+            </Button>
+        </div>
         
         {centers.length === 0 && (
           <div className="text-neutral-400 italic">No active evacuation centers found nearby.</div>
@@ -148,7 +189,11 @@ export default function CitizenCentersPage() {
       {/* Right Column: Map */}
       <div className="h-[400px] lg:h-auto rounded-xl overflow-hidden border border-neutral-800 bg-neutral-900/50 shadow-xl relative">
         <div className="absolute inset-0">
-          <VolunteerMap centers={mapLocations} />
+          {/* 3. Pass userLocation to the Map */}
+          <VolunteerMap 
+            centers={mapLocations} 
+            userLocation={userLocation} 
+          />
         </div>
       </div>
     </div>
