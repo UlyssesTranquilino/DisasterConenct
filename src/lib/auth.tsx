@@ -11,7 +11,27 @@ import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "./firebase";
 
 // In your frontend types
-export type UserRole = "citizen" | "organization" | "volunteer";
+export type UserRole = "citizen" | "organization" | "volunteer"; // Frontend UI names
+
+// --- Helper for role mapping to backend names (civilian) ---
+const toBackendRole = (frontendRole: UserRole): string => {
+  if (frontendRole === "citizen") return "civilian"; // Translate "citizen" to backend's "civilian"
+  return frontendRole;
+};
+
+// --- Helper to get all roles for registration (multi-role logic) ---
+const getRegistrationRoles = (selectedRole: UserRole): string[] => {
+  const primaryRole = toBackendRole(selectedRole);
+
+  if (primaryRole === "civilian" || primaryRole === "volunteer") {
+    // If citizen/volunteer is selected, ensure both roles are present
+    return ["civilian", "volunteer"];
+  }
+
+  // Organization is exclusive
+  return [primaryRole];
+};
+
 
 export type CurrentUser = {
   id: string;
@@ -27,22 +47,23 @@ export type CurrentUser = {
 type AuthContextValue = {
   currentUser: CurrentUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, role: UserRole) => Promise<void>; 
   loginWithGoogle: () => Promise<void>;
   register: (
     email: string,
     password: string,
     name: string,
-    roles: UserRole[],
+    role: UserRole,
     profileData?: any
   ) => Promise<void>;
   completeGoogleProfile: (
     userInfo: any,
-    roles: UserRole[],
+    role: UserRole,
     profileData: any
   ) => Promise<void>;
   logout: () => void;
   error: string | null;
+  switchRole: (role: UserRole) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -82,8 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const normalizeRole = (role: string): UserRole => {
+  // UPDATED: Map incoming "civilian" to internal "citizen"
+  const normalizeRole = (role: string): UserRole | string => {
     const normalized = role.toLowerCase();
+
+    // Translate backend's "civilian" to frontend's "citizen"
+    if (normalized === "civilian") return "citizen"; 
+    
     // Ensure it's a valid UserRole
     if (
       normalized === "citizen" ||
@@ -92,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ) {
       return normalized as UserRole;
     }
-    return "citizen"; // default fallback
+    return "citizen"; // default fallback for clarity
   };
 
   // Load user from localStorage
@@ -108,9 +134,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Normalize all roles
         const normalizedUser: CurrentUser = {
           ...storedUser,
-          roles: storedUser.roles?.map(normalizeRole) || [],
+          // Use the updated normalizeRole here
+          roles: storedUser.roles?.map(normalizeRole) as UserRole[] || [], 
           activeRole: storedUser.activeRole
-            ? normalizeRole(storedUser.activeRole)
+            ? normalizeRole(storedUser.activeRole) as UserRole
             : null,
         };
 
@@ -123,11 +150,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const profile = await apiService.getProfile();
           const profileUser = profile.data.user;
+          // Use the updated normalizeRole here
           setCurrentUser({
             ...profileUser,
-            roles: profileUser.roles?.map(normalizeRole) || [],
+            roles: profileUser.roles?.map(normalizeRole) as UserRole[] || [],
             activeRole: profileUser.activeRole
-              ? normalizeRole(profileUser.activeRole)
+              ? normalizeRole(profileUser.activeRole) as UserRole
               : null,
           });
         } catch (err) {
@@ -145,26 +173,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Normalize user data from different sources (API, localStorage, etc.)
   const normalizeUser = (user: any): CurrentUser => {
-    const roles = Array.isArray(user.roles)
+    // 1. Normalize roles from backend (e.g., "civilian" -> "citizen")
+    const rawRoles = Array.isArray(user.roles)
       ? user.roles.map(normalizeRole)
       : [normalizeRole(user.role || "citizen")];
 
+    // 2. Filter out duplicates or raw backend role if present, ensuring it matches the front-end type
+    const uniqueRoles: UserRole[] = Array.from(new Set(
+      rawRoles.filter((r: string) => r === "citizen" || r === "volunteer" || r === "organization")
+    )) as UserRole[];
+    
+    // 3. Determine active role using normalized roles
     const activeRole = user.activeRole
       ? normalizeRole(user.activeRole)
-      : roles[0] || "citizen";
+      : uniqueRoles[0] || "citizen";
 
     return {
       id: user.id || user.uid,
       email: user.email,
       displayName: user.displayName || user.name || user.email.split("@")[0],
-      roles,
-      activeRole,
+      roles: uniqueRoles,
+      activeRole: activeRole as UserRole, // Cast to our frontend type
       organizations: user.organizations || [],
       isVerified: user.isVerified || user.emailVerified || false,
       profilePicture: user.profilePicture || user.photoURL,
       ...(user.phoneNumber && { phoneNumber: user.phoneNumber }),
       ...(user.location && { location: user.location }),
-    };
+    } as CurrentUser;
   };
 
   // Helper function to determine redirect path based on user role
@@ -197,16 +232,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role: UserRole) => {
     try {
       setError(null);
       setIsLoading(true);
 
-      const response = await apiService.login(email, password);
+      // Translate the frontend role ("citizen") to the backend role ("civilian")
+      const backendRole = toBackendRole(role); 
+      
+      const response = await apiService.login(email, password, backendRole); // <-- PASS THE TRANSLATED ROLE
 
       if (response.success) {
         const { token, user } = response.data;
         const normalizedUser = normalizeUser(user);
+        
+        // Ensure the user is logged in with the role they selected on the LoginPage form
+        normalizedUser.activeRole = role;
 
         apiService.setToken(token);
         setCurrentUser(normalizedUser);
@@ -232,30 +273,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     name: string,
-    role: string,
+    role: UserRole, // Frontend role is passed here
     profileData: any = {}
   ) => {
     try {
       setError(null);
       setIsLoading(true);
 
+      // 1. Translate primary role for backend
+      const backendRole = toBackendRole(role);
+      
+      // 2. Determine all roles for backend linking (civilian/volunteer link)
+      const allRoles = getRegistrationRoles(role); 
+
       const response = await apiService.register(
         email,
         password,
         name,
-        role,
-        profileData
+        backendRole, // Send the single, translated primary role (e.g., "civilian")
+        { ...profileData, roles: allRoles } // Pass the full set of roles for backend processing
       );
 
       if (response.success) {
         const { token, user } = response.data;
-        const normalizedUser: CurrentUser = {
-          ...user,
-          roles: user.roles?.map(normalizeRole) || [role as UserRole],
-          activeRole: user.activeRole
-            ? normalizeRole(user.activeRole)
-            : (role as UserRole) || "citizen",
-        };
+        const normalizedUser = normalizeUser(user);
+
+        // FIX: Ensure the user is redirected to the role they just selected
+        // This overrides the backend's default or the frontend's 'uniqueRoles[0]' fallback.
+        normalizedUser.activeRole = role;
 
         apiService.setToken(token);
         setCurrentUser(normalizedUser);
@@ -317,13 +362,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Existing user: normalize and log them in directly
         const backendUser = response.data.user;
 
-        const normalizedUser: CurrentUser = {
-          ...backendUser,
-          roles: backendUser.roles?.map(normalizeRole) || [],
-          activeRole: backendUser.activeRole
-            ? normalizeRole(backendUser.activeRole)
-            : backendUser.roles?.[0] || null,
-        };
+        const normalizedUser = normalizeUser(backendUser);
+        
+        // NOTE: For existing users, we trust the backend's activeRole or fall back to default logic.
 
         apiService.setToken(response.data.token);
         setCurrentUser(normalizedUser);
@@ -372,30 +413,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeGoogleProfile = async (
     userInfo: any,
-    role: string,
+    role: UserRole, // Frontend role is passed here
     profileData: any
   ) => {
     try {
       setError(null);
       setIsLoading(true);
 
-      // Pass single role string
+      // 1. Translate primary role for backend
+      const backendRole = toBackendRole(role);
+      
+      // 2. Determine all roles for backend linking (civilian/volunteer link)
+      const allRoles = getRegistrationRoles(role);
+
+      // Pass single primary role string and all roles list in profileData
       const response = await apiService.completeGoogleProfile(
         userInfo.idToken,
-        role,
-        profileData
+        backendRole, // Send the single, translated primary role (e.g., "civilian")
+        { ...profileData, roles: allRoles } // Send all roles as a list in profileData
       );
 
       if (response.success) {
         const backendUser = response.data.user;
 
-        const normalizedUser: CurrentUser = {
-          ...backendUser,
-          roles: backendUser.roles?.map(normalizeRole) || [role as UserRole],
-          activeRole: backendUser.activeRole
-            ? normalizeRole(backendUser.activeRole)
-            : (role as UserRole) || null,
-        };
+        const normalizedUser = normalizeUser(backendUser); // Use updated normalizeUser
+
+        // FIX: Ensure the user is redirected to the role they just selected
+        // This overrides the backend's default or the frontend's 'uniqueRoles[0]' fallback.
+        normalizedUser.activeRole = role;
 
         apiService.setToken(response.data.token);
         setCurrentUser(normalizedUser);

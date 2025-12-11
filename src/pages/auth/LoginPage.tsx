@@ -51,7 +51,7 @@ export default function LoginPage() {
 
     try {
       // Perform login
-      await login(email, password);
+      await login(email, password, role); // UPDATED: Pass the selected role
 
       // The login function will handle redirection based on user role
       // No need for additional navigation here as it's handled in the auth context
