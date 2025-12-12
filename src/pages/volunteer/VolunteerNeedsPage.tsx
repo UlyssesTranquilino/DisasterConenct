@@ -20,7 +20,7 @@ type HelpRequest = {
   organization: string;
   organizationId: string;
   description: string;
-  location: string;
+  location: string | { name?: string, address?: string }; // Make location flexible
   coordinates: { lat: number; lng: number };
   skillsRequired: string[];
   volunteersNeeded: number;
@@ -64,7 +64,7 @@ interface CommunitySuggestion {
   description: string;
   organization: string;
   organizationId: string;
-  location: string;
+  location: string | { name?: string, address?: string }; // Make location flexible
   coordinates: { lat: number; lng: number };
   skillsRequired: string[];
   volunteersNeeded: number;
@@ -141,6 +141,12 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
 
   if (!isOpen || !helpRequest) return null;
 
+  // Safety check for location display in the modal
+  const displayLocation = typeof helpRequest.location === 'object' && helpRequest.location !== null
+    ? helpRequest.location.address || helpRequest.location.name || 'Location N/A'
+    : helpRequest.location;
+
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-lg w-full max-w-md border border-gray-700">
@@ -149,7 +155,7 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
-          </div>
+        </div>
         
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="bg-gray-700/30 rounded-lg p-3">
@@ -157,7 +163,7 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
             <p className="text-white text-sm font-medium">{helpRequest.title}</p>
             <p className="text-blue-400 text-xs mt-1">{helpRequest.organization}</p>
             <p className="text-gray-300 text-xs mt-1">{helpRequest.description}</p>
-            <p className="text-gray-400 text-xs mt-1">📍 {helpRequest.location}</p>
+            <p className="text-gray-400 text-xs mt-1">📍 {displayLocation}</p> {/* Use safe displayLocation */}
             {helpRequest.isCommunitySuggestion && (
               <p className="text-green-400 text-xs mt-1">Community Suggestion</p>
             )}
@@ -203,7 +209,7 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500 resize-none"
               />
             </div>
-            </div>
+          </div>
 
           <div className="flex gap-3 pt-2">
             <Button type="button" onClick={onClose} className="flex-1 bg-gray-600 hover:bg-gray-500 text-white">
@@ -363,6 +369,7 @@ function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, curre
                   placeholder="Organization name"
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   required
+                  disabled={submitting}
               />
             </div>
 
@@ -391,6 +398,7 @@ function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, curre
                 placeholder="Address or area"
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 required
+                disabled={submitting}
               />
             </div>
 
@@ -430,8 +438,8 @@ function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, curre
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   required
                   disabled={submitting}
-                />
-              </div>
+              />
+            </div>
             </div>
           </div>
 
@@ -1098,6 +1106,10 @@ export default function VolunteerNeedsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOpportunities.map((opportunity: any) => {
                   const isLinked = isFromLinkedOrganization(opportunity);
+                      // Safety check for location rendering:
+                      const displayLocation = typeof opportunity.location === 'object' && opportunity.location !== null
+                          ? opportunity.location.address || opportunity.location.name || 'Location N/A'
+                          : opportunity.location;
                   
                   return (
                     <Card 
@@ -1144,7 +1156,10 @@ export default function VolunteerNeedsPage() {
                         <div className="space-y-2 mb-3">
                           <div className="flex items-center gap-2 text-xs text-neutral-400">
                             <MapPin size={12} />
-                            <span className="truncate">{opportunity.location}</span>
+                            <span className="truncate">
+                                {/* ✅ FIX FOR "Objects are not valid as a React child" */}
+                                {displayLocation}
+                            </span>
                           </div>
                           
                           <div className="flex items-center gap-2 text-xs text-neutral-400">
