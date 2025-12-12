@@ -18,8 +18,8 @@ export default function OrgCentersPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await organizationService.getEvacuationCenters(currentOrgId);
-      setCenters(data);
+      const response = await organizationService.getEvacuationCenters();
+      setCenters(response.data);
     } catch (err) {
       setError(
         err instanceof Error
@@ -53,12 +53,12 @@ export default function OrgCentersPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Evacuation Centers</h1>
-        <Button asChild>
-          <Link to="/org/centers/new">
+        <Link to="/org/centers/new">
+          <Button>
             <Plus className="w-4 h-4 mr-2" />
             Add Center
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -74,12 +74,12 @@ export default function OrgCentersPage() {
               </div>
               <span
                 className={`px-2 py-0.5 rounded-full text-xs ${
-                  center.occupied >= center.capacity
+                  (center.occupied || 0) >= center.capacity
                     ? "bg-red-100 text-red-800"
                     : "bg-green-100 text-green-800"
                 }`}
               >
-                {center.occupied}/{center.capacity}
+                {center.occupied || 0}/{center.capacity}
               </span>
             </div>
 

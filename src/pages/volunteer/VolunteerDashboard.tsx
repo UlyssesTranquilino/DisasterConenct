@@ -623,114 +623,112 @@ export default function VolunteerDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchDashboardData = async () => {
+ // Inside VolunteerDashboard.tsx (Replace the entire fetchDashboardData function)
+
+const fetchDashboardData = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setRetryCount(prev => prev + 1);
-      
-      if (!isOnline) {
-        toast.warning('Offline Mode', 'You are offline. Please check your internet connection.');
-      }
-      
-      let fetchedAssignments: Assignment[] = [];
-      let fetchedNeeds: Need[] = [];
-      let fetchedAvailableOrganizations: Organization[] = [];
-      
-      if (isOnline) {
-        try {
-          // Use generic apiRequest
-          const assignmentsResponse = await apiService.apiRequest<ApiResponse<Assignment[]>>('/volunteer/assignments');
-          if (assignmentsResponse.success && assignmentsResponse.data) {
-            fetchedAssignments = assignmentsResponse.data;
-          }
-          
-          // Use generic apiRequest for needs
-          const needsResponse = await apiService.apiRequest<ApiResponse<Need[]>>('/volunteer/needs');
-          if (needsResponse.success && needsResponse.data) {
-            fetchedNeeds = needsResponse.data;
-            
-            // Extract unique organizations from needs
-            const orgsFromNeeds = fetchedNeeds
-              .filter((need, index, self) => 
-                need.organization && 
-                self.findIndex(n => n.organization === need.organization) === index
-              )
-              .map((need, index) => ({
-                id: `org_need_${index}`,
-                name: need.organization || "Unknown Organization",
-                email: "contact@organization.ph",
-                phone: "+63 2 000 0000",
-                description: `Organization posting volunteer needs: "${need.title}"`,
-                type: "NGO",
-                status: 'Active' as const,
-                joinedDate: new Date().toISOString().split('T')[0],
-                tasksAssigned: fetchedNeeds.filter(n => n.organization === need.organization).length,
-                tasksCompleted: 0,
-                contactPerson: "Contact Person",
-                contactEmail: "contact@organization.ph",
-                contactPhone: "+63 917 000 0000",
-                website: `https://${(need.organization || '').replace(/\s+/g, '').toLowerCase()}.org`,
-                logoUrl: ""
-              }));
-            
-            fetchedAvailableOrganizations.push(...orgsFromNeeds);
-          }
-          
-        } catch (apiError) {
-          console.error("API call failed, falling back to sample data:", apiError);
+        setLoading(true);
+        setError(null);
+        setRetryCount(prev => prev + 1);
+        
+        if (!isOnline) {
+            toast.warning('Offline Mode', 'You are offline. Please check your internet connection.');
         }
-      }
-      
-      // Set assignments
-      if (fetchedAssignments.length > 0) {
-        setAssignments(fetchedAssignments);
+        
+        let fetchedAssignments: Assignment[] = [];
+        let fetchedNeeds: Need[] = []; 
+        let fetchedAvailableOrganizations: Organization[] = [];
+        
+        if (isOnline) {
+            try {
+                // 1. Fetch Assignments
+                const assignmentsResponse = await apiService.apiRequest<ApiResponse<Assignment[]>>('/volunteer/assignments');
+                if (assignmentsResponse.success && assignmentsResponse.data) {
+                    fetchedAssignments = assignmentsResponse.data;
+                }
+                
+                // 2. Fetch Help Requests (FIXED ENDPOINT: /help-requests)
+                const needsResponse = await apiService.apiRequest<ApiResponse<Need[]>>('/volunteer/help-requests'); 
+
+                if (needsResponse.success && needsResponse.data) {
+                    fetchedNeeds = needsResponse.data;
+                    
+                    // --- Logic to extract organizations from needs and fetch linked organizations ---
+                    
+                    const orgsFromNeeds = fetchedNeeds
+                        .filter((need, index, self) => 
+                            need.organization && 
+                            self.findIndex(n => n.organization === need.organization) === index
+                        )
+                        .map((need, index) => ({
+                            id: `org_need_${index}`,
+                            name: need.organization || "Unknown Organization",
+                            email: "contact@organization.ph",
+                            phone: "+63 2 000 0000",
+                            description: `Organization posting volunteer needs: "${need.title}"`,
+                            type: "NGO",
+                            status: 'Active' as const,
+                            joinedDate: new Date().toISOString().split('T')[0],
+                            tasksAssigned: fetchedNeeds.filter(n => n.organization === need.organization).length,
+                            tasksCompleted: 0,
+                            contactPerson: "Contact Person",
+                            contactEmail: "contact@organization.ph",
+                            contactPhone: "+63 917 000 0000",
+                            website: `https://${(need.organization || '').replace(/\s+/g, '').toLowerCase()}.org`,
+                            logoUrl: ""
+                        }));
+                    
+                    fetchedAvailableOrganizations.push(...orgsFromNeeds);
+
+                    // 4. Fetch the organizations the user is linked to (using correct endpoint)
+                    const orgsResponse = await apiService.apiRequest<ApiResponse<Organization[]>>('/volunteer/organizations');
+                    if (orgsResponse.success && orgsResponse.data) {
+                        fetchedAvailableOrganizations.push(...orgsResponse.data);
+                    }
+                } else {
+                    // Log the specific backend error for the help-requests endpoint
+                    console.error("Failed to load help requests:", needsResponse.error || "Unknown API Error");
+                    setError(needsResponse.message || "Failed to load requests. Check backend/index.");
+                }
+
+            } catch (apiError) {
+                console.error("API segment failed, falling back to sample data:", apiError);
+            }
+        }
+        
+        // --- Setting final state (Replace these placeholders with your actual state setters) ---
+        setAssignments(fetchedAssignments.length > 0 ? fetchedAssignments : sampleAssignments);
+        setNeeds(fetchedNeeds.length > 0 ? fetchedNeeds : []);
+        setAvailableOrganizations(fetchedAvailableOrganizations.length > 0 
+            ? [...sampleOrganizations, ...fetchedAvailableOrganizations] 
+            : sampleOrganizations);
+        setMissions(sampleMissions);
+        
         if (fetchedAssignments.length > 0) {
-          setSelectedAssignment(fetchedAssignments[0]);
+            setSelectedAssignment(fetchedAssignments[0]);
+        } else if (sampleAssignments.length > 0) {
+            setSelectedAssignment(sampleAssignments[0]);
         }
-      } else {
-        setAssignments(sampleAssignments);
-        if (sampleAssignments.length > 0) {
-          setSelectedAssignment(sampleAssignments[0]);
-        }
-      }
-      
-      // Set needs
-      setNeeds(fetchedNeeds.length > 0 ? fetchedNeeds : []);
-      
-      // Set available organizations (combine sample with extracted ones)
-      if (fetchedAvailableOrganizations.length > 0) {
-        setAvailableOrganizations([...sampleOrganizations, ...fetchedAvailableOrganizations]);
-      } else {
-        setAvailableOrganizations(sampleOrganizations);
-      }
-      
-      setMissions(sampleMissions);
-      
-      // Update organization stats based on linked organizations
-      updateOrganizationStats();
-      
+        
+        // Update stats based on final state
+        updateOrganizationStats();
+
     } catch (error: any) {
-      console.error("Failed to fetch dashboard data:", error);
-      
-      // Fallback to sample data
-      setAssignments(sampleAssignments);
-      setNeeds([]);
-      setAvailableOrganizations(sampleOrganizations);
-      setMissions(sampleMissions);
-      
-      if (sampleAssignments.length > 0) {
-        setSelectedAssignment(sampleAssignments[0]);
-      }
-      
-      setError(error.message || "Using sample data.");
-      toast.error('Connection Error', 'Using sample data for demonstration.');
-      updateOrganizationStats();
-      
+        // Catches external errors
+        console.error("Failed to fetch dashboard data:", error);
+        setError(error.message || "Using sample data.");
+        
+        // Ensure graceful fallback on final failure
+        setAssignments(sampleAssignments);
+        setNeeds([]);
+        setAvailableOrganizations(sampleOrganizations);
+        setMissions(sampleMissions);
+        updateOrganizationStats();
+
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   const updateOrganizationStats = () => {
     const approvedLinks = organizationLinks.filter(link => link.status === 'approved');

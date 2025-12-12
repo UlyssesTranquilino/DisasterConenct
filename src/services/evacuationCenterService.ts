@@ -1,53 +1,74 @@
 import { apiService } from "../lib/api";
 
 export interface EvacuationCenter {
-  id: string;
-  name: string;
-  address: string;
-  head: string;
-  contact: string;
-  capacity: number;
-  occupied: number;
-  lat: number;
-  lng: number;
-  createdAt?: string;
-  updatedAt?: string;
+  id: string;
+  name: string;
+  address: string;
+  head: string;
+  contact: string;
+  capacity: number;
+  occupied: number;
+  lat: number;
+  lng: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateEvacuationCenterData {
-  name: string;
-  address: string;
-  head?: string;
-  contact?: string;
-  capacity: number;
-  occupied?: number;
-  lat: number;
-  lng: number;
-  lon?: number;
-  facilities?: string[];
+  name: string;
+  address: string;
+  head?: string;
+  contact?: string;
+  capacity: number;
+  occupied?: number;
+  lat: number;
+  lng: number;
+  lon?: number;
+  facilities?: string[];
 }
 
 export interface UpdateEvacuationCenterData {
-  name?: string;
-  address?: string;
-  head?: string;
-  contact?: string;
-  capacity?: number;
-  occupied?: number;
-  lat?: number;
-  lng?: number;
+  name?: string;
+  address?: string;
+  head?: string;
+  contact?: string;
+  capacity?: number;
+  occupied?: number;
+  lat?: number;
+  lng?: number;
 }
 
 export const evacuationCenterService = {
-  // ✅ FIX: Get all active evacuation centers (Public/Citizen view)
-  // This endpoint is open to citizens and does not require Org Admin permissions.
-  async getEvacuationCenters(): Promise<EvacuationCenter[]> {
+  // 👤 Citizen Read Operation (Public View)
+  // Endpoint: /citizen/centers
+  async getEvacuationCenters(): Promise<EvacuationCenter[]> {
+    const response = await apiService.apiRequest<{
+      success: boolean;
+      data: EvacuationCenter[];
+    }>("/citizen/centers", { method: "GET" });
+
+    // Normalize backend lon -> frontend lng
+    const normalized: EvacuationCenter[] = response.data.map((item: any) => {
+      const lng = typeof item.lng === 'number' ? item.lng : 
+                 (typeof item.lon === 'number' ? item.lon : 0);
+      return {
+        ...item,
+        lng: lng,
+      };
+    });
+
+    return normalized;
+  },
+
+  // 🏢 Organization Read Operation (Admin View)
+  // Endpoint: /organization/centers
+  async getOrganizationCenters(): Promise<EvacuationCenter[]> {
     const response = await apiService.apiRequest<{
       success: boolean;
       data: EvacuationCenter[];
-    }>("/citizen/centers", { method: "GET" }); // <--- CHANGED THIS LINE
+    }>("/organization/centers", { method: "GET" });
 
-    // Normalize backend lon -> frontend lng so maps and forms work consistently
+    // Normalize backend lon -> frontend lng
     const normalized: EvacuationCenter[] = response.data.map((item: any) => ({
       ...item,
       lng: item.lng ?? item.lon,
@@ -56,8 +77,8 @@ export const evacuationCenterService = {
     return normalized;
   },
 
-  // Create a new evacuation center (org inferred from JWT on backend)
-  // Note: This will return 403 Forbidden if called by a Citizen (intended behavior)
+  // 🏢 Organization Create Operation
+  // Endpoint: /organization/centers
   async createEvacuationCenter(
     data: CreateEvacuationCenterData
   ): Promise<{ id: string; message: string; center?: EvacuationCenter }> {
@@ -84,7 +105,8 @@ export const evacuationCenterService = {
     return response.data;
   },
 
-  // Update an existing evacuation center
+  // 🏢 Organization Update Operation
+  // Endpoint: /organization/centers/{id}
   async updateEvacuationCenter(
     centerId: string,
     data: UpdateEvacuationCenterData
@@ -100,7 +122,8 @@ export const evacuationCenterService = {
     return response;
   },
 
-  // Delete an evacuation center
+  // 🏢 Organization Delete Operation
+  // Endpoint: /organization/centers/{id}
   async deleteEvacuationCenter(centerId: string): Promise<{ message: string }> {
     const response = await apiService.apiRequest<{
       message: string;
