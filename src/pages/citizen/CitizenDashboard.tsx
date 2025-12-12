@@ -8,7 +8,7 @@ import { useAuth } from "../../lib/auth";
 import { citizenService, type HelpRequest } from "../../services/citizenService";
 import { toast } from "sonner"; // Assuming you use sonner for toast notifications
 
-// --- FIX: Helper to format Firestore dates safely ---
+// --- Helper to format Firestore dates safely ---
 const formatDate = (dateVal: any) => {
   if (!dateVal) return "Just now";
 
@@ -36,20 +36,22 @@ export default function CitizenDashboard() {
       setLoading(true);
       try {
         const requests = await citizenService.getMyActiveRequests();
-        
-        // ✅ FIX 1: Filter out requests marked as 'Closed' or 'Filled' from the client side.
-        // NOTE: The status from the backend must match these strings (e.g., 'Closed' != 'closed').
-        // We ensure we only display requests that are truly active.
-        const activeRequests = requests.filter(r => 
-            r.status !== 'Closed' && r.status !== 'Filled' && r.status !== 'resolved'
-        );
+        
+        // ⭐ FIX: Make filtering case-insensitive and explicit about exclusion
+        // We exclude statuses that mean 'done': Closed, Filled, Resolved/resolved
+        const statusesToExclude = ['closed', 'filled', 'resolved'];
+
+        const activeRequests = requests.filter(r => {
+            const statusLower = r.status ? r.status.toLowerCase() : '';
+            return !statusesToExclude.includes(statusLower);
+        });
 
         // Just grab the most recent one for the main dashboard status
         if (activeRequests && activeRequests.length > 0) {
           setActiveRequest(activeRequests[0]);
         } else {
-            setActiveRequest(null); 
-        }
+            setActiveRequest(null); 
+        }
       } catch (err) {
         console.error("Failed to fetch requests", err);
       } finally {
@@ -61,29 +63,29 @@ export default function CitizenDashboard() {
   }, []);
 
 
-  // ⭐ NEW LOGIC: Function to resolve the request from the civilian side
-  const markRequestAsResolved = async () => {
-    if (!activeRequest) return;
-    setResolving(true);
+  // Function to resolve the request from the civilian side
+  const markRequestAsResolved = async () => {
+    if (!activeRequest) return;
+    setResolving(true);
 
-    try {
-        // Calls the new service function
-        await citizenService.resolveRequest(activeRequest.id);
+    try {
+        // Calls the service function to mark the request as 'Closed'
+        await citizenService.resolveRequest(activeRequest.id);
 
-        setActiveRequest(null);
-        toast.success("Request Resolved!", {
-            description: "Your help request has been closed, and your safety status is updated.",
-        });
+        setActiveRequest(null);
+        toast.success("Request Resolved!", {
+            description: "Your help request has been closed, and your safety status is updated.",
+        });
 
-    } catch (error) {
-        console.error("Failed to resolve request:", error);
-        toast.error("Resolution Failed", {
-            description: "Could not close the request. Please try again.",
-        });
-    } finally {
-        setResolving(false);
-    }
-  };
+    } catch (error) {
+        console.error("Failed to resolve request:", error);
+        toast.error("Resolution Failed", {
+           description: "Could not close the request. Please try again.",
+        });
+    } finally {
+        setResolving(false);
+    }
+  };
 
 
   // Status badge helper
@@ -96,9 +98,9 @@ export default function CitizenDashboard() {
         return <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/30">RESPONDER ACKNOWLEDGED</span>;
       case "in_progress":
         return <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold border border-green-500/30">HELP IS ON THE WAY</span>;
-      case "closed":
-      case "resolved":
-          return <span className="bg-neutral-700 text-neutral-300 px-3 py-1 rounded-full text-xs font-bold">RESOLVED</span>;
+      case "closed":
+      case "resolved":
+          return <span className="bg-neutral-700 text-neutral-300 px-3 py-1 rounded-full text-xs font-bold">RESOLVED</span>;
       default:
         return <span className="bg-neutral-700 text-neutral-300 px-3 py-1 rounded-full text-xs font-bold">UNKNOWN</span>;
     }
@@ -147,29 +149,40 @@ export default function CitizenDashboard() {
                 </div>
                 
                 <div className="bg-white/5 rounded-lg p-3 text-sm space-y-2">
+                    {/* Location Text */}
                   <div className="flex items-start gap-2">
                     <MapPin size={16} className="text-neutral-400 mt-0.5" />
                     <span className="text-neutral-200">{activeRequest.location}</span>
                   </div>
+
+                    {/* Coordinates Display (NEW) */}
+                    {activeRequest.coordinates && activeRequest.coordinates.lat !== 0 && activeRequest.coordinates.lng !== 0 && (
+                        <div className="flex items-start gap-2 text-xs text-blue-400 pt-1">
+                            <MapPin size={16} className="text-blue-500 mt-0.5" />
+                            <span>
+                                GPS: Lat {activeRequest.coordinates.lat.toFixed(4)}, Lng {activeRequest.coordinates.lng.toFixed(4)}
+                            </span>
+                        </div>
+                    )}
+                    
                   <div className="text-neutral-400 text-xs pt-2 border-t border-white/10">
                     Requested on: {formatDate(activeRequest.createdAt)}
                   </div>
-                  {/* Option for the civilian to manually close the loop if help arrived/issue resolved */}
-                  {/* The button is visible if there is an active request */}
-                      <Button
-                          onClick={markRequestAsResolved}
-                          disabled={resolving}
-                          className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white"
-                      >
-                          {resolving ? (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                              <>
-                                  <CheckCircle2 size={16} className="mr-2" />
-                                  Mark Issue as Resolved / Safe
-                              </>
-                          )}
-                      </Button>
+                  {/* Mark as Resolved Button */}
+                      <Button
+                          onClick={markRequestAsResolved}
+                          disabled={resolving}
+                          className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                          {resolving ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                              <>
+                                  <CheckCircle2 size={16} className="mr-2" />
+                                  Mark Issue as Resolved / Safe
+                              </>
+                          )}
+                      </Button>
                 </div>
               </div>
             ) : (
@@ -191,9 +204,9 @@ export default function CitizenDashboard() {
           <CardContent className="space-y-4">
             <Link to="/citizen/request-help">
               <Button 
-                  className={`w-full h-14 text-lg font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20 ${activeRequest ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!!activeRequest}
-              >
+                  className={`w-full h-14 text-lg font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-900/20 ${activeRequest ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!!activeRequest}
+              >
                 <AlertTriangle size={20} className="mr-2" />
                 Request Emergency Help
               </Button>
@@ -206,21 +219,21 @@ export default function CitizenDashboard() {
                   Evacuation Centers
                 </Button>
               </Link>
-              {/* 🎯 MARK AS SAFE BUTTON (Functional) */}
+              {/* MARK AS SAFE BUTTON */}
               <Button 
-                  variant="outline" 
-                  className={`w-full bg-transparent border-neutral-700 hover:bg-green-600/50 ${!activeRequest ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={markRequestAsResolved}
-                  disabled={!activeRequest || resolving}
-              >
-                  {resolving ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                      <>
-                          <ShieldCheck size={16} className="mr-2" />
-                          Mark as Safe
-                      </>
-                  )}
+                  variant="outline" 
+                  className={`w-full bg-transparent border-neutral-700 hover:bg-green-600/50 ${!activeRequest ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={markRequestAsResolved}
+                  disabled={!activeRequest || resolving}
+              >
+                  {resolving ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                      <>
+                          <ShieldCheck size={16} className="mr-2" />
+                          Mark as Safe
+                      </>
+                  )}
               </Button>
             </div>
           </CardContent>

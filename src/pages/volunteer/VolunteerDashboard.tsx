@@ -431,41 +431,50 @@ function OrganizationLinkingModal({
   );
 }
 
-// Convert assignments to MapLocation format for VolunteerMap
 const convertAssignmentsToMapLocations = (assignments: Assignment[]): MapLocation[] => {
-  return assignments.map(assignment => ({
-    id: assignment.id,
-    name: assignment.title,
-    location: assignment.location,
-    position: [assignment.coordinates.lat, assignment.coordinates.lng] as [number, number],
-    capacity: 100,
-    supplies: assignment.supplies || [],
-    contact: assignment.organizationContact || "N/A",
-    occupancy: assignment.status === 'Completed' ? 100 : assignment.status === 'In Progress' ? 50 : 25,
-    coordinates: assignment.coordinates,
-    type: 'volunteer' as const
-  }));
+  return assignments
+    // ⭐ CRITICAL FIX: Filter out assignments missing coordinates or with zeroed coordinates
+    .filter(a => a.coordinates && a.coordinates.lat !== 0 && a.coordinates.lng !== 0)
+    .map(assignment => ({
+        id: assignment.id,
+        name: assignment.title,
+        location: assignment.location,
+        // Access is now SAFE
+        position: [assignment.coordinates.lat, assignment.coordinates.lng] as [number, number],
+        capacity: 100,
+        supplies: assignment.supplies || [],
+        contact: assignment.organizationContact || "N/A",
+        occupancy: assignment.status === 'Completed' ? 100 : assignment.status === 'In Progress' ? 50 : 25,
+        coordinates: assignment.coordinates,
+        type: 'volunteer' as const
+    }));
 };
 
+// Convert help requests to map locations (FIXED: Added filter for coordinates)
 const convertHelpRequestsToMapLocations = (requests: HelpRequest[]): MapLocation[] => {
-  return requests
-    .filter(request => request.status === "pending") // Only show pending requests
-    .map(request => ({
-      id: `help_${request.id}`,
-      name: `🆘 ${request.title || 'Help Needed'}`,
-      location: request.location || 'Unknown location',
-      position: [request.latitude || 0, request.longitude || 0] as [number, number],
-      type: 'urgent' as const,
-      description: request.description,
-      capacity: 1,
-      supplies: [],
-      contact: 'Civilian',
-      occupancy: 100,
-      coordinates: { 
-        lat: request.latitude || 0, 
-        lng: request.longitude || 0 
-      }
-    }));
+  return requests
+    .filter(request => request.status === "pending") // Only show pending requests
+    // ⭐ CRITICAL FIX: Filter out help requests missing coordinates or with zeroed coordinates
+    // Note: Since this function uses request.latitude and request.longitude, we must use those fields for filtering if they are the source of the data.
+    .filter(request => (request.latitude !== undefined && request.latitude !== null && request.latitude !== 0 && 
+                        request.longitude !== undefined && request.longitude !== null && request.longitude !== 0))
+    .map(request => ({
+      id: `help_${request.id}`,
+      name: `🆘 ${request.title || 'Help Needed'}`,
+      location: request.location || 'Unknown location',
+      // Access is now SAFE
+      position: [request.latitude || 0, request.longitude || 0] as [number, number],
+      type: 'urgent' as const,
+      description: request.description,
+      capacity: 1,
+      supplies: [],
+      contact: 'Civilian',
+      occupancy: 100,
+      coordinates: { 
+        lat: request.latitude || 0, 
+        lng: request.longitude || 0 
+      }
+    }));
 };
 
 const getIconComponent = (iconName: string, size: number = 16) => {

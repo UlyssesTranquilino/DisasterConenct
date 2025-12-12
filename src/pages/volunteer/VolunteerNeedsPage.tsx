@@ -16,7 +16,8 @@ import { ToastManager } from "../../components/components/ui/ToastNotification";
 // Define types locally since they're not in your API service
 type HelpRequest = {
   id: string;
-  title: string;
+  title?: string; // Made optional for safer reading
+  type: string; // Used for fallback title
   organization: string;
   organizationId: string;
   description: string;
@@ -33,7 +34,6 @@ type HelpRequest = {
   status: "Open" | "Filled" | "Closed";
   estimatedDuration: string;
   requirements?: string[];
-  // ✅ FIX APPLIED: Added missing property
   isCommunitySuggestion?: boolean; 
 };
 
@@ -61,6 +61,7 @@ type SuggestionStatus = "pending" | "approved" | "rejected" | "open" | "filled";
 interface CommunitySuggestion {
   id: string;
   title: string;
+  type: string; // Added type for consistency
   description: string;
   organization: string;
   organizationId: string;
@@ -123,12 +124,12 @@ const getUrgencyIcon = (urgency: string) => {
   }
 };
 
-// Response Popup Component (Updated prop name: need -> helpRequest)
+// Response Popup Component 
 function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: ApplicationFormData) => void;
-  helpRequest: HelpRequest | CommunitySuggestion; // Updated type
+  helpRequest: HelpRequest | CommunitySuggestion; 
 }) {
   const [formData, setFormData] = useState<ApplicationFormData>({
     availability: "", skills: "", notes: ""
@@ -141,11 +142,13 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
 
   if (!isOpen || !helpRequest) return null;
 
-  // Safety check for location display in the modal
-  const displayLocation = typeof helpRequest.location === 'object' && helpRequest.location !== null
-    ? helpRequest.location.address || helpRequest.location.name || 'Location N/A'
-    : helpRequest.location;
+  // Safety check for location display in the modal
+  const displayLocation = typeof helpRequest.location === 'object' && helpRequest.location !== null
+    ? helpRequest.location.address || helpRequest.location.name || 'Location N/A'
+    : helpRequest.location;
 
+  // Title fallback for modal
+  const displayTitle = helpRequest.title || helpRequest.type || 'Untitled Request';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -160,10 +163,10 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="bg-gray-700/30 rounded-lg p-3">
             <h4 className="text-white font-medium text-sm mb-2">Opportunity Details:</h4>
-            <p className="text-white text-sm font-medium">{helpRequest.title}</p>
+            <p className="text-white text-sm font-medium">{displayTitle}</p>
             <p className="text-blue-400 text-xs mt-1">{helpRequest.organization}</p>
             <p className="text-gray-300 text-xs mt-1">{helpRequest.description}</p>
-            <p className="text-gray-400 text-xs mt-1">📍 {displayLocation}</p> {/* Use safe displayLocation */}
+            <p className="text-gray-400 text-xs mt-1">📍 {displayLocation}</p> 
             {helpRequest.isCommunitySuggestion && (
               <p className="text-green-400 text-xs mt-1">Community Suggestion</p>
             )}
@@ -221,11 +224,11 @@ function ResponsePopup({ isOpen, onClose, onSubmit, helpRequest }: {
           </div>
         </form>
       </div>
-      </div>
+    </div>
   );
 }
 
-// Suggest Opportunity Popup (Remains unchanged)
+// Suggest Opportunity Popup (Remains unchanged except for title type)
 function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, currentUser }: {
   isOpen: boolean;
   onClose: () => void;
@@ -246,8 +249,11 @@ function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, curre
     
     try {
       const skillsArray = formData.skills.split(',').map(s => s.trim()).filter(s => s);
-      const suggestion = {
+      
+      const suggestion: CommunitySuggestion = { 
+        id: `temp_${Date.now()}`, // Added required ID
         title: formData.title,
+        type: "Community Suggestion", 
         description: formData.description,
         organization: formData.organization,
         organizationId: `community_${Date.now()}`,
@@ -369,7 +375,6 @@ function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, curre
                   placeholder="Organization name"
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   required
-                  disabled={submitting}
               />
             </div>
 
@@ -437,7 +442,6 @@ function SuggestOpportunityPopup({ isOpen, onClose, onSuggestionSubmitted, curre
                   placeholder="Email or phone"
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   required
-                  disabled={submitting}
               />
             </div>
             </div>
@@ -959,7 +963,7 @@ export default function VolunteerNeedsPage() {
                   <>You have {organizationStats.pendingLinks} pending connection request(s)</>
                 )}
               </p>
-            </div>
+              </div>
             <div className="flex gap-2">
               {organizationStats.pendingLinks > 0 && (
                 <span className="px-2 py-1 bg-yellow-500/20 text-yellow-400 rounded text-xs flex items-center">
@@ -1106,10 +1110,10 @@ export default function VolunteerNeedsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredOpportunities.map((opportunity: any) => {
                   const isLinked = isFromLinkedOrganization(opportunity);
-                      // Safety check for location rendering:
-                      const displayLocation = typeof opportunity.location === 'object' && opportunity.location !== null
-                          ? opportunity.location.address || opportunity.location.name || 'Location N/A'
-                          : opportunity.location;
+                      // Safety check for location rendering:
+                      const displayLocation = typeof opportunity.location === 'object' && opportunity.location !== null
+                          ? opportunity.location.address || opportunity.location.name || 'Location N/A'
+                          : opportunity.location;
                   
                   return (
                     <Card 
@@ -1133,7 +1137,8 @@ export default function VolunteerNeedsPage() {
                       <CardHeader className="pb-3">
                         <div className="flex justify-between items-start gap-2">
                           <CardTitle className="text-sm font-medium text-white flex-1 pr-8">
-                            {opportunity.title}
+                            {/* ⭐ FIX APPLIED: Use title, falling back to type + " Request" ⭐ */}
+                          {opportunity.type ? opportunity.type.charAt(0).toUpperCase() + opportunity.type.slice(1) : 'Untitled Request'}
                           </CardTitle>
                           <div className="flex items-center space-x-1">
                             {getUrgencyIcon(opportunity.urgency)}
@@ -1157,9 +1162,8 @@ export default function VolunteerNeedsPage() {
                           <div className="flex items-center gap-2 text-xs text-neutral-400">
                             <MapPin size={12} />
                             <span className="truncate">
-                                {/* ✅ FIX FOR "Objects are not valid as a React child" */}
-                                {displayLocation}
-                            </span>
+                                {displayLocation}
+                            </span>
                           </div>
                           
                           <div className="flex items-center gap-2 text-xs text-neutral-400">
