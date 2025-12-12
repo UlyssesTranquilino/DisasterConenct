@@ -7,7 +7,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Textarea } from "../../components/components/ui/textarea"; // Ensure this path is correct
+import { Textarea } from "../../components/components/ui/textarea";
 import VolunteerMap from "../../components/VolunteerMap";
 import { MapLocation } from "../../lib/MapLocation";
 import { apiService } from "../../lib/api"; 
@@ -63,6 +63,18 @@ export interface Assignment {
   supplies?: string[];
   volunteersNeeded?: number;
   volunteersAssigned?: number;
+}
+
+export interface HelpRequest {
+  id: string;
+  title: string;
+  description: string;
+  urgency: "Low" | "Medium" | "High";
+  latitude: number;    // Check if these exist in the backend response
+  longitude: number;   // Check if these exist in the backend response
+  status: "pending" | "accepted" | "completed";
+  location: string;    // Text location
+  organization?: string; // ADDED: Make it optional to match Need type
 }
 
 export interface Need {
@@ -435,6 +447,27 @@ const convertAssignmentsToMapLocations = (assignments: Assignment[]): MapLocatio
   }));
 };
 
+const convertHelpRequestsToMapLocations = (requests: HelpRequest[]): MapLocation[] => {
+  return requests
+    .filter(request => request.status === "pending") // Only show pending requests
+    .map(request => ({
+      id: `help_${request.id}`,
+      name: `🆘 ${request.title || 'Help Needed'}`,
+      location: request.location || 'Unknown location',
+      position: [request.latitude || 0, request.longitude || 0] as [number, number],
+      type: 'urgent' as const,
+      description: request.description,
+      capacity: 1,
+      supplies: [],
+      contact: 'Civilian',
+      occupancy: 100,
+      coordinates: { 
+        lat: request.latitude || 0, 
+        lng: request.longitude || 0 
+      }
+    }));
+};
+
 const getIconComponent = (iconName: string, size: number = 16) => {
   switch (iconName) {
     case "Clock":
@@ -507,13 +540,13 @@ export default function VolunteerDashboard() {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [activeTab, setActiveTab] = useState<'assignments' | 'missions'>('assignments');
   const [search, setSearch] = useState("");
+  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddAssignment, setShowAddAssignment] = useState(false);
   const [showLinkOrganizations, setShowLinkOrganizations] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [retryCount, setRetryCount] = useState(0);
   
   // Initialize Toast Manager (New Implementation)
@@ -594,6 +627,32 @@ export default function VolunteerDashboard() {
     }
   ];
 
+  // Test help requests
+  const testHelpRequests: HelpRequest[] = [
+    {
+      id: "test_1",
+      title: "Medical Emergency",
+      description: "Need medical assistance",
+      urgency: "High",
+      latitude: 14.61, // Manila coordinates
+      longitude: 120.98,
+      status: "pending",
+      location: "Intramuros, Manila",
+      organization: "Civilian"
+    },
+    {
+      id: "test_2",
+      title: "Trapped Person",
+      description: "Person trapped in building",
+      urgency: "High",
+      latitude: 14.604,
+      longitude: 120.99,
+      status: "pending",
+      location: "Ermita, Manila",
+      organization: "Civilian"
+    }
+  ];
+
   // Load organization links from localStorage on mount
   useEffect(() => {
     const savedLinks = localStorage.getItem('volunteer_org_links');
@@ -623,112 +682,111 @@ export default function VolunteerDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
- // Inside VolunteerDashboard.tsx (Replace the entire fetchDashboardData function)
-
-const fetchDashboardData = async () => {
+  const fetchDashboardData = async () => {
     try {
-        setLoading(true);
-        setError(null);
-        setRetryCount(prev => prev + 1);
-        
-        if (!isOnline) {
-            toast.warning('Offline Mode', 'You are offline. Please check your internet connection.');
-        }
-        
-        let fetchedAssignments: Assignment[] = [];
-        let fetchedNeeds: Need[] = []; 
-        let fetchedAvailableOrganizations: Organization[] = [];
-        
-        if (isOnline) {
-            try {
-                // 1. Fetch Assignments
-                const assignmentsResponse = await apiService.apiRequest<ApiResponse<Assignment[]>>('/volunteer/assignments');
-                if (assignmentsResponse.success && assignmentsResponse.data) {
-                    fetchedAssignments = assignmentsResponse.data;
-                }
-                
-                // 2. Fetch Help Requests (FIXED ENDPOINT: /help-requests)
-                const needsResponse = await apiService.apiRequest<ApiResponse<Need[]>>('/volunteer/help-requests'); 
+      setLoading(true);
+      setError(null);
+      setRetryCount(prev => prev + 1);
+      
+      if (!isOnline) {
+        toast.warning('Offline Mode', 'You are offline. Please check your internet connection.');
+      }
+      
+      let fetchedAssignments: Assignment[] = [];
+      let fetchedHelpRequests: HelpRequest[] = [];
+      let fetchedAvailableOrganizations: Organization[] = [];
+      
+      if (isOnline) {
+        try {
+          // 1. Fetch Assignments
+          const assignmentsResponse = await apiService.apiRequest<ApiResponse<Assignment[]>>('/volunteer/assignments');
+          if (assignmentsResponse.success && assignmentsResponse.data) {
+            fetchedAssignments = assignmentsResponse.data;
+          }
+          
+          // 2. Fetch Help Requests
+          const needsResponse = await apiService.apiRequest<ApiResponse<HelpRequest[]>>('/volunteer/help-requests'); 
 
-                if (needsResponse.success && needsResponse.data) {
-                    fetchedNeeds = needsResponse.data;
-                    
-                    // --- Logic to extract organizations from needs and fetch linked organizations ---
-                    
-                    const orgsFromNeeds = fetchedNeeds
-                        .filter((need, index, self) => 
-                            need.organization && 
-                            self.findIndex(n => n.organization === need.organization) === index
-                        )
-                        .map((need, index) => ({
-                            id: `org_need_${index}`,
-                            name: need.organization || "Unknown Organization",
-                            email: "contact@organization.ph",
-                            phone: "+63 2 000 0000",
-                            description: `Organization posting volunteer needs: "${need.title}"`,
-                            type: "NGO",
-                            status: 'Active' as const,
-                            joinedDate: new Date().toISOString().split('T')[0],
-                            tasksAssigned: fetchedNeeds.filter(n => n.organization === need.organization).length,
-                            tasksCompleted: 0,
-                            contactPerson: "Contact Person",
-                            contactEmail: "contact@organization.ph",
-                            contactPhone: "+63 917 000 0000",
-                            website: `https://${(need.organization || '').replace(/\s+/g, '').toLowerCase()}.org`,
-                            logoUrl: ""
-                        }));
-                    
-                    fetchedAvailableOrganizations.push(...orgsFromNeeds);
+          if (needsResponse.success && needsResponse.data) {
+            fetchedHelpRequests = needsResponse.data;
+            setHelpRequests(needsResponse.data);
+            console.log("RAW HELP REQUESTS FROM BACKEND:", needsResponse.data); 
+            
+            // Extract organizations from help requests
+            const orgsFromNeeds = fetchedHelpRequests
+              .filter((request, index, self) => 
+                (request.organization || request.title) &&
+                self.findIndex(r => r.organization === request.organization) === index
+              )
+              .map((request, index) => ({
+                id: `org_need_${index}`,
+                name: request.organization || request.title || "Unknown Organization",
+                email: "contact@organization.ph",
+                phone: "+63 2 000 0000",
+                description: `Organization posting volunteer needs: "${request.title}"`,
+                type: "NGO",
+                status: 'Active' as const,
+                joinedDate: new Date().toISOString().split('T')[0],
+                tasksAssigned: 1,
+                tasksCompleted: 0,
+                contactPerson: "Contact Person",
+                contactEmail: "contact@organization.ph",
+                contactPhone: "+63 917 000 0000",
+                website: `https://${(request.organization || request.title || 'organization').replace(/\s+/g, '').toLowerCase()}.org`,
+                logoUrl: ""
+              }));
+            
+            fetchedAvailableOrganizations.push(...orgsFromNeeds);
 
-                    // 4. Fetch the organizations the user is linked to (using correct endpoint)
-                    const orgsResponse = await apiService.apiRequest<ApiResponse<Organization[]>>('/volunteer/organizations');
-                    if (orgsResponse.success && orgsResponse.data) {
-                        fetchedAvailableOrganizations.push(...orgsResponse.data);
-                    }
-                } else {
-                    // Log the specific backend error for the help-requests endpoint
-                    console.error("Failed to load help requests:", needsResponse.error || "Unknown API Error");
-                    setError(needsResponse.message || "Failed to load requests. Check backend/index.");
-                }
-
-            } catch (apiError) {
-                console.error("API segment failed, falling back to sample data:", apiError);
+            // 3. Fetch the organizations the user is linked to
+            const orgsResponse = await apiService.apiRequest<ApiResponse<Organization[]>>('/volunteer/organizations');
+            if (orgsResponse.success && orgsResponse.data) {
+              fetchedAvailableOrganizations.push(...orgsResponse.data);
             }
+          } else {
+            console.error("Failed to load help requests:", needsResponse.error || "Unknown API Error");
+            setError(needsResponse.message || "Failed to load requests. Check backend/index.");
+          }
+
+        } catch (apiError) {
+          console.error("API segment failed, falling back to sample data:", apiError);
         }
-        
-        // --- Setting final state (Replace these placeholders with your actual state setters) ---
-        setAssignments(fetchedAssignments.length > 0 ? fetchedAssignments : sampleAssignments);
-        setNeeds(fetchedNeeds.length > 0 ? fetchedNeeds : []);
-        setAvailableOrganizations(fetchedAvailableOrganizations.length > 0 
-            ? [...sampleOrganizations, ...fetchedAvailableOrganizations] 
-            : sampleOrganizations);
-        setMissions(sampleMissions);
-        
-        if (fetchedAssignments.length > 0) {
-            setSelectedAssignment(fetchedAssignments[0]);
-        } else if (sampleAssignments.length > 0) {
-            setSelectedAssignment(sampleAssignments[0]);
-        }
-        
-        // Update stats based on final state
-        updateOrganizationStats();
+      }
+      
+      // Use test data if real data doesn't have coordinates
+      const helpRequestsToShow = fetchedHelpRequests.length > 0 && fetchedHelpRequests[0]?.latitude 
+        ? fetchedHelpRequests 
+        : testHelpRequests;
+      setHelpRequests(helpRequestsToShow);
+      
+      setAssignments(fetchedAssignments.length > 0 ? fetchedAssignments : sampleAssignments);
+      setAvailableOrganizations(fetchedAvailableOrganizations.length > 0 
+          ? [...sampleOrganizations, ...fetchedAvailableOrganizations] 
+          : sampleOrganizations);
+      setMissions(sampleMissions);
+      
+      if (fetchedAssignments.length > 0) {
+        setSelectedAssignment(fetchedAssignments[0]);
+      } else if (sampleAssignments.length > 0) {
+        setSelectedAssignment(sampleAssignments[0]);
+      }
+      
+      updateOrganizationStats();
 
     } catch (error: any) {
-        // Catches external errors
-        console.error("Failed to fetch dashboard data:", error);
-        setError(error.message || "Using sample data.");
-        
-        // Ensure graceful fallback on final failure
-        setAssignments(sampleAssignments);
-        setNeeds([]);
-        setAvailableOrganizations(sampleOrganizations);
-        setMissions(sampleMissions);
-        updateOrganizationStats();
+      console.error("Failed to fetch dashboard data:", error);
+      setError(error.message || "Using sample data.");
+      
+      setAssignments(sampleAssignments);
+      setHelpRequests(testHelpRequests);
+      setAvailableOrganizations(sampleOrganizations);
+      setMissions(sampleMissions);
+      updateOrganizationStats();
 
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
   const updateOrganizationStats = () => {
     const approvedLinks = organizationLinks.filter(link => link.status === 'approved');
@@ -763,7 +821,6 @@ const fetchDashboardData = async () => {
   // Handle linking request
   const handleLinkRequest = async (orgId: string, orgName: string) => {
     try {
-      // Get user ID safely
       let userId = 'unknown-user-id';
       if (currentUser && currentUser.id) {
           userId = currentUser.id;
@@ -781,7 +838,6 @@ const fetchDashboardData = async () => {
       const updatedLinks = [...organizationLinks, newLink];
       saveOrganizationLinks(updatedLinks);
       
-      // Simulate approval after 2 seconds
       setTimeout(() => {
         const approvedLinks = updatedLinks.map(link =>
           link.id === newLink.id 
@@ -830,7 +886,6 @@ const fetchDashboardData = async () => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, lng: longitude });
         setIsGettingLocation(false);
-        // Use specialized toast method
         toast.locationFound(latitude, longitude);
       },
       (error) => {
@@ -865,7 +920,6 @@ const fetchDashboardData = async () => {
       window.open(url, '_blank');
     }
     
-    // Use specialized toast method
     toast.directionsStarted(assignment.title);
   };
 
@@ -881,13 +935,12 @@ const fetchDashboardData = async () => {
     setAssignments(prev => [assignmentWithId, ...prev]);
     setSelectedAssignment(assignmentWithId);
     
-    // Use specialized toast method
     toast.assignmentCreated(newAssignment.title!, newAssignment.organization || "Self-assigned");
   };
 
   // Calculate metrics
   const activeAssignments = assignments.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled');
-  const urgentNeeds = needs.filter(n => n.urgency === "High");
+  const urgentHelpRequests = helpRequests.filter(r => r.urgency === "High");
   const pendingLinks = organizationLinks.filter(link => link.status === 'pending').length;
 
   const calculatedMetrics = [
@@ -911,7 +964,7 @@ const fetchDashboardData = async () => {
     },
     {
       title: "Urgent Needs",
-      value: urgentNeeds.length.toString(),
+      value: urgentHelpRequests.length.toString(),
       icon: "AlertTriangle",
       color: "text-yellow-400"
     }
@@ -930,10 +983,8 @@ const fetchDashboardData = async () => {
         });
       }
       
-      // Update organization stats
       updateOrganizationStats();
       
-      // Toast notification
       toast.success('Status Updated', `Assignment status updated to ${newStatus}`);
       
     } catch (error) {
@@ -946,11 +997,62 @@ const fetchDashboardData = async () => {
     setSelectedAssignment(assignment);
   };
 
+  const handleAcceptHelpRequest = async (requestId: string) => {
+    try {
+      // Find the help request
+      const request = helpRequests.find(r => r.id === requestId);
+      if (!request) return;
+
+      // Call API to accept the request - FIXED: Use correct API format
+      const response = await apiService.apiRequest<ApiResponse<any>>(`/volunteer/help-requests/${requestId}/accept`, {
+        method: 'POST'
+      });
+
+      if (response.success) {
+        // Remove from help requests list
+        setHelpRequests(prev => prev.filter(r => r.id !== requestId));
+        
+        // Add as a new assignment
+        const newAssignment: Assignment = {
+          id: `rescue_${requestId}`,
+          title: `Rescue: ${request.title || 'Civilian in need'}`,
+          organization: "Civilian Rescue",
+          description: request.description || 'Help needed at location',
+          dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          status: "In Progress",
+          priority: "High",
+          location: request.location || 'Unknown location',
+          coordinates: { 
+            lat: request.latitude || 0, 
+            lng: request.longitude || 0 
+          },
+          requiredSkills: ["First Aid", "Rescue"],
+          estimatedHours: 2
+        };
+        
+        setAssignments(prev => [newAssignment, ...prev]);
+        setSelectedAssignment(newAssignment);
+        
+        toast.success('Request Accepted', 'You are now assigned to help!');
+      }
+    } catch (error) {
+      console.error("Failed to accept request:", error);
+      toast.error('Accept Failed', 'Failed to accept request. Please try again.');
+    }
+  };
+
   // Handle map location selection
   const handleMapLocationSelect = (location: MapLocation) => {
-    const assignment = assignments.find(a => a.id === location.id);
-    if (assignment) {
-      handleAssignmentSelect(assignment);
+    // Check if it's a help request (has 'help_' prefix)
+    if (location.id.startsWith('help_')) {
+      const requestId = location.id.replace('help_', '');
+      handleAcceptHelpRequest(requestId);
+    } else {
+      // Handle regular assignment selection
+      const assignment = assignments.find(a => a.id === location.id);
+      if (assignment) {
+        setSelectedAssignment(assignment);
+      }
     }
   };
 
@@ -1194,7 +1296,7 @@ const fetchDashboardData = async () => {
                   </CardTitle>
                   <div className="flex items-center space-x-2">
                     <span className="text-xs text-gray-400">
-                      {activeAssignments.length} active • {organizationStats.totalLinked} orgs
+                      {activeAssignments.length} active • {helpRequests.length} help requests
                     </span>
                     <Button
                       size="sm"
@@ -1211,6 +1313,7 @@ const fetchDashboardData = async () => {
                   <div className="h-full">
                     <VolunteerMap 
                       centers={mapLocations}
+                      helpRequests={convertHelpRequestsToMapLocations(helpRequests)}
                       onLocationSelect={handleMapLocationSelect}
                       userLocation={userLocation}
                       selectedLocationId={selectedAssignment?.id}

@@ -12,4 +12,6 @@ export interface MapLocation {
     lng: number;
   };
   type?: "evacuation" | "urgent" | "volunteer" | "searched";
+  description?: string;
+  urgency?: "Low" | "Medium" | "High";
 }
